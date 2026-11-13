@@ -9,7 +9,7 @@ RSpec.describe RspackRails::Helper do
 
   before do
     allow(RspackRails).to receive(:dev_server).and_return(dev_server)
-    allow(dev_server).to receive(:url) { |path| "http://localhost:3036/#{path}" }
+    allow(dev_server).to receive(:url) { |path| "/rspack/#{path}" }
   end
 
   context "when the dev server is running" do
@@ -17,13 +17,13 @@ RSpec.describe RspackRails::Helper do
 
     it "loads each entry from the dev server" do
       html = view.rspack_javascript_tag("application", "admin")
-      expect(html).to include('src="http://localhost:3036/application.js"')
-      expect(html).to include('src="http://localhost:3036/admin.js"')
+      expect(html).to include('src="/rspack/application.js"')
+      expect(html).to include('src="/rspack/admin.js"')
       expect(html).to include("defer")
     end
 
     it "links stylesheets from the dev server" do
-      expect(view.rspack_stylesheet_tag("application")).to include('href="http://localhost:3036/application.bundle.css"')
+      expect(view.rspack_stylesheet_tag("application")).to include('href="/rspack/application.bundle.css"')
     end
   end
 
@@ -32,7 +32,7 @@ RSpec.describe RspackRails::Helper do
 
     it "falls back to the asset pipeline" do
       html = view.rspack_javascript_tag("application", "data-turbo-track": "reload")
-      expect(html).not_to include("3036")
+      expect(html).not_to include("/rspack/")
       expect(html).to include("application.js")
       expect(html).to include('data-turbo-track="reload"')
     end
@@ -41,7 +41,7 @@ RSpec.describe RspackRails::Helper do
       html = view.rspack_stylesheet_tag("application", "admin")
       expect(html).to include("application.bundle.css")
       expect(html).to include("admin.bundle.css")
-      expect(html).not_to include("3036")
+      expect(html).not_to include("/rspack/")
     end
   end
 

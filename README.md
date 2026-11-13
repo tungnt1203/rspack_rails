@@ -74,7 +74,7 @@ Run `bin/dev` to start Rails and the rspack dev server (with hot module replacem
 <%= rspack_stylesheet_tag "application" %>
 ```
 
-In development, when `rspack serve` is reachable, the helpers load bundles from the dev server (`http://localhost:3036/application.js`), so edits are hot-reloaded. Otherwise they fall back to `javascript_include_tag` / `stylesheet_link_tag`, served and fingerprinted by Propshaft from `app/assets/builds`. Production always uses the asset pipeline. `rspack_javascript_tag` adds `defer` by default.
+In development, when `rspack serve` is reachable, the helpers load bundles from the dev server, so edits are hot-reloaded. Rails proxies them under `/rspack/` (`/rspack/application.js`), so scripts, chunks, Web Workers and images are same-origin with the page; the HMR websocket connects to `localhost:3036` directly. Otherwise they fall back to `javascript_include_tag` / `stylesheet_link_tag`, served and fingerprinted by Propshaft from `app/assets/builds`. Production always uses the asset pipeline. `rspack_javascript_tag` adds `defer` by default.
 
 ### Dev server settings
 

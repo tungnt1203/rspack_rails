@@ -52,6 +52,8 @@ echo 'import "./application.css"' >> app/javascript/application.js
 echo 'import heroUrl from "./images/hero.png"; window.heroUrl = heroUrl' >> app/javascript/application.js
 # A lazy chunk (*.digested.js) matches both rspack:clobber patterns.
 echo 'export default "lazy-chunk"' > app/javascript/lazy.js
+printf 'self.onmessage = (e) => self.postMessage(e.data * 2)\n' > app/javascript/worker.js
+echo 'window.rspackWorker = new Worker(new URL("./worker.js", import.meta.url))' >> app/javascript/application.js
 echo 'import("./lazy").then((m) => console.log(m.default))' >> app/javascript/application.js
 cat > app/javascript/controllers/typed_controller.ts <<'TS'
 import { Controller } from "@hotwired/stimulus"
@@ -124,6 +126,11 @@ for _ in $(seq 1 60); do curl -s -o /dev/null http://localhost:3036/application.
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3036/_rspack/lazy/trigger -d '')
 grep -lq 'localhost%3A3036%2F_rspack%2Flazy%2Ftrigger' app/assets/builds/*lazy-compilation-proxy*.js ||
   { kill $serve_pid; echo "lazy compilation does not call the dev server"; exit 1; }
+# Rails serves the dev server's files same-origin under /rspack/ (needed for Web Workers).
+proxied=$(bin/rails runner '
+  response = Rack::MockRequest.new(Rails.application).get("/rspack/application.js", "HTTP_HOST" => "localhost")
+  puts response.status, response.body.include?("worker")' 2>&1) || { kill $serve_pid; echo "$proxied"; exit 1; }
+assert_match "$proxied" '^200$'
 kill $serve_pid; wait $serve_pid 2>/dev/null || true
 curl -s -o /dev/null http://localhost:3036/application.js && { echo "rspack serve still running"; exit 1; }
 [ "$code" = 200 ] || { echo "lazy compilation endpoint returned $code"; exit 1; }
@@ -166,6 +173,7 @@ grep -q '.sassy .inner{margin:13px}' public/assets/application.bundle-*.css || {
 grep -q 'tracking-widest' public/assets/application.bundle-*.css || { echo "tailwind utility missing in production"; exit 1; }
 grep -q 'badge:' public/assets/application-*.js || { echo "React component missing in production"; exit 1; }
 grep -q 'jsxDEV' public/assets/application-*.js && { echo "development JSX runtime in production"; exit 1; }
+grep -lq 'postMessage' public/assets/*.digested.js || { echo "worker chunk missing"; exit 1; }
 grep -lq 'lazy-chunk' public/assets/*.digested.js || { echo "lazy chunk missing"; exit 1; }
 ls public/assets | grep -q '\.map$' && { echo "source maps in public/assets"; exit 1; }
 

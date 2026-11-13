@@ -25,8 +25,9 @@ module RspackRails
       @running = reachable?
     end
 
+    # Same-origin path served by RspackRails::DevServerProxy.
     def url(path)
-      "#{@config.dev_server_url}/#{path.to_s.delete_prefix("/")}"
+      "/rspack/#{path.to_s.delete_prefix("/")}"
     end
 
     private

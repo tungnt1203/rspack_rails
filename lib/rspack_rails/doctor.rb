@@ -77,9 +77,17 @@ module RspackRails
     end
 
     def config_check
-      return Check.new(:ok, "rspack.config.mjs", "found") if exist?("rspack.config.mjs")
+      return Check.new(:error, "rspack.config.mjs", "missing", "Run `bin/rails rspack:install`") unless
+        exist?("rspack.config.mjs")
 
-      Check.new(:error, "rspack.config.mjs", "missing", "Run `bin/rails rspack:install`")
+      # Generated before 0.7.1: rspack serve hands out http://localhost:3036/ URLs.
+      unless read("rspack.config.mjs").include?('"/rspack/"')
+        return Check.new(:warn, "rspack.config.mjs", "loads chunks and workers from the dev server's origin",
+                         "Re-run `bin/rails rspack:install` and accept the new rspack.config.mjs " \
+                         "(Web Workers fail under rspack serve otherwise)")
+      end
+
+      Check.new(:ok, "rspack.config.mjs", "found")
     end
 
     def scripts_check

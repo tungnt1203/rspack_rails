@@ -39,7 +39,7 @@ RSpec.describe RspackRails::Doctor do
     install_package("@rspack/core", engines: { node: "^20.19.0 || >=22.12.0" })
     install_package("@rspack/cli")
     install_package("@rspack/dev-server")
-    write("rspack.config.mjs")
+    write("rspack.config.mjs", 'publicPath: isDevServer ? "/rspack/" : "auto",')
     write("package.json", JSON.generate(scripts: { build: "rspack build", dev: "rspack serve" }))
     write("app/javascript/application.js")
     write("app/assets/builds/application.js", "console.log(1)")
@@ -52,6 +52,13 @@ RSpec.describe RspackRails::Doctor do
     expect(doctor.checks.map(&:status).uniq).to eq([:ok])
     expect(doctor).to be_ok
     expect(doctor.summary).to eq("Everything looks good.")
+  end
+
+  it "warns about a config from before the dev server proxy" do
+    set_up_complete_app
+    write("rspack.config.mjs", "publicPath: isDevServer ? `http://${host}:${port}/` : \"auto\",")
+    expect(check("rspack.config.mjs").status).to eq(:warn)
+    expect(check("rspack.config.mjs").hint).to include("rspack:install")
   end
 
   it "reports an empty directory as failing" do
