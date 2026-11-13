@@ -50,6 +50,13 @@ export default class extends Controller<HTMLElement> {
 }
 TS
 
+step "Adding an admin entry point"
+mkdir -p app/javascript/entrypoints
+cat > app/javascript/entrypoints/admin.ts <<'TS'
+const area: string = "admin-entry"
+console.log(area)
+TS
+
 step "typecheck"
 npm run typecheck
 
@@ -57,9 +64,13 @@ step "rspack:build"
 bin/rails rspack:build
 assert_file app/assets/builds/application.js
 assert_file app/assets/builds/application.bundle.css
+assert_file app/assets/builds/admin.js
+find app/assets/builds -name '*hot-update*' | grep -q . && { echo "hot-update files in builds"; exit 1; }
 
 step "rspack:doctor"
-bin/rails rspack:doctor
+doctor=$(bin/rails rspack:doctor)
+echo "$doctor"
+assert_match "$doctor" 'Entry points: application, admin'
 
 step "assets:precompile (production)"
 export RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1
@@ -67,12 +78,15 @@ bin/rails assets:precompile
 assets=$(ls public/assets)
 assert_match "$assets" '^application-[0-9a-f]+\.js$'
 assert_match "$assets" '^application\.bundle-[0-9a-f]+\.css$'
+assert_match "$assets" '^admin-[0-9a-f]+\.js$'
+grep -q 'admin-entry' public/assets/admin-*.js || { echo "admin entry missing from bundle"; exit 1; }
 grep -q 'typed' public/assets/application-*.js || { echo "typed controller missing from bundle"; exit 1; }
 
 step "Helpers in production"
 html=$(bin/rails runner \
-  'puts ApplicationController.render(inline: %(<%= rspack_javascript_tag "application" %><%= rspack_stylesheet_tag "application" %>))')
+  'puts ApplicationController.render(inline: %(<%= rspack_javascript_tag "application", "admin" %><%= rspack_stylesheet_tag "application" %>))')
 assert_match "$html" 'src="/assets/application-[0-9a-f]+\.js"'
+assert_match "$html" 'src="/assets/admin-[0-9a-f]+\.js"'
 assert_match "$html" 'href="/assets/application\.bundle-[0-9a-f]+\.css"'
 
 step "OK"
