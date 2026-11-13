@@ -158,6 +158,8 @@ Components are found by path (`admin/Chart` is `app/javascript/components/admin/
 
 `.jsx` and `.tsx` files compile with Rspack's built-in SWC. With TypeScript set up, the installer also sets `"jsx": "react-jsx"` in `tsconfig.json` and adds `@types/react`.
 
+To use the [React Compiler](https://react.dev/learn/react-compiler), which memoizes components automatically, set `RSPACK_REACT_COMPILER=true`. It runs in Rspack's built-in SWC, with no Babel. Set it for every build, including `assets:precompile` on deploy, so development and production behave the same.
+
 ### Tailwind CSS
 
 ```bash
@@ -202,6 +204,8 @@ bin/rails rspack:install:typescript   # tsconfig.json, typescript, "typecheck" s
 npm run typecheck
 ```
 
+After `rspack:install:typescript`, type errors also show in the dev server overlay while you work (`ts-checker-rspack-plugin`); builds stay fast and leave checking to `typecheck`. `paths` aliases in `tsconfig.json` are honored, so `"@/*": ["./app/javascript/*"]` makes `import "@/lib/api"` work in both TypeScript and rspack.
+
 ### Tasks
 
 | Task | What it does |
@@ -220,6 +224,8 @@ npm run typecheck
 `rspack:build` runs automatically before `assets:precompile`, `test:prepare`, `spec:prepare` and `db:test:prepare`. Set `SKIP_RSPACK_BUILD=1` to turn that off.
 
 When `RAILS_ENV` or `NODE_ENV` is `production`, the generated config builds in production mode (minified). `rspack:build` sets `NODE_ENV` from `Rails.env`: `development` in development and test, `production` everywhere else. Lazy-loaded chunks are named `*.digested.js`, so Propshaft serves them without fingerprinting them a second time.
+
+JavaScript and CSS are compiled for the browsers in your [browserslist](https://github.com/browserslist/browserslist) config (`.browserslistrc`, or `"browserslist"` in `package.json`). Without one, the target is Baseline "widely available", which matches Rails 8's `allow_browser versions: :modern`.
 
 Source maps are on in development (`cheap-module-source-map`) and off in production, so your source never lands in `public/assets`. Set `RSPACK_DEVTOOL` to choose another [devtool](https://rspack.rs/config/devtool), for example `RSPACK_DEVTOOL=hidden-source-map` to upload maps to an error tracker, or `RSPACK_DEVTOOL=false` to turn them off.
 
