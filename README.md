@@ -124,6 +124,8 @@ The required Node.js version comes from the `engines` field of the installed `@r
 ```bash
 bin/setup
 bundle exec rake   # specs + rubocop
+bin/integration    # new Rails app + every installer, build, doctor and precompile
+bin/integration "~> 7.2.0"   # against a specific Rails version
 ```
 
 ## License
