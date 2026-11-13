@@ -73,6 +73,17 @@ RSpec.describe RspackRails::Doctor do
       .to eq("not found")
   end
 
+  it "lists every entry point and reports the ones not built" do
+    set_up_complete_app
+    write("app/javascript/entrypoints/admin.js")
+    expect(check("Entry points").detail).to eq("application, admin")
+    build = check("Build output")
+    expect(build.status).to eq(:warn)
+    expect(build.detail).to eq("not built yet: admin")
+    write("app/assets/builds/admin.js")
+    expect(check("Build output").status).to eq(:ok)
+  end
+
   it "warns when importmap tags are still in the layout" do
     set_up_complete_app
     write("app/views/layouts/application.html.erb", "<%= javascript_importmap_tags %>")

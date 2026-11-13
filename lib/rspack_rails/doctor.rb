@@ -4,6 +4,7 @@ require "json"
 require "open3"
 require "pathname"
 require_relative "node_version"
+require_relative "entrypoints"
 
 module RspackRails
   # Inspects a Rails app's rspack setup and reports what is missing.
@@ -91,17 +92,17 @@ module RspackRails
     end
 
     def entry_check
-      return Check.new(:ok, "Entry point", "app/javascript/application.js") if exist?("app/javascript/application.js")
+      return Check.new(:ok, "Entry points", entrypoints.keys.join(", ")) if entrypoints.any?
 
-      Check.new(:error, "Entry point", "app/javascript/application.js is missing",
-                "Create it, or point `entry` in rspack.config.mjs at your entry file")
+      Check.new(:error, "Entry points", "none found",
+                "Create app/javascript/application.js or a file in app/javascript/entrypoints/")
     end
 
     def build_check
-      built = @root.join("app/assets/builds/application.js")
-      return Check.new(:ok, "Build output", "app/assets/builds/application.js (#{built.size} bytes)") if built.exist?
+      missing = entrypoints.keys.reject { |name| exist?("app/assets/builds/#{name}.js") }
+      return Check.new(:ok, "Build output", "app/assets/builds has #{entrypoints.keys.join(", ")}") if missing.empty?
 
-      Check.new(:warn, "Build output", "app/assets/builds/application.js not built yet",
+      Check.new(:warn, "Build output", "not built yet: #{missing.join(", ")}",
                 "Run `bin/rails rspack:build` (only needed without the dev server)")
     end
 
@@ -184,6 +185,10 @@ module RspackRails
       JSON.parse(read("package.json")) if exist?("package.json")
     rescue JSON::ParserError
       nil
+    end
+
+    def entrypoints
+      @entrypoints ||= Entrypoints.discover(@root)
     end
 
     def package_manager

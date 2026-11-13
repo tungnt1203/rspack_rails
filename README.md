@@ -63,6 +63,23 @@ Under `rspack serve`, editing a controller or adding a new one hot-swaps it in t
 
 If `application.js` imported `./controllers` (the stimulus-rails index), the installer switches it to `./controllers/autoload`. stimulus-rails may still rewrite `controllers/index.js` when you run `bin/rails generate stimulus`, but nothing imports that file any more.
 
+### Multiple entry points
+
+Besides `app/javascript/application.js` (or `.ts`), every file in `app/javascript/entrypoints/` becomes its own bundle, named after the file:
+
+```
+app/javascript/application.js           -> application.js
+app/javascript/entrypoints/admin.ts     -> admin.js
+app/javascript/entrypoints/checkout.js  -> checkout.js (+ checkout.bundle.css if it imports CSS)
+```
+
+```erb
+<%# app/views/layouts/admin.html.erb %>
+<%= rspack_javascript_tag "admin" %>
+```
+
+Each bundle is self-contained, so load one entry per page (for example one per layout). Restart the dev server after adding a new entry point.
+
 ### CSS
 
 Import CSS from your JavaScript and rspack extracts it to `app/assets/builds/<entry>.bundle.css`:
