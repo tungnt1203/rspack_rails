@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rspack_rails (0.10.0)
+    rspack_rails (0.10.1)
       railties (>= 7.2, < 9)
 
 GEM

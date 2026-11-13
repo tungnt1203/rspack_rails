@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-13
+
+- Fix: after a `rspack build` (which `rspack:build` runs before tests and `assets:precompile`), `rspack serve` reused the build's cached modules, compiled without HMR, so editing a Stimulus controller reloaded the page instead of hot-swapping it. `rspack serve`, development builds and production builds now keep separate persistent caches (`cache.name`)
+- Fix: Rails 8's `stylesheet_link_tag :app` also linked rspack's `*.bundle.css` files, so a print entry applied on screen and an admin entry on every page. `rspack:install` replaces `:app` with `"application"` when that is the app's only stylesheet, and `rspack:doctor` warns otherwise
+- CI: `bin/integration-migrate` starts `rspack serve` after a build and checks that hot updates are accepted
+- Existing apps: re-run `bin/rails rspack:install` and accept the new `rspack.config.mjs`
+
 ## [0.10.0] - 2026-11-13
 
 - Requires Ruby 3.2+ and Rails 7.2+, the versions CI runs (Ruby 3.1 and Rails 7.0/7.1 are end of life)

@@ -47,7 +47,7 @@ The installer:
 
 - creates `rspack.config.mjs` and `app/javascript/application.js` (an existing `application.ts`, `.jsx` or `.tsx` is kept as the entry)
 - adds `build`, `build:watch` and `dev` (`rspack serve`) scripts to `package.json`
-- adds `rspack_javascript_tag "application"` to your layout (ERB, Slim or Haml)
+- adds `rspack_javascript_tag "application"` to your layout (ERB, Slim or Haml), and replaces Rails 8's `stylesheet_link_tag :app`, which would also link Rspack's bundles
 - adds a `js:` process running the dev server to `Procfile.dev` and sets up `bin/dev`
 - installs `@rspack/cli`, `@rspack/core` and `@rspack/dev-server`
 
@@ -308,7 +308,7 @@ Re-running the installer is safe: it leaves your entry, layout and `Procfile.dev
 
 **Pages load old code after I stop the dev server.** `app/assets/builds` still holds the dev server's output, which loads code-split chunks from it. Run `bin/rails rspack:build` (it also runs before tests and `assets:precompile`).
 
-**Rails 8 links the bundle twice.** The default `stylesheet_link_tag :app` links every CSS file under `app/assets`, including `application.bundle.css`. That is harmless: the dev server keeps `app/assets/builds` up to date and its own link comes later in the cascade. A rule you delete keeps applying until the next reload.
+**A print or admin stylesheet applies on every page.** Rails 8's default `stylesheet_link_tag :app` links every CSS file under `app/assets`, including Rspack's `app/assets/builds/*.bundle.css`, without the options you gave `rspack_stylesheet_tag` (such as `media: "print"`). `rspack:install` replaces `:app` with `"application"` when `app/assets/stylesheets/application.css` is your only stylesheet; otherwise list your own stylesheets in place of `:app`. `rspack:doctor` warns about it.
 
 <a id="sass-files-on-sprockets"></a>
 **Sass files on Sprockets** (the Rails 7 default) fail with a missing `sassc` gem. Sprockets compiles any `.scss` file under `app/assets/stylesheets` itself, through `require_tree .` and `link_directory`. Keep Sass files in `app/javascript` instead; partials in `app/javascript/stylesheets` load with `@use "stylesheets/variables"`.

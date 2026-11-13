@@ -23,7 +23,8 @@ module RspackRails
     def checks
       @checks ||= [
         node_check, package_check(:cli), package_check(:core), package_check(:"dev-server"),
-        config_check, scripts_check, entry_check, build_check, layout_check, stylesheet_check, procfile_check,
+        config_check, scripts_check, entry_check, build_check, layout_check, stylesheet_check, app_stylesheets_check,
+        procfile_check,
         stimulus_check, dev_server_check
       ].compact
     end
@@ -144,6 +145,18 @@ module RspackRails
 
       Check.new(:warn, "Stylesheet", "application.bundle.css is built but not linked",
                 %(Add <%= rspack_stylesheet_tag "application" %> to your layout))
+    end
+
+    # `stylesheet_link_tag :app` links rspack's bundles too, without their options.
+    def app_stylesheets_check
+      return if Dir.glob("app/assets/builds/*.bundle.css", base: @root).empty?
+
+      linking = layouts.select { |path| read(path).match?(Layouts::APP_STYLESHEETS) }
+      return if linking.empty?
+
+      Check.new(:warn, "Stylesheet", "#{names(linking)} links rspack's bundles again through stylesheet_link_tag :app",
+                %(Use stylesheet_link_tag "application" (or list your own stylesheets); ) +
+                "a print or admin bundle otherwise applies on every page")
     end
 
     def procfile_check
