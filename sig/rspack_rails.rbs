@@ -10,6 +10,7 @@ module RspackRails
     def self.detect: (?untyped root) -> PackageManager
     def initialize: (untyped root) -> void
     def install_command: () -> String
+    def add_command: (*String packages) -> String
     def add_dev_command: (*String packages) -> String
     def run_command: (String script) -> String
   end

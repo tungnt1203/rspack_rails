@@ -51,10 +51,23 @@ RspackRails.configure do |config|
 end
 ```
 
+### Stimulus
+
+```bash
+bin/rails rspack:install:stimulus
+```
+
+This installs `@hotwired/stimulus` and adds `app/javascript/controllers/autoload.js`, imported from `application.js`. Every `*_controller.js` under `app/javascript/controllers` is registered automatically, with the usual naming (`admin/user_card_controller.js` becomes `admin--user-card`). There is no manifest to keep up to date.
+
+Under `rspack serve`, editing a controller or adding a new one hot-swaps it in the open page without a reload, so form input and other page state survive.
+
+If `application.js` imported `./controllers` (the stimulus-rails index), the installer switches it to `./controllers/autoload`. stimulus-rails may still rewrite `controllers/index.js` when you run `bin/rails generate stimulus`, but nothing imports that file any more.
+
 ### Tasks
 
 | Task | What it does |
 |---|---|
+| `bin/rails rspack:install:stimulus` | Sets up Stimulus with controller autoloading |
 | `bin/rails rspack:build` | Installs JS dependencies, then runs `build` |
 | `bin/rails rspack:clobber` | Removes rspack output from `app/assets/builds` |
 

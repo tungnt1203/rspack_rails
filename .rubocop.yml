@@ -12,6 +12,7 @@ Style/StringLiteralsInInterpolation:
 Metrics/BlockLength:
   Exclude:
     - spec/**/*
+    - lib/tasks/**/*.rake
 
 Style/Documentation:
   Exclude:

@@ -8,6 +8,15 @@ namespace :rspack do
       raise(RspackRails::Error, "rspack:install failed")
   end
 
+  namespace :install do
+    desc "Set up Stimulus with automatic controller registration"
+    task :stimulus do
+      template = File.expand_path("../install/stimulus.rb", __dir__)
+      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
+        raise(RspackRails::Error, "rspack:install:stimulus failed")
+    end
+  end
+
   desc "Install JavaScript dependencies"
   task :dependencies do
     command = RspackRails::PackageManager.detect(Rails.root).install_command
