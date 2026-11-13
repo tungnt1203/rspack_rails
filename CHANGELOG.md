@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-13
+
+- Fix: `rspack:install` and `rspack:install:stimulus` created `app/javascript/application.js` in apps whose entry is `application.ts` (or `.jsx`, `.tsx`), which then shadowed it. All installers now use the same entry discovery as `rspack.config.mjs`
+- `rspack:install:sass`, `:tailwind` and `:react` accept a `.jsx`/`.tsx` main entry
+- Installer templates share their steps through `RspackRails::Installer`
+
 ## [0.9.0] - 2026-11-13
 
 - Stylesheet entry points: `app/javascript/entrypoints/*.{css,scss,sass}` build `<name>.bundle.css` without a JavaScript file; `admin.js` and `admin.css` side by side make one entry. Under `rspack serve`, `rspack_stylesheet_tag` adds the entry's script so its changes hot-reload

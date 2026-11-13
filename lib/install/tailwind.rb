@@ -3,24 +3,17 @@
 # Rails application template run by `bin/rails rspack:install:tailwind`.
 # Sets up Tailwind CSS v4 through @tailwindcss/webpack, and moves an app off
 # tailwindcss-rails when it finds one.
+require "rspack_rails/installer"
+extend RspackRails::Installer
+
 pm = RspackRails::PackageManager.detect(Rails.root)
-layout = "app/views/layouts/application.html.erb"
+layout = RspackRails::Installer::LAYOUT
 stylesheet = "app/javascript/application.css"
 tailwind_rails_source = "app/assets/tailwind/application.css"
-entry = %w[app/javascript/application.js app/javascript/application.ts].find { |file| File.exist?(file) }
 
-unless File.exist?("rspack.config.mjs") && File.read("rspack.config.mjs").include?("@tailwindcss/webpack")
-  say "rspack.config.mjs predates Tailwind support. Re-run `bin/rails rspack:install` and accept the new " \
-      "rspack.config.mjs, then run this task again.", :red
-  exit 1
-end
-
-if entry.nil?
-  say "No app/javascript/application.{js,ts} found. Run `bin/rails rspack:install` first.", :red
-  exit 1
-end
-
-tailwind_rails = File.exist?("Gemfile") && File.read("Gemfile").match?(/^\s*gem\s+["']tailwindcss-rails["']/)
+require_config! "@tailwindcss/webpack", "Tailwind"
+entry = main_entry!
+tailwind_rails = gem_in_gemfile?("tailwindcss-rails")
 
 say "Creating #{stylesheet}"
 if File.exist?(tailwind_rails_source)
@@ -45,32 +38,21 @@ unless File.read(entry).match?(%r{^import ["']\./application\.css["']})
   prepend_to_file entry, %(import "./application.css"\n)
 end
 
-if File.exist?(layout)
-  content = File.read(layout)
-  if content.match?(/^\s*<%= stylesheet_link_tag "tailwind".*%>\n/)
-    gsub_file layout, /^\s*<%= stylesheet_link_tag "tailwind".*%>\n/, ""
-  end
-  unless content.include?("rspack_stylesheet_tag")
-    say "Adding rspack_stylesheet_tag to #{layout}"
-    insert_into_file layout, %(    <%= rspack_stylesheet_tag "application", "data-turbo-track": "reload" %>\n),
-                     before: %r{^[ \t]*</head>}
-  end
-else
-  say %(Add this to your layout: <%= rspack_stylesheet_tag "application" %>), :yellow
+if File.exist?(layout) && File.read(layout).match?(/^\s*<%= stylesheet_link_tag "tailwind".*%>\n/)
+  gsub_file layout, /^\s*<%= stylesheet_link_tag "tailwind".*%>\n/, ""
 end
+add_stylesheet_tag
 
 if tailwind_rails
   say "Removing tailwindcss-rails"
   gsub_file "Procfile.dev", /^css: .*tailwindcss:watch.*\n/, "" if File.exist?("Procfile.dev")
   remove_file "app/assets/builds/tailwind.css"
   remove_dir "app/assets/builds/tailwind"
-  gem_line = /^[ \t]*gem[ \t]+["']tailwindcss-rails["'].*\n/
-  gsub_file "Gemfile", /^[ \t]*#.*\n(?=#{gem_line.source})/, "" # the comment describing it
-  gsub_file "Gemfile", gem_line, ""
+  remove_gem "tailwindcss-rails"
   run "bundle install --quiet", abort_on_failure: true
 end
 
-if File.exist?("Gemfile") && File.read("Gemfile").match?(/^\s*gem\s+["']cssbundling-rails["']/)
+if gem_in_gemfile?("cssbundling-rails")
   say "cssbundling-rails is still installed. If it builds Tailwind too, remove it and its build:css script, " \
       "or the CSS is built twice.", :yellow
 end

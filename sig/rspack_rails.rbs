@@ -4,19 +4,6 @@ module RspackRails
   class Error < StandardError
   end
 
-  class PackageManager
-    attr_reader root: String
-    attr_reader name: Symbol
-    def self.detect: (?untyped root) -> PackageManager
-    def initialize: (untyped root) -> void
-    def install_command: () -> String
-    def add_command: (*String packages) -> String
-    def add_dev_command: (*String packages) -> String
-    def run_command: (String script) -> String
-  end
-end
-
-module RspackRails
   def self.config: () -> Configuration
   def self.configure: () { (Configuration) -> void } -> void
   def self.dev_server: () -> DevServer
@@ -31,8 +18,84 @@ module RspackRails
   end
 
   class DevServer
+    CONNECT_TIMEOUT: Float
     def initialize: (Configuration config, ?check_interval: Float | Integer) -> void
     def running?: () -> bool
     def url: (String | Symbol path) -> String
+  end
+
+  class DevServerProxy
+    PREFIX: String
+    def initialize: (untyped app, ?config: Configuration) -> void
+    def call: (Hash[String, untyped] env) -> [Integer, Hash[String, String], Array[String]]
+  end
+
+  class PackageManager
+    attr_reader root: String
+    attr_reader name: Symbol
+    def self.detect: (?untyped root) -> PackageManager
+    def initialize: (untyped root) -> void
+    def install_command: () -> String
+    def add_command: (*String packages) -> String
+    def add_dev_command: (*String packages) -> String
+    def run_command: (String script) -> String
+  end
+
+  module Entrypoints
+    SCRIPT_EXTENSIONS: Array[String]
+    STYLE_EXTENSIONS: Array[String]
+    def self.discover: (untyped root) -> Hash[String, Array[String]]
+    def self.main_entry: (Pathname root) -> String?
+    def self.css_only?: (Array[String] paths) -> bool
+  end
+
+  module Helper
+    def rspack_javascript_tag: (*String | Symbol entries, **untyped options) -> String
+    def rspack_stylesheet_tag: (*String | Symbol entries, **untyped options) -> String
+    def react_component: (String name, ?Hash[untyped, untyped] props, ?html: Hash[Symbol, untyped], **untyped more_props) -> String
+  end
+
+  module Installer
+    LAYOUT: String
+    TEMPLATES: String
+    def self.run: (String name, ?task: String) -> true
+    def main_entry!: () -> String
+    def require_config!: (String marker, String feature) -> void
+    def gem_in_gemfile?: (String name) -> bool
+    def remove_gem: (String name) -> void
+    def update_package_json: () { (Hash[String, untyped]) -> void } -> void
+    def add_stylesheet_tag: () -> void
+  end
+
+  class Doctor
+    class Check < Struct[untyped]
+      attr_accessor status: :ok | :warn | :error
+      attr_accessor name: String
+      attr_accessor detail: String
+      attr_accessor hint: String?
+    end
+
+    def initialize: (untyped root, ?config: Configuration, ?dev_server: DevServer, ?node_version: String?) -> void
+    def checks: () -> Array[Check]
+    def ok?: () -> bool
+    def report: (?IO io) -> void
+    def summary: () -> String
+  end
+
+  class Migration
+    attr_reader root: Pathname
+    def initialize: (untyped root) -> void
+    def source: () -> (:rspack | :shakapacker | :importmap | :jsbundling | :none)
+    def npm_packages: () -> Hash[String, String?]
+    def npm_install_args: () -> Array[String]
+    def vendored_files: () -> Array[String]
+    def bundler_packages: () -> Array[String]
+    def bundler_configs: () -> Array[String]
+    def extra_root_entries: () -> Array[String]
+  end
+
+  module NodeVersion
+    def self.parse: (String? version) -> Array[Integer]?
+    def self.check: (String version, String range) -> bool?
   end
 end

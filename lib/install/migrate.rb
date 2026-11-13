@@ -2,18 +2,14 @@
 
 # Rails application template run by `bin/rails rspack:migrate`.
 # Moves an app from importmap-rails or jsbundling-rails to rspack_rails.
-require "json"
+require "rspack_rails/installer"
+require "rspack_rails/migration"
+extend RspackRails::Installer
 
 migration = RspackRails::Migration.new(Rails.root)
 pm = RspackRails::PackageManager.detect(Rails.root)
-layout = "app/views/layouts/application.html.erb"
+layout = RspackRails::Installer::LAYOUT
 stimulus = File.exist?("app/javascript/controllers/application.js")
-
-def remove_gem(name)
-  gem_line = /^[ \t]*gem[ \t]+["']#{Regexp.escape(name)}["'].*\n/
-  gsub_file "Gemfile", /^[ \t]*#.*\n(?=#{gem_line.source})/, "" # the comment describing it
-  gsub_file "Gemfile", gem_line, ""
-end
 
 case migration.source
 when :rspack
@@ -65,12 +61,12 @@ end
 
 if migration.source == :jsbundling && bundlers.any?
   say "Removing the previous bundler: #{bundlers.join(", ")}"
-  package = JSON.parse(File.read("package.json"))
-  bundlers.each do |name|
-    package["dependencies"]&.delete(name)
-    package["devDependencies"]&.delete(name)
+  update_package_json do |package|
+    bundlers.each do |name|
+      package["dependencies"]&.delete(name)
+      package["devDependencies"]&.delete(name)
+    end
   end
-  File.write("package.json", "#{JSON.pretty_generate(package)}\n")
 end
 
 apply "#{__dir__}/stimulus.rb" if stimulus

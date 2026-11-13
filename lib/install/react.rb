@@ -2,21 +2,14 @@
 
 # Rails application template run by `bin/rails rspack:install:react`.
 require "json"
+require "rspack_rails/installer"
+extend RspackRails::Installer
 
 pm = RspackRails::PackageManager.detect(Rails.root)
-entry = %w[app/javascript/application.js app/javascript/application.ts].find { |file| File.exist?(file) }
 typescript = File.exist?("tsconfig.json")
 
-unless File.exist?("rspack.config.mjs") && File.read("rspack.config.mjs").include?("ReactRefreshRspackPlugin")
-  say "rspack.config.mjs predates React support. Re-run `bin/rails rspack:install` and accept the new " \
-      "rspack.config.mjs, then run this task again.", :red
-  exit 1
-end
-
-if entry.nil?
-  say "No app/javascript/application.{js,ts} found. Run `bin/rails rspack:install` first.", :red
-  exit 1
-end
+require_config! "ReactRefreshRspackPlugin", "React"
+entry = main_entry!
 
 say "Adding React component autoloading"
 copy_file "#{__dir__}/react/mount.js", "app/javascript/components/mount.js", force: true

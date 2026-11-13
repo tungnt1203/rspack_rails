@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 # Rails application template run by `bin/rails rspack:install`.
-require "json"
+require "rspack_rails/installer"
+extend RspackRails::Installer
 
 pm = RspackRails::PackageManager.detect(Rails.root)
 
@@ -18,24 +19,24 @@ if Rails.root.join("app/assets/config/manifest.js").exist?
 end
 
 say "Creating rspack entry point"
-unless File.exist?("app/javascript/application.js")
-  copy_file "#{__dir__}/application.js",
-            "app/javascript/application.js"
+# An existing application.ts (or .jsx, .tsx) is the entry; a new .js would shadow it.
+unless RspackRails::Entrypoints.main_entry(Rails.root)
+  copy_file "#{__dir__}/application.js", "app/javascript/application.js"
 end
 copy_file "#{__dir__}/rspack.config.mjs", "rspack.config.mjs"
 
 say "Configuring package.json"
 copy_file "#{__dir__}/package.json", "package.json" unless File.exist?("package.json")
-package = JSON.parse(File.read("package.json"))
-package["scripts"] ||= {}
-package["scripts"]["build"] = "rspack build"
-package["scripts"]["build:watch"] = "rspack build --watch"
-package["scripts"]["dev"] = "rspack serve"
-File.write("package.json", "#{JSON.pretty_generate(package)}\n")
+update_package_json do |package|
+  scripts = package["scripts"] ||= {}
+  scripts["build"] = "rspack build"
+  scripts["build:watch"] = "rspack build --watch"
+  scripts["dev"] = "rspack serve"
+end
 
 include_tag = %(<%= rspack_javascript_tag "application", "data-turbo-track": "reload" %>)
-layout = Rails.root.join("app/views/layouts/application.html.erb")
-if layout.exist?
+layout = RspackRails::Installer::LAYOUT
+if File.exist?(layout)
   content = File.read(layout)
   if content.include?("javascript_importmap_tags")
     say "Found javascript_importmap_tags in your layout. Remove it if you are replacing importmap with rspack.",

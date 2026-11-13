@@ -60,7 +60,8 @@ module RspackRails
     end
 
     def rspack_stylesheet_entry?(entry)
-      paths = Entrypoints.discover(rspack_root)[entry.to_s]
+      @rspack_entrypoints ||= Entrypoints.discover(rspack_root)
+      paths = @rspack_entrypoints[entry.to_s]
       paths ? Entrypoints.css_only?(paths) : false
     end
 
