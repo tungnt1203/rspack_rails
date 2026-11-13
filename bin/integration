@@ -77,6 +77,18 @@ const area: string = "admin-entry"
 console.log(area)
 TS
 
+step "rspack:install:react"
+bin/rails rspack:install:react
+assert_file app/javascript/components/mount.js
+assert_file app/javascript/components/Hello.tsx # TypeScript is set up, so the .tsx sample
+grep -q '"jsx": "react-jsx"' tsconfig.json || { echo "tsconfig jsx missing"; exit 1; }
+mkdir -p app/javascript/components/admin
+cat > app/javascript/components/admin/Badge.tsx <<'TSX'
+export default function Badge({ label }: { label: string }) {
+  return <strong>{`badge:${label}`}</strong>
+}
+TSX
+
 step "typecheck"
 npm run typecheck
 
@@ -89,6 +101,8 @@ assert_file app/assets/builds/application.js.map
 ls app/assets/builds | grep -Eq '^hero-[0-9a-f]+\.digested\.png$' || { echo "hero image not emitted"; exit 1; }
 grep -q 'data:image/svg' app/assets/builds/application.bundle.css || { echo "small image not inlined"; exit 1; }
 [ -d node_modules/.cache/rspack ] || { echo "persistent cache missing"; exit 1; }
+grep -q 'Hello, ' app/assets/builds/application.js || { echo "Hello component missing"; exit 1; }
+grep -q 'badge:' app/assets/builds/application.js || { echo "nested component missing"; exit 1; }
 grep -q 'text-fuchsia-700' app/assets/builds/application.bundle.css || { echo "tailwind utility not generated"; exit 1; }
 find app/assets/builds -name '*hot-update*' | grep -q . && { echo "hot-update files in builds"; exit 1; }
 
@@ -117,6 +131,8 @@ grep -q "/assets/$hero" public/assets/application.bundle-*.css || { echo "CSS do
 grep -q "/assets/$font" public/assets/application.bundle-*.css || { echo "CSS does not point at $font"; exit 1; }
 grep -q "$hero" public/assets/application-*.js || { echo "JS image import missing"; exit 1; }
 grep -q 'tracking-widest' public/assets/application.bundle-*.css || { echo "tailwind utility missing in production"; exit 1; }
+grep -q 'badge:' public/assets/application-*.js || { echo "React component missing in production"; exit 1; }
+grep -q 'jsxDEV' public/assets/application-*.js && { echo "development JSX runtime in production"; exit 1; }
 grep -lq 'lazy-chunk' public/assets/*.digested.js || { echo "lazy chunk missing"; exit 1; }
 ls public/assets | grep -q '\.map$' && { echo "source maps in public/assets"; exit 1; }
 
@@ -126,5 +142,7 @@ html=$(bin/rails runner \
 assert_match "$html" 'src="/assets/application-[0-9a-f]+\.js"'
 assert_match "$html" 'src="/assets/admin-[0-9a-f]+\.js"'
 assert_match "$html" 'href="/assets/application\.bundle-[0-9a-f]+\.css"'
+react=$(bin/rails runner 'puts ApplicationController.render(inline: %(<%= react_component "admin/Badge", label: "x" %>))')
+assert_match "$react" 'data-react-component="admin/Badge"'
 
 step "OK"

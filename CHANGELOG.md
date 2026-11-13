@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-13
+
+- `rspack:install:react`: React with Fast Refresh under `rspack serve`, and `app/javascript/components/` autoloaded by path
+- `react_component "Hello", name: "World"` helper; components mount and unmount with Turbo Drive, frames and streams
+- `.jsx` and `.tsx` files (and entry points) compile with the built-in SWC loader
+- SWC now targets ES2022 instead of ES5, so TypeScript output is smaller and closer to the source
+- Existing apps: re-run `bin/rails rspack:install` and accept the new `rspack.config.mjs`
+
 ## [0.5.0] - 2026-11-13
 
 - `rspack:install:tailwind`: Tailwind CSS v4 through `@tailwindcss/webpack`. Moves an app off tailwindcss-rails (its `application.css`, gem, `Procfile.dev` process and build output)

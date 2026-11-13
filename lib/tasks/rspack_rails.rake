@@ -23,6 +23,13 @@ namespace :rspack do
         raise(RspackRails::Error, "rspack:install:typescript failed")
     end
 
+    desc "Set up React with Fast Refresh and the react_component helper"
+    task :react do
+      template = File.expand_path("../install/react.rb", __dir__)
+      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
+        raise(RspackRails::Error, "rspack:install:react failed")
+    end
+
     desc "Set up Tailwind CSS v4 (migrates from tailwindcss-rails)"
     task :tailwind do
       template = File.expand_path("../install/tailwind.rb", __dir__)

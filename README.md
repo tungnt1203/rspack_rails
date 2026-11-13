@@ -13,6 +13,7 @@ Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the
 - **HMR for JavaScript, CSS and Stimulus controllers**, with an automatic fallback to the asset pipeline when the dev server is not running
 - **Stimulus autoloading**: drop a `*_controller.js` (or `.ts`) in `app/javascript/controllers`, no manifest to maintain
 - **TypeScript and CSS modules** out of the box, through Rspack's built-in SWC and native CSS
+- **React** with Fast Refresh and a `react_component` helper, via `rspack:install:react`
 - **Tailwind CSS v4** with `rspack:install:tailwind`, which also moves a `tailwindcss-rails` app over
 - **Images and fonts** imported from JavaScript or CSS `url()`, fingerprinted for Propshaft
 - **Persistent cache**, so rebuilds and dev server restarts reuse earlier work
@@ -138,6 +139,23 @@ import "./styles/application.css"
 
 The `.bundle` suffix keeps the output from clashing with `app/assets/stylesheets/application.css`. Rails 8's default `stylesheet_link_tag :app` links every CSS file under `app/assets`, so it also links the bundle. That is harmless: the dev server keeps `app/assets/builds` up to date and its own link comes later in the cascade. A rule you delete keeps applying until the next reload.
 
+### React
+
+```bash
+bin/rails rspack:install:react
+```
+
+This installs `react`, `react-dom` and React Fast Refresh, and adds `app/javascript/components/` with a sample `Hello` component. Render any component from a view:
+
+```erb
+<%= react_component "Hello", name: "World" %>
+<%= react_component "admin/Chart", { points: @points }, html: { class: "chart" } %>
+```
+
+Components are found by path (`admin/Chart` is `app/javascript/components/admin/Chart.jsx` or `.tsx`) with no registration step. They are mounted when their element enters the page and unmounted when it leaves, so Turbo Drive, frames and streams work. Props are passed as JSON. Under `rspack serve`, edits apply through Fast Refresh and components keep their state.
+
+`.jsx` and `.tsx` files compile with Rspack's built-in SWC. With TypeScript set up, the installer also sets `"jsx": "react-jsx"` in `tsconfig.json` and adds `@types/react`.
+
 ### Tailwind CSS
 
 ```bash
@@ -174,6 +192,7 @@ npm run typecheck
 |---|---|
 | `bin/rails rspack:install:stimulus` | Sets up Stimulus with controller autoloading |
 | `bin/rails rspack:install:typescript` | Adds tsconfig.json, typescript and a `typecheck` script |
+| `bin/rails rspack:install:react` | Sets up React with Fast Refresh and `react_component` |
 | `bin/rails rspack:install:tailwind` | Sets up Tailwind CSS v4, migrating from tailwindcss-rails |
 | `bin/rails rspack:migrate` | Moves an importmap or jsbundling app to rspack |
 | `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, Procfile and dev server |
