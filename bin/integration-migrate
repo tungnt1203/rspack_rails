@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# End-to-end check of `rspack:migrate`: generate an importmap or jsbundling
+# (esbuild) Rails app, migrate it to rspack, then build, run the doctor and
+# precompile for production.
+#
+#   bin/integration-migrate importmap
+#   bin/integration-migrate jsbundling "~> 8.1.0"
+set -euo pipefail
+
+GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MODE="${1:?usage: bin/integration-migrate importmap|jsbundling [rails requirement]}"
+REQUIREMENT="${2:-}"
+WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
+
+step() { printf '\n==> %s\n' "$*"; }
+fail() { echo "FAIL: $*"; exit 1; }
+assert_match() { grep -Eq "$2" <<<"$1" || fail "expected output to match $2, got: $1"; }
+assert_no_file() { [ ! -e "$1" ] || fail "$1 should have been removed"; }
+
+rails_cmd=(rails)
+if [ -n "$REQUIREMENT" ]; then
+  gem list -i rails -v "$REQUIREMENT" >/dev/null || gem install rails -v "$REQUIREMENT" --no-document
+  version=$(ruby -e 'puts Gem::Specification.find_all_by_name("rails", ARGV[0]).map(&:version).max' "$REQUIREMENT")
+  rails_cmd=(rails "_${version}_")
+fi
+
+case "$MODE" in
+  importmap) js_flag=() ;;
+  jsbundling) js_flag=(-j esbuild) ;;
+  *) fail "unknown mode $MODE" ;;
+esac
+
+step "Generating a $MODE app with $("${rails_cmd[@]}" --version) in $WORK_DIR"
+cd "$WORK_DIR"
+"${rails_cmd[@]}" new app --quiet ${js_flag[@]+"${js_flag[@]}"} --skip-git --skip-test --skip-system-test --skip-active-record \
+  --skip-docker --skip-ci --skip-rubocop --skip-brakeman
+cd app
+
+if [ "$MODE" = jsbundling ] && [ ! -f yarn.lock ]; then
+  # jsbundling's installer needs yarn; without it, add what it would have added.
+  npm install --silent --save-dev esbuild
+  npm install --silent @hotwired/turbo-rails @hotwired/stimulus
+fi
+
+echo "gem \"rspack_rails\", path: \"$GEM_ROOT\"" >> Gemfile
+bundle install --quiet
+printf '/log/*\n/tmp/*\n/storage/*\n/public/assets\n/node_modules\n/app/assets/builds/*\n!/app/assets/builds/.keep\n.bundle\n' > .gitignore
+git init -q && git add -A && git -c user.email=ci@example.com -c user.name=ci commit -qm "before migration"
+
+step "rspack:migrate"
+bin/rails rspack:migrate
+
+step "Checking the migration"
+if [ "$MODE" = importmap ]; then
+  assert_no_file config/importmap.rb
+  assert_no_file bin/importmap
+  ! grep -q importmap-rails Gemfile || fail "importmap-rails still in Gemfile"
+  ! grep -q stale_when_importmap_changes app/controllers/application_controller.rb || fail "importmap call left"
+else
+  ! grep -q jsbundling-rails Gemfile || fail "jsbundling-rails still in Gemfile"
+  ! grep -q '"esbuild"' package.json || fail "esbuild still in package.json"
+fi
+grep -q 'rspack_javascript_tag "application"' app/views/layouts/application.html.erb || fail "layout tag missing"
+grep -q 'controllers/autoload' app/javascript/application.js || fail "autoload import missing"
+grep -q '^js: .* dev$' Procfile.dev || fail "Procfile.dev does not run the dev server"
+
+step "rspack:build"
+bin/rails rspack:build
+
+step "rspack:doctor"
+bin/rails rspack:doctor
+
+step "assets:precompile (production)"
+export RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1
+bin/rails assets:precompile
+assert_match "$(ls public/assets)" '^application-[0-9a-f]+\.js$'
+grep -q 'Hello World' public/assets/application-*.js || fail "hello controller missing from bundle"
+grep -q 'turbo' public/assets/application-*.js || fail "turbo missing from bundle"
+
+step "The app boots in production"
+html=$(bin/rails runner 'puts ApplicationController.render(inline: %(<%= rspack_javascript_tag "application" %>))')
+assert_match "$html" 'src="/assets/application-[0-9a-f]+\.js"'
+
+step "OK"

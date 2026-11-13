@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- `rspack:migrate`: moves an importmap-rails or jsbundling-rails (esbuild/webpack/rollup) app to rspack. Requires a clean git tree (or `FORCE=1`)
+- `rspack.config.mjs` resolves bare imports from `app/javascript` (`resolve.modules`), so importmap-style `import "controllers/application"` keeps working
+- `rspack:install:stimulus` also rewrites a bare `import "controllers"`
+- Installers stop when a package install fails instead of carrying on
+
 ## [0.3.0] - 2026-11-13
 
 - Multiple entry points: every `app/javascript/entrypoints/*.{js,ts}` becomes a bundle named after the file; `application.ts` works as the main entry

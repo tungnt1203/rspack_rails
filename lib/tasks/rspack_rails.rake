@@ -24,6 +24,20 @@ namespace :rspack do
     end
   end
 
+  desc "Migrate from importmap-rails or jsbundling-rails to rspack (FORCE=1 to skip the clean git check)"
+  task :migrate do
+    dirty = system("git", "rev-parse", "--is-inside-work-tree", out: File::NULL, err: File::NULL) &&
+            !`git status --porcelain`.strip.empty?
+    if dirty && ENV["FORCE"].to_s.empty?
+      raise RspackRails::Error,
+            "rspack:migrate removes and rewrites files. Commit or stash your changes first, or run with FORCE=1."
+    end
+
+    template = File.expand_path("../install/migrate.rb", __dir__)
+    system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
+      raise(RspackRails::Error, "rspack:migrate failed")
+  end
+
   desc "Check the rspack setup of this app"
   task doctor: :environment do
     require "rspack_rails/doctor"
