@@ -35,9 +35,9 @@ RSpec.describe RspackRails::DevServer do
     expect(dev_server.running?).to be(true)
   end
 
-  it "builds URLs on the dev server" do
-    expect(described_class.new(config).url("/application.js"))
-      .to eq("http://127.0.0.1:#{server.addr[1]}/application.js")
+  it "builds same-origin URLs served through the proxy" do
+    expect(described_class.new(config).url("/application.js")).to eq("/rspack/application.js")
+    expect(described_class.new(config).url("admin.bundle.css")).to eq("/rspack/admin.bundle.css")
   end
 end
 

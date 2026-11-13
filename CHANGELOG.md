@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-13
+
+- Fix: `new Worker(new URL("./worker.js", import.meta.url))` threw `SecurityError` under `rspack serve`, because the worker script came from `localhost:3036`, another origin than the page. Rails now proxies the dev server under `/rspack/` (`RspackRails::DevServerProxy`, active only while the dev server is enabled), so bundles, chunks, workers, images and hot updates are same-origin
+- `rspack:doctor` warns when `rspack.config.mjs` predates the proxy
+- Existing apps: re-run `bin/rails rspack:install` and accept the new `rspack.config.mjs`. Without it everything keeps working as in 0.7.0, except Web Workers under `rspack serve`
+
 ## [0.7.0] - 2026-11-13
 
 - Fix: dynamic `import()` failed under `rspack serve` ("Problem communicating active modules to the server: HTTP 404"). Rspack 2's dev server compiles them lazily and its client called the Rails origin; it now calls the dev server. `RSPACK_LAZY_COMPILATION=false` turns lazy compilation off
