@@ -104,9 +104,9 @@ module RspackRails
       say "Replacing `stylesheet_link_tag :app` in #{path}: it would also link rspack's bundles"
       gsub_file path, %r{^[ \t]*<%# Includes all stylesheet files in app/assets/stylesheets %>\n}, ""
       if application_css
-        gsub_file path, /(stylesheet_link_tag[ (]):app\b/, '\1"application"'
+        gsub_file path, Layouts::APP_STYLESHEETS, '\1"application"'
       else
-        gsub_file path, /^[ \t]*(?:<%=|=)[ \t]*stylesheet_link_tag[ (]:app\b.*\n/, ""
+        gsub_file path, /#{Layouts::APP_STYLESHEETS.source}.*\n/, ""
       end
     end
 
