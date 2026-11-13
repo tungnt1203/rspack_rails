@@ -13,6 +13,8 @@ Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the
 - **HMR for JavaScript, CSS and Stimulus controllers**, with an automatic fallback to the asset pipeline when the dev server is not running
 - **Stimulus autoloading**: drop a `*_controller.js` (or `.ts`) in `app/javascript/controllers`, no manifest to maintain
 - **TypeScript and CSS modules** out of the box, through Rspack's built-in SWC and native CSS
+- **Images and fonts** imported from JavaScript or CSS `url()`, fingerprinted for Propshaft
+- **Persistent cache**, so rebuilds and dev server restarts reuse earlier work
 - **Multiple entry points** from `app/javascript/entrypoints/`
 - **`rspack:migrate`** moves an importmap or jsbundling app over in one command
 - **`rspack:doctor`** checks Node.js, packages, config and layout, and says what to fix
@@ -135,6 +137,17 @@ import "./styles/application.css"
 
 The `.bundle` suffix keeps the output from clashing with `app/assets/stylesheets/application.css`. Rails 8's default `stylesheet_link_tag :app` links every CSS file under `app/assets`, so it also links the bundle. That is harmless: the dev server keeps `app/assets/builds` up to date and its own link comes later in the cascade. A rule you delete keeps applying until the next reload.
 
+### Images and fonts
+
+Import an image from JavaScript, or reference images and fonts from CSS with `url()`:
+
+```css
+body { background: url("./images/hero.png"); }
+@font-face { font-family: Brand; src: url("./fonts/brand.woff2"); }
+```
+
+Files under 8 KB are inlined as data URIs. Larger ones are written to `app/assets/builds` as `<name>-<hash>.digested.<ext>`, and Propshaft serves them without fingerprinting them a second time.
+
 ### TypeScript
 
 `.ts` files compile out of the box with Rspack's built-in SWC loader, including Stimulus controllers (`*_controller.ts`). SWC strips types without checking them. For type checking:
@@ -157,7 +170,11 @@ npm run typecheck
 
 `rspack:build` runs automatically before `assets:precompile`, `test:prepare`, `spec:prepare` and `db:test:prepare`. Set `SKIP_RSPACK_BUILD=1` to turn that off.
 
-When `RAILS_ENV` or `NODE_ENV` is `production`, the generated config builds in production mode (minified). Lazy-loaded chunks are named `*.digested.js`, so Propshaft serves them without fingerprinting them a second time.
+When `RAILS_ENV` or `NODE_ENV` is `production`, the generated config builds in production mode (minified). `rspack:build` sets `NODE_ENV` from `Rails.env`: `development` in development and test, `production` everywhere else. Lazy-loaded chunks are named `*.digested.js`, so Propshaft serves them without fingerprinting them a second time.
+
+Source maps are on in development (`cheap-module-source-map`) and off in production, so your source never lands in `public/assets`. Set `RSPACK_DEVTOOL` to choose another [devtool](https://rspack.rs/config/devtool), for example `RSPACK_DEVTOOL=hidden-source-map` to upload maps to an error tracker, or `RSPACK_DEVTOOL=false` to turn them off.
+
+Rspack keeps a persistent cache in `node_modules/.cache/rspack`. Editing `rspack.config.mjs` or the lockfile starts a fresh cache; delete the directory to clear it by hand.
 
 ### Doctor
 
