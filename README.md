@@ -109,20 +109,24 @@ If `application.js` imported `./controllers` (the stimulus-rails index), the ins
 
 ### Multiple entry points
 
-Besides `app/javascript/application.js` (or `.ts`), every file in `app/javascript/entrypoints/` becomes its own bundle, named after the file:
+Besides `app/javascript/application.js` (or `.ts`, `.jsx`, `.tsx`), every file in `app/javascript/entrypoints/` becomes its own bundle, named after the file. Stylesheets work too, with no JavaScript needed:
 
 ```
 app/javascript/application.js           -> application.js
 app/javascript/entrypoints/admin.ts     -> admin.js
 app/javascript/entrypoints/checkout.js  -> checkout.js (+ checkout.bundle.css if it imports CSS)
+app/javascript/entrypoints/print.scss   -> print.bundle.css (no print.js)
 ```
 
 ```erb
 <%# app/views/layouts/admin.html.erb %>
 <%= rspack_javascript_tag "admin" %>
+<%= rspack_stylesheet_tag "print", media: "print" %>
 ```
 
-Each bundle is self-contained, so load one entry per page (for example one per layout). Restart the dev server after adding a new entry point.
+Entries can share a page: `rspack_javascript_tag "application", "admin"` works. Under `rspack serve` the helpers link one shared `runtime.js` per page, so hot updates reach every entry, and a stylesheet-only entry also gets a small script that applies its hot updates. Keep `rspack_stylesheet_tag` in `<head>`. Restart the dev server after adding a new entry point.
+
+After you stop the dev server, `app/assets/builds` still holds its output, which loads code-split chunks from the dev server. Run `bin/rails rspack:build` (it also runs before tests and `assets:precompile`) to replace it.
 
 ### CSS
 
