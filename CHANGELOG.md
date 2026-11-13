@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-13
+
+- `rspack:install:tailwind`: Tailwind CSS v4 through `@tailwindcss/webpack`. Moves an app off tailwindcss-rails (its `application.css`, gem, `Procfile.dev` process and build output)
+- `rspack.config.mjs` adds the Tailwind loader when `@tailwindcss/webpack` is in `package.json`, and ignores `log/`, `tmp/`, `public/`, `app/assets/builds/` and similar directories when watching
+- Fix: `rspack:clobber` (and so `assets:clobber`) crashed with `ENOENT` when a lazy chunk was built, since 0.4.1
+- Existing apps: re-run `bin/rails rspack:install` and accept the new `rspack.config.mjs`
+
 ## [0.4.1] - 2026-11-13
 
 - Fix: importing an image or font, from JavaScript or CSS `url()`, no longer fails the build. Files under 8 KB are inlined, larger ones are emitted as `*.digested.<ext>` for Propshaft

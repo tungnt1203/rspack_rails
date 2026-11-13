@@ -22,6 +22,13 @@ namespace :rspack do
       system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
         raise(RspackRails::Error, "rspack:install:typescript failed")
     end
+
+    desc "Set up Tailwind CSS v4 (migrates from tailwindcss-rails)"
+    task :tailwind do
+      template = File.expand_path("../install/tailwind.rb", __dir__)
+      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
+        raise(RspackRails::Error, "rspack:install:tailwind failed")
+    end
   end
 
   desc "Migrate from importmap-rails or jsbundling-rails to rspack (FORCE=1 to skip the clean git check)"
@@ -65,7 +72,7 @@ namespace :rspack do
   desc "Remove rspack build output"
   task :clobber do
     patterns = %w[**/*.{js,js.map,css,css.map} **/*.digested.*].map { |p| Rails.root.join("app/assets/builds", p).to_s }
-    Dir[*patterns].each { |f| File.delete(f) }
+    Dir[*patterns].uniq.each { |f| FileUtils.rm_f(f) } # a lazy chunk matches both patterns
   end
 end
 
