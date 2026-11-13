@@ -1,8 +1,23 @@
 # rspack_rails
 
-Bundle your Rails app's JavaScript with [Rspack](https://rspack.rs), the Rust-powered, webpack-compatible bundler.
+[![Gem Version](https://img.shields.io/gem/v/rspack_rails)](https://rubygems.org/gems/rspack_rails)
+[![CI](https://github.com/tungnt1203/rspack_rails/actions/workflows/main.yml/badge.svg)](https://github.com/tungnt1203/rspack_rails/actions/workflows/main.yml)
 
-rspack_rails follows the `jsbundling-rails` model: rspack writes bundles to `app/assets/builds`, and Propshaft (or Sprockets) serves and fingerprints them.
+Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the Rust-powered, webpack-compatible bundler, and get **hot module replacement** in development.
+
+![Editing CSS and a Stimulus controller while the page keeps its state](docs/hmr.gif)
+
+*Above: CSS and a Stimulus controller are edited while the page is open. Both update in place, and the counter keeps its value because the page never reloads.*
+
+- **One command setup**: `bin/rails rspack:install`, then `bin/dev`
+- **HMR for JavaScript, CSS and Stimulus controllers**, with an automatic fallback to the asset pipeline when the dev server is not running
+- **Stimulus autoloading**: drop a `*_controller.js` (or `.ts`) in `app/javascript/controllers`, no manifest to maintain
+- **TypeScript and CSS modules** out of the box, through Rspack's built-in SWC and native CSS
+- **Multiple entry points** from `app/javascript/entrypoints/`
+- **`rspack:doctor`** checks Node.js, packages, config and layout, and says what to fix
+- Works with **Propshaft and Sprockets**; CI runs a real app on Rails 7.2 and 8.1
+
+rspack_rails follows the `jsbundling-rails` model: rspack writes bundles to `app/assets/builds`, and Propshaft (or Sprockets) serves and fingerprints them in production.
 
 ## Installation
 
