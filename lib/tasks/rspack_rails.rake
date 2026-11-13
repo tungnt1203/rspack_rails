@@ -55,12 +55,17 @@ namespace :rspack do
   desc "Build JavaScript bundles with rspack"
   task build: :dependencies do
     command = RspackRails::PackageManager.detect(Rails.root).run_command("build")
-    system(command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
+    # `rspack build` defaults NODE_ENV to production. Development and test
+    # builds keep source maps and skip minification; staging etc. stay production.
+    node_env = Rails.env.development? || Rails.env.test? ? "development" : "production"
+    env = { "NODE_ENV" => ENV.fetch("NODE_ENV", node_env) }
+    system(env, command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
   end
 
   desc "Remove rspack build output"
   task :clobber do
-    Dir[Rails.root.join("app/assets/builds/**/*.{js,js.map,css,css.map}")].each { |f| File.delete(f) }
+    patterns = %w[**/*.{js,js.map,css,css.map} **/*.digested.*].map { |p| Rails.root.join("app/assets/builds", p).to_s }
+    Dir[*patterns].each { |f| File.delete(f) }
   end
 end
 

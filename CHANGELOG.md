@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-13
+
+- Fix: importing an image or font, from JavaScript or CSS `url()`, no longer fails the build. Files under 8 KB are inlined, larger ones are emitted as `*.digested.<ext>` for Propshaft
+- Production builds no longer ship source maps to `public/assets`; development uses the faster `cheap-module-source-map`. Override with `RSPACK_DEVTOOL`
+- Persistent cache in `node_modules/.cache/rspack` speeds up rebuilds and dev server restarts
+- Outside the dev server, `publicPath` is `"auto"`: chunks and images load next to their script (any assets prefix or `asset_host`), and Propshaft rewrites CSS `url()`s without warnings
+- `rspack:build` sets `NODE_ENV` from `Rails.env`, so development and test builds are no longer minified
+- `rspack:clobber` also removes emitted images and fonts
+- Existing apps: re-run `bin/rails rspack:install` and accept the new `rspack.config.mjs`
+
 ## [0.4.0] - 2026-11-13
 
 - `rspack:migrate`: moves an importmap-rails or jsbundling-rails (esbuild/webpack/rollup) app to rspack. Requires a clean git tree (or `FORCE=1`)
