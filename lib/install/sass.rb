@@ -46,6 +46,14 @@ unless File.read(entry).include?(%("#{stylesheet}"))
   prepend_to_file entry, %(import "#{stylesheet}"\n)
 end
 
+# Sprockets compiles .scss files under app/assets/stylesheets itself (through
+# `require_tree .` and `link_directory`), which needs the sassc gem.
+if File.exist?("app/assets/config/manifest.js") && !File.exist?(dartsass_source)
+  say "This app uses Sprockets, which compiles any .scss file under app/assets/stylesheets with the sassc " \
+      "gem. Keep Sass files in app/javascript, e.g. app/javascript/stylesheets/_variables.scss loaded " \
+      "with @use \"stylesheets/variables\".", :yellow
+end
+
 if File.exist?(layout) && !File.read(layout).include?("rspack_stylesheet_tag")
   say "Adding rspack_stylesheet_tag to #{layout}"
   insert_into_file layout, %(    <%= rspack_stylesheet_tag "application", "data-turbo-track": "reload" %>\n),

@@ -178,6 +178,8 @@ This installs `sass-loader` and `sass-embedded` and creates `app/javascript/appl
 
 Coming from `dartsass-rails` (`rails new --css sass`)? Run `bin/rails rspack:migrate` first, then `rspack:install:sass`. It imports `app/assets/stylesheets/application.scss` where it is, so its partials keep working, and removes the gem, the `css:` line in `Procfile.dev` and the old build. If you had custom builds in `config/initializers/dartsass.rb`, import each of those files from JavaScript.
 
+On Sprockets (the Rails 7 default), keep Sass files in `app/javascript` instead: Sprockets compiles any `.scss` file under `app/assets/stylesheets` itself, through `require_tree .` and `link_directory`, and fails without the `sassc` gem. Partials in `app/javascript/stylesheets` load with `@use "stylesheets/variables"`.
+
 Inside partials, `url()` is resolved from the file that was imported from JavaScript, not from the partial.
 
 ### Images and fonts
