@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-13
+
 - Multiple entry points: every `app/javascript/entrypoints/*.{js,ts}` becomes a bundle named after the file; `application.ts` works as the main entry
 - `rspack:doctor` lists entry points and reports any that are not built
 - Fix: the dev server no longer writes `*.hot-update.js` files into `app/assets/builds`
