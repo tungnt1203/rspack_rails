@@ -50,6 +50,9 @@ body { color: rebeccapurple; font-family: Brand; background: url("./images/hero.
 CSS
 echo 'import "./application.css"' >> app/javascript/application.js
 echo 'import heroUrl from "./images/hero.png"; window.heroUrl = heroUrl' >> app/javascript/application.js
+# A lazy chunk (*.digested.js) matches both rspack:clobber patterns.
+echo 'export default "lazy-chunk"' > app/javascript/lazy.js
+echo 'import("./lazy").then((m) => console.log(m.default))' >> app/javascript/application.js
 cat > app/javascript/controllers/typed_controller.ts <<'TS'
 import { Controller } from "@hotwired/stimulus"
 
@@ -59,6 +62,13 @@ export default class extends Controller<HTMLElement> {
   }
 }
 TS
+
+step "rspack:install:tailwind"
+bin/rails rspack:install:tailwind
+grep -q '@import "tailwindcss"' app/javascript/application.css || { echo "tailwind import missing"; exit 1; }
+grep -q 'rspack_stylesheet_tag "application"' app/views/layouts/application.html.erb || { echo "stylesheet tag missing"; exit 1; }
+mkdir -p app/views/pages
+echo '<p class="text-fuchsia-700 tracking-widest">hi</p>' > app/views/pages/home.html.erb
 
 step "Adding an admin entry point"
 mkdir -p app/javascript/entrypoints
@@ -79,6 +89,7 @@ assert_file app/assets/builds/application.js.map
 ls app/assets/builds | grep -Eq '^hero-[0-9a-f]+\.digested\.png$' || { echo "hero image not emitted"; exit 1; }
 grep -q 'data:image/svg' app/assets/builds/application.bundle.css || { echo "small image not inlined"; exit 1; }
 [ -d node_modules/.cache/rspack ] || { echo "persistent cache missing"; exit 1; }
+grep -q 'text-fuchsia-700' app/assets/builds/application.bundle.css || { echo "tailwind utility not generated"; exit 1; }
 find app/assets/builds -name '*hot-update*' | grep -q . && { echo "hot-update files in builds"; exit 1; }
 
 step "rspack:doctor"
@@ -105,6 +116,8 @@ font=$(ls public/assets | grep -E '^brand-[0-9a-f]+\.digested\.woff2$') || { ech
 grep -q "/assets/$hero" public/assets/application.bundle-*.css || { echo "CSS does not point at $hero"; exit 1; }
 grep -q "/assets/$font" public/assets/application.bundle-*.css || { echo "CSS does not point at $font"; exit 1; }
 grep -q "$hero" public/assets/application-*.js || { echo "JS image import missing"; exit 1; }
+grep -q 'tracking-widest' public/assets/application.bundle-*.css || { echo "tailwind utility missing in production"; exit 1; }
+grep -lq 'lazy-chunk' public/assets/*.digested.js || { echo "lazy chunk missing"; exit 1; }
 ls public/assets | grep -q '\.map$' && { echo "source maps in public/assets"; exit 1; }
 
 step "Helpers in production"

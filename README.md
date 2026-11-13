@@ -13,6 +13,7 @@ Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the
 - **HMR for JavaScript, CSS and Stimulus controllers**, with an automatic fallback to the asset pipeline when the dev server is not running
 - **Stimulus autoloading**: drop a `*_controller.js` (or `.ts`) in `app/javascript/controllers`, no manifest to maintain
 - **TypeScript and CSS modules** out of the box, through Rspack's built-in SWC and native CSS
+- **Tailwind CSS v4** with `rspack:install:tailwind`, which also moves a `tailwindcss-rails` app over
 - **Images and fonts** imported from JavaScript or CSS `url()`, fingerprinted for Propshaft
 - **Persistent cache**, so rebuilds and dev server restarts reuse earlier work
 - **Multiple entry points** from `app/javascript/entrypoints/`
@@ -137,6 +138,16 @@ import "./styles/application.css"
 
 The `.bundle` suffix keeps the output from clashing with `app/assets/stylesheets/application.css`. Rails 8's default `stylesheet_link_tag :app` links every CSS file under `app/assets`, so it also links the bundle. That is harmless: the dev server keeps `app/assets/builds` up to date and its own link comes later in the cascade. A rule you delete keeps applying until the next reload.
 
+### Tailwind CSS
+
+```bash
+bin/rails rspack:install:tailwind
+```
+
+This installs `tailwindcss` and `@tailwindcss/webpack`, creates `app/javascript/application.css` with `@import "tailwindcss";`, imports it from `application.js` and adds `rspack_stylesheet_tag "application"` to the layout. Classes in your views, helpers and JavaScript are picked up automatically, and under `rspack serve` a new class in a view shows up without a reload.
+
+Coming from `tailwindcss-rails` (`rails new --css tailwind`)? Run `bin/rails rspack:migrate` first, then `rspack:install:tailwind`. It moves `app/assets/tailwind/application.css` (with your `@theme`, `@plugin` and `@source` lines) to `app/javascript/application.css`, removes the gem, the `css:` line in `Procfile.dev` and the old `tailwind.css` build.
+
 ### Images and fonts
 
 Import an image from JavaScript, or reference images and fonts from CSS with `url()`:
@@ -163,6 +174,7 @@ npm run typecheck
 |---|---|
 | `bin/rails rspack:install:stimulus` | Sets up Stimulus with controller autoloading |
 | `bin/rails rspack:install:typescript` | Adds tsconfig.json, typescript and a `typecheck` script |
+| `bin/rails rspack:install:tailwind` | Sets up Tailwind CSS v4, migrating from tailwindcss-rails |
 | `bin/rails rspack:migrate` | Moves an importmap or jsbundling app to rspack |
 | `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, Procfile and dev server |
 | `bin/rails rspack:build` | Installs JS dependencies, then runs `build` |

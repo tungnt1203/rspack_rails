@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# End-to-end check of `rspack:migrate`: generate an importmap or jsbundling
-# (esbuild) Rails app, migrate it to rspack, then build, run the doctor and
-# precompile for production.
+# End-to-end check of `rspack:migrate`: generate an importmap, jsbundling
+# (esbuild) or importmap + tailwindcss-rails Rails app, migrate it to rspack
+# (and to rspack:install:tailwind), then build, run the doctor and precompile
+# for production.
 #
 #   bin/integration-migrate importmap
 #   bin/integration-migrate jsbundling "~> 8.1.0"
+#   bin/integration-migrate tailwind
 set -euo pipefail
 
 GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MODE="${1:?usage: bin/integration-migrate importmap|jsbundling [rails requirement]}"
+MODE="${1:?usage: bin/integration-migrate importmap|jsbundling|tailwind [rails requirement]}"
 REQUIREMENT="${2:-}"
 WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
 
@@ -27,6 +29,7 @@ fi
 case "$MODE" in
   importmap) js_flag=() ;;
   jsbundling) js_flag=(-j esbuild) ;;
+  tailwind) js_flag=(--css tailwind) ;;
   *) fail "unknown mode $MODE" ;;
 esac
 
@@ -51,7 +54,7 @@ step "rspack:migrate"
 bin/rails rspack:migrate
 
 step "Checking the migration"
-if [ "$MODE" = importmap ]; then
+if [ "$MODE" != jsbundling ]; then
   assert_no_file config/importmap.rb
   assert_no_file bin/importmap
   ! grep -q importmap-rails Gemfile || fail "importmap-rails still in Gemfile"
@@ -63,6 +66,17 @@ fi
 grep -q 'rspack_javascript_tag "application"' app/views/layouts/application.html.erb || fail "layout tag missing"
 grep -q 'controllers/autoload' app/javascript/application.js || fail "autoload import missing"
 grep -q '^js: .* dev$' Procfile.dev || fail "Procfile.dev does not run the dev server"
+
+if [ "$MODE" = tailwind ]; then
+  step "rspack:install:tailwind"
+  bin/rails rspack:install:tailwind
+  assert_no_file app/assets/tailwind/application.css
+  assert_no_file app/assets/builds/tailwind.css
+  ! grep -q tailwindcss-rails Gemfile || fail "tailwindcss-rails still in Gemfile"
+  ! grep -q '^css:' Procfile.dev || fail "Procfile.dev still runs tailwindcss:watch"
+  grep -q '@import "tailwindcss"' app/javascript/application.css || fail "tailwind import not moved"
+  grep -q 'rspack_stylesheet_tag "application"' app/views/layouts/application.html.erb || fail "stylesheet tag missing"
+fi
 
 step "rspack:build"
 bin/rails rspack:build
@@ -76,6 +90,12 @@ bin/rails assets:precompile
 assert_match "$(ls public/assets)" '^application-[0-9a-f]+\.js$'
 grep -q 'Hello World' public/assets/application-*.js || fail "hello controller missing from bundle"
 grep -q 'turbo' public/assets/application-*.js || fail "turbo missing from bundle"
+
+if [ "$MODE" = tailwind ]; then
+  # The generated layout uses `container mx-auto mt-28 px-5 flex`.
+  grep -q 'mx-auto' public/assets/application.bundle-*.css || fail "tailwind utilities missing"
+  ls public/assets | grep -q '^tailwind' && fail "tailwindcss-rails output still in public/assets"
+fi
 
 step "The app boots in production"
 html=$(bin/rails runner 'puts ApplicationController.render(inline: %(<%= rspack_javascript_tag "application" %>))')
