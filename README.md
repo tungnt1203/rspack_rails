@@ -326,6 +326,7 @@ bin/integration                       # new Rails app + every installer, build, 
 bin/integration "~> 7.2.0"            # against a specific Rails version
 bin/integration-migrate importmap     # rails new + rspack:migrate (or: jsbundling, tailwind, sass)
 bin/integration-typescript            # application.ts entry + Slim layout through every installer
+bin/integration-hmr                   # rails server + rspack serve, Chromium checks edits hot-reload
 ```
 
 ## License
