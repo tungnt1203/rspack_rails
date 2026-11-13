@@ -19,7 +19,7 @@ jobs:
           - '3.4'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -27,3 +27,26 @@ jobs:
           bundler-cache: true
       - name: Run the default task
         run: bundle exec rake
+
+  integration:
+    runs-on: ubuntu-latest
+    name: Rails ${{ matrix.rails }} app
+    strategy:
+      fail-fast: false
+      matrix:
+        rails:
+          - '~> 7.2.0'
+          - '~> 8.1.0'
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Generate a Rails app and run every installer, build and precompile
+        run: bin/integration "${{ matrix.rails }}"
