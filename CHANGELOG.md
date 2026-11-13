@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-13
+
 - CSS imported from JavaScript is extracted to `app/assets/builds/<entry>.bundle.css` and hot-reloaded under `rspack serve`; `*.module.css` are CSS modules
 - **Changed:** `rspack_stylesheet_tag "application"` now links `application.bundle.css` (was `application.css`)
 - TypeScript: `.ts` files and `*_controller.ts` Stimulus controllers compile with the built-in SWC loader
