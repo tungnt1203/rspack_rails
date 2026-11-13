@@ -17,6 +17,14 @@ namespace :rspack do
     end
   end
 
+  desc "Check the rspack setup of this app"
+  task doctor: :environment do
+    require "rspack_rails/doctor"
+    doctor = RspackRails::Doctor.new(Rails.root)
+    doctor.report
+    exit 1 unless doctor.ok?
+  end
+
   desc "Install JavaScript dependencies"
   task :dependencies do
     command = RspackRails::PackageManager.detect(Rails.root).install_command

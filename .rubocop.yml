@@ -17,3 +17,7 @@ Metrics/BlockLength:
 Style/Documentation:
   Exclude:
     - lib/rspack_rails/railtie.rb
+
+Metrics/ClassLength:
+  Exclude:
+    - lib/rspack_rails/doctor.rb
