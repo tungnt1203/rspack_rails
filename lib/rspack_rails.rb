@@ -5,7 +5,6 @@ require_relative "rspack_rails/package_manager"
 require_relative "rspack_rails/configuration"
 require_relative "rspack_rails/dev_server"
 require_relative "rspack_rails/entrypoints"
-require_relative "rspack_rails/migration"
 
 # Rspack integration for Rails: rake tasks, installer and view helpers.
 module RspackRails

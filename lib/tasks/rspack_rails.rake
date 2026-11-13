@@ -1,47 +1,23 @@
 # frozen_string_literal: true
 
+require "rspack_rails/installer"
+
 namespace :rspack do
   desc "Set up rspack in this Rails app"
   task :install do
-    template = File.expand_path("../install/install.rb", __dir__)
-    system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
-      raise(RspackRails::Error, "rspack:install failed")
+    RspackRails::Installer.run("install", task: "rspack:install")
   end
 
   namespace :install do
-    desc "Set up Stimulus with automatic controller registration"
-    task :stimulus do
-      template = File.expand_path("../install/stimulus.rb", __dir__)
-      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
-        raise(RspackRails::Error, "rspack:install:stimulus failed")
-    end
-
-    desc "Set up TypeScript type checking (tsconfig.json, typescript, typecheck script)"
-    task :typescript do
-      template = File.expand_path("../install/typescript.rb", __dir__)
-      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
-        raise(RspackRails::Error, "rspack:install:typescript failed")
-    end
-
-    desc "Set up React with Fast Refresh and the react_component helper"
-    task :react do
-      template = File.expand_path("../install/react.rb", __dir__)
-      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
-        raise(RspackRails::Error, "rspack:install:react failed")
-    end
-
-    desc "Set up Sass (migrates from dartsass-rails)"
-    task :sass do
-      template = File.expand_path("../install/sass.rb", __dir__)
-      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
-        raise(RspackRails::Error, "rspack:install:sass failed")
-    end
-
-    desc "Set up Tailwind CSS v4 (migrates from tailwindcss-rails)"
-    task :tailwind do
-      template = File.expand_path("../install/tailwind.rb", __dir__)
-      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
-        raise(RspackRails::Error, "rspack:install:tailwind failed")
+    {
+      stimulus: "Set up Stimulus with automatic controller registration",
+      typescript: "Set up TypeScript type checking (tsconfig.json, typescript, typecheck script)",
+      react: "Set up React with Fast Refresh and the react_component helper",
+      sass: "Set up Sass (migrates from dartsass-rails)",
+      tailwind: "Set up Tailwind CSS v4 (migrates from tailwindcss-rails)"
+    }.each do |name, description|
+      desc description
+      task(name) { RspackRails::Installer.run(name.to_s) }
     end
   end
 
@@ -54,9 +30,7 @@ namespace :rspack do
             "rspack:migrate removes and rewrites files. Commit or stash your changes first, or run with FORCE=1."
     end
 
-    template = File.expand_path("../install/migrate.rb", __dir__)
-    system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
-      raise(RspackRails::Error, "rspack:migrate failed")
+    RspackRails::Installer.run("migrate", task: "rspack:migrate")
   end
 
   desc "Check the rspack setup of this app"

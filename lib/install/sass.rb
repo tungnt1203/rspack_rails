@@ -3,23 +3,15 @@
 # Rails application template run by `bin/rails rspack:install:sass`.
 # Sets up Sass through sass-loader and sass-embedded, and moves an app off
 # dartsass-rails when it finds one.
+require "rspack_rails/installer"
+extend RspackRails::Installer
+
 pm = RspackRails::PackageManager.detect(Rails.root)
-layout = "app/views/layouts/application.html.erb"
-entry = %w[app/javascript/application.js app/javascript/application.ts].find { |file| File.exist?(file) }
 dartsass_source = "app/assets/stylesheets/application.scss"
 
-unless File.exist?("rspack.config.mjs") && File.read("rspack.config.mjs").include?("sass-loader")
-  say "rspack.config.mjs predates Sass support. Re-run `bin/rails rspack:install` and accept the new " \
-      "rspack.config.mjs, then run this task again.", :red
-  exit 1
-end
-
-if entry.nil?
-  say "No app/javascript/application.{js,ts} found. Run `bin/rails rspack:install` first.", :red
-  exit 1
-end
-
-dartsass = File.exist?("Gemfile") && File.read("Gemfile").match?(/^\s*gem\s+["']dartsass-rails["']/)
+require_config! "sass-loader", "Sass"
+entry = main_entry!
+dartsass = gem_in_gemfile?("dartsass-rails")
 
 stylesheet =
   if File.exist?(dartsass_source)
@@ -54,13 +46,7 @@ if File.exist?("app/assets/config/manifest.js") && !File.exist?(dartsass_source)
       "with @use \"stylesheets/variables\".", :yellow
 end
 
-if File.exist?(layout) && !File.read(layout).include?("rspack_stylesheet_tag")
-  say "Adding rspack_stylesheet_tag to #{layout}"
-  insert_into_file layout, %(    <%= rspack_stylesheet_tag "application", "data-turbo-track": "reload" %>\n),
-                   before: %r{^[ \t]*</head>}
-elsif !File.exist?(layout)
-  say %(Add this to your layout: <%= rspack_stylesheet_tag "application" %>), :yellow
-end
+add_stylesheet_tag
 
 if dartsass
   say "Removing dartsass-rails"
@@ -70,9 +56,7 @@ if dartsass
   end
   gsub_file "Procfile.dev", /^css: .*dartsass:watch.*\n/, "" if File.exist?("Procfile.dev")
   remove_file "app/assets/builds/application.css"
-  gem_line = /^[ \t]*gem[ \t]+["']dartsass-rails["'].*\n/
-  gsub_file "Gemfile", /^[ \t]*#.*\n(?=#{gem_line.source})/, "" # the comment describing it
-  gsub_file "Gemfile", gem_line, ""
+  remove_gem "dartsass-rails"
   run "bundle install --quiet", abort_on_failure: true
 end
 

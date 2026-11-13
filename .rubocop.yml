@@ -21,3 +21,9 @@ Style/Documentation:
 Metrics/ClassLength:
   Exclude:
     - lib/rspack_rails/doctor.rb
+
+# Application templates run inside a Rails generator (instance_eval), so a
+# top-level `extend` adds the helpers to that generator.
+Style/MixinUsage:
+  Exclude:
+    - lib/install/**/*.rb
