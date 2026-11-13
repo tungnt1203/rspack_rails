@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- `rspack:doctor`: checks Node.js against rspack's `engines`, packages, config, entry, build output, layout, Procfile.dev, Stimulus and the dev server
 - `rspack:install:stimulus`: Stimulus with automatic controller registration and hot-swapping under `rspack serve`
 - `rspack_javascript_tag` / `rspack_stylesheet_tag` helpers that load from `rspack serve` in development and fall back to the asset pipeline
 - Dev server with hot module replacement (`npm run dev`), configured via `RSPACK_DEV_SERVER_*` env vars or `RspackRails.configure`

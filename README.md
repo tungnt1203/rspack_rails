@@ -68,12 +68,29 @@ If `application.js` imported `./controllers` (the stimulus-rails index), the ins
 | Task | What it does |
 |---|---|
 | `bin/rails rspack:install:stimulus` | Sets up Stimulus with controller autoloading |
+| `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, Procfile and dev server |
 | `bin/rails rspack:build` | Installs JS dependencies, then runs `build` |
 | `bin/rails rspack:clobber` | Removes rspack output from `app/assets/builds` |
 
 `rspack:build` runs automatically before `assets:precompile`, `test:prepare`, `spec:prepare` and `db:test:prepare`. Set `SKIP_RSPACK_BUILD=1` to turn that off.
 
 When `RAILS_ENV` or `NODE_ENV` is `production`, the generated config builds in production mode (minified). Lazy-loaded chunks are named `*.digested.js`, so Propshaft serves them without fingerprinting them a second time.
+
+### Doctor
+
+`bin/rails rspack:doctor` checks the setup and prints a hint for anything missing:
+
+```
+✓ Node.js: v22.12.0 (rspack needs ^20.19.0 || >=22.12.0)
+✓ @rspack/core: 2.3.2
+✓ Layout: uses rspack_javascript_tag
+! Dev server: not running at http://localhost:3036
+    → Start it with bin/dev; until then pages use app/assets/builds
+
+0 error(s), 1 warning(s).
+```
+
+The required Node.js version comes from the `engines` field of the installed `@rspack/core`. The task exits with status 1 when there are errors, so it can run in CI.
 
 ## Development
 
