@@ -91,6 +91,37 @@ RSpec.describe RspackRails::Installer do
     end
   end
 
+  describe "#replace_app_stylesheets_tag" do
+    let(:layout) { "app/views/layouts/application.html.erb" }
+
+    before do
+      write(layout, <<~ERB)
+        <head>
+          <%# Includes all stylesheet files in app/assets/stylesheets %>
+          <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+        </head>
+      ERB
+    end
+
+    it "links application.css when that is the app's only stylesheet" do
+      write("app/assets/stylesheets/application.css")
+      host.replace_app_stylesheets_tag
+      expect(@root.join(layout).read)
+        .to eq(%(<head>\n  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>\n</head>\n))
+    end
+
+    it "drops the tag when the app has no stylesheets of its own" do
+      host.replace_app_stylesheets_tag
+      expect(@root.join(layout).read).to eq("<head>\n</head>\n")
+    end
+
+    it "leaves the layout alone when the app has several stylesheets" do
+      write("app/assets/stylesheets/application.css")
+      write("app/assets/stylesheets/admin.css")
+      expect { host.replace_app_stylesheets_tag }.not_to(change { @root.join(layout).read })
+    end
+  end
+
   it "removes a helper from every layout, whatever the syntax" do
     write("app/views/layouts/application.html.erb", "<head>\n    <%= javascript_importmap_tags %>\n</head>\n")
     write("app/views/layouts/admin.html.haml", "%head\n  = javascript_importmap_tags\n  = csrf_meta_tags\n")

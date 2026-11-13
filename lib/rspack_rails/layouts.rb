@@ -8,6 +8,9 @@ module RspackRails
   module Layouts
     DIR = "app/views/layouts"
     EXTENSIONS = %w[erb slim haml].freeze
+    # Rails 8's default `stylesheet_link_tag :app` links every CSS file under
+    # app/assets, rspack's app/assets/builds/*.bundle.css included.
+    APP_STYLESHEETS = /stylesheet_link_tag[ (]:app\b/
 
     module_function
 

@@ -97,6 +97,18 @@ fi
 step "rspack:build"
 bin/rails rspack:build
 
+step "rspack serve after a build keeps HMR"
+# The build above fills the persistent cache with modules compiled without
+# HMR; the dev server must not reuse them (import.meta.webpackHot -> false).
+node_modules/.bin/rspack serve > tmp/rspack-serve.log 2>&1 &
+serve_pid=$!
+for _ in $(seq 1 60); do curl -s -o /dev/null http://localhost:3036/application.js && break; sleep 0.5; done
+curl -s -o tmp/serve-application.js http://localhost:3036/application.js
+kill $serve_pid; wait $serve_pid 2>/dev/null || true
+grep -q 'module.hot.accept(context.id' tmp/serve-application.js ||
+  fail "Stimulus autoload has no hot accept under rspack serve after a build"
+bin/rails rspack:build # replace the dev server's output
+
 step "rspack:doctor"
 bin/rails rspack:doctor
 

@@ -32,6 +32,8 @@ bundle install --quiet
 
 step "rspack:install"
 bin/rails rspack:install
+# Rails 8's `stylesheet_link_tag :app` would also link rspack's *.bundle.css files.
+grep -q 'stylesheet_link_tag :app' app/views/layouts/application.html.erb && { echo "stylesheet_link_tag :app left in the layout"; exit 1; }
 step "rspack:install:stimulus"
 bin/rails rspack:install:stimulus
 step "rspack:install:typescript"
@@ -146,6 +148,11 @@ node_modules/.bin/rspack serve > tmp/rspack-serve.log 2>&1 & # not npx: $! must 
 serve_pid=$!
 for _ in $(seq 1 60); do curl -s -o /dev/null http://localhost:3036/application.js && break; sleep 0.5; done
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3036/_rspack/lazy/trigger -d '')
+# rspack:build ran first: the dev server must not reuse its cached modules,
+# compiled without HMR (import.meta.webpackHot -> false).
+curl -s -o tmp/serve-application.js http://localhost:3036/application.js # no pipe: grep -q + pipefail
+grep -q 'module.hot.accept(context.id' tmp/serve-application.js ||
+  { kill $serve_pid; echo "Stimulus autoload has no hot accept under rspack serve (stale build cache?)"; exit 1; }
 grep -lq 'localhost%3A3036%2F_rspack%2Flazy%2Ftrigger' app/assets/builds/*lazy-compilation-proxy*.js ||
   { kill $serve_pid; echo "lazy compilation does not call the dev server"; exit 1; }
 # Rails serves the dev server's files same-origin under /rspack/ (needed for Web Workers).

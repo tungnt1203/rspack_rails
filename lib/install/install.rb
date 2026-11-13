@@ -58,6 +58,8 @@ else
   say "Add this to your layout: <%= #{js_tag} %>", :yellow
 end
 
+replace_app_stylesheets_tag
+
 say "Configuring bin/dev"
 js_process = "js: #{pm.run_command("dev")}"
 if !File.exist?("Procfile.dev")

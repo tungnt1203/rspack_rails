@@ -133,6 +133,17 @@ RSpec.describe RspackRails::Doctor do
     expect(check("Stylesheet").status).to eq(:ok)
   end
 
+  it "warns when stylesheet_link_tag :app links rspack's bundles again" do
+    set_up_complete_app
+    write("app/views/layouts/application.html.erb",
+          %(<%= stylesheet_link_tag :app %>\n<%= rspack_javascript_tag "application" %>))
+    expect(doctor.checks.map(&:name)).not_to include("Stylesheet")
+    write("app/assets/builds/print.bundle.css", "nav{display:none}")
+    stylesheet = doctor.checks.select { |c| c.name == "Stylesheet" }.last
+    expect(stylesheet.status).to eq(:warn)
+    expect(stylesheet.detail).to include("stylesheet_link_tag :app")
+  end
+
   it "warns when the dev server is not running" do
     set_up_complete_app
     allow(dev_server).to receive(:running?).and_return(false)

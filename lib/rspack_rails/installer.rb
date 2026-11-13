@@ -82,6 +82,34 @@ module RspackRails
                     marker: "rspack_stylesheet_tag")
     end
 
+    # `stylesheet_link_tag :app` also links rspack's bundles, each a second
+    # time and without the options rspack_stylesheet_tag gives them (a print
+    # entry would apply on screen). When the app's own CSS is just
+    # app/assets/stylesheets/application.css, link that file instead.
+    def replace_app_stylesheets_tag
+      layouts = Layouts.all(destination_root).select { |path| File.read(path).match?(Layouts::APP_STYLESHEETS) }
+      return if layouts.empty?
+
+      own = Dir.glob("app/assets/stylesheets/**/*.css")
+      unless own.empty? || own == ["app/assets/stylesheets/application.css"]
+        return say "#{layouts.join(", ")} uses `stylesheet_link_tag :app`, which also links rspack's " \
+                   "*.bundle.css files. List your own stylesheets instead, e.g. stylesheet_link_tag " \
+                   "\"application\".", :yellow
+      end
+
+      layouts.each { |path| link_own_stylesheet(path, own.any?) }
+    end
+
+    def link_own_stylesheet(path, application_css)
+      say "Replacing `stylesheet_link_tag :app` in #{path}: it would also link rspack's bundles"
+      gsub_file path, %r{^[ \t]*<%# Includes all stylesheet files in app/assets/stylesheets %>\n}, ""
+      if application_css
+        gsub_file path, /(stylesheet_link_tag[ (]):app\b/, '\1"application"'
+      else
+        gsub_file path, /^[ \t]*(?:<%=|=)[ \t]*stylesheet_link_tag[ (]:app\b.*\n/, ""
+      end
+    end
+
     # Removes lines that call `helper` (ERB, Slim or Haml) from every layout.
     def remove_from_layouts(helper)
       Layouts.all(destination_root).each do |path|
