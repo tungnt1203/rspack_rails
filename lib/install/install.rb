@@ -30,9 +30,10 @@ package = JSON.parse(File.read("package.json"))
 package["scripts"] ||= {}
 package["scripts"]["build"] = "rspack build"
 package["scripts"]["build:watch"] = "rspack build --watch"
+package["scripts"]["dev"] = "rspack serve"
 File.write("package.json", "#{JSON.pretty_generate(package)}\n")
 
-include_tag = %(<%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>)
+include_tag = %(<%= rspack_javascript_tag "application", "data-turbo-track": "reload" %>)
 layout = Rails.root.join("app/views/layouts/application.html.erb")
 if layout.exist?
   content = File.read(layout)
@@ -40,23 +41,25 @@ if layout.exist?
     say "Found javascript_importmap_tags in your layout. Remove it if you are replacing importmap with rspack.",
         :yellow
   end
-  unless content.include?('javascript_include_tag "application"')
-    say "Adding javascript_include_tag to application layout"
-    insert_into_file layout, "    #{include_tag}\n",
-                     before: %r{^[ \t]*</head>}
+  if content.match?(/javascript_include_tag "application".*$/)
+    say "Switching javascript_include_tag to rspack_javascript_tag"
+    gsub_file layout, /<%= javascript_include_tag "application".*%>/, include_tag
+  elsif !content.include?("rspack_javascript_tag")
+    say "Adding rspack_javascript_tag to application layout"
+    insert_into_file layout, "    #{include_tag}\n", before: %r{^[ \t]*</head>}
   end
 else
   say "Add this to your layout: #{include_tag}", :yellow
 end
 
 say "Configuring bin/dev"
-if File.exist?("Procfile.dev")
-  unless File.read("Procfile.dev").include?("js:")
-    append_to_file "Procfile.dev",
-                   "js: #{pm.run_command("build:watch")}\n"
-  end
-else
-  create_file "Procfile.dev", "web: env RUBY_DEBUG_OPEN=true bin/rails server\njs: #{pm.run_command("build:watch")}\n"
+js_process = "js: #{pm.run_command("dev")}"
+if !File.exist?("Procfile.dev")
+  create_file "Procfile.dev", "web: env RUBY_DEBUG_OPEN=true bin/rails server\n#{js_process}\n"
+elsif File.read("Procfile.dev").match?(/^js: .*build:watch$/)
+  gsub_file "Procfile.dev", /^js: .*build:watch$/, js_process
+elsif !File.read("Procfile.dev").match?(/^js:/)
+  append_to_file "Procfile.dev", "#{js_process}\n"
 end
 
 unless File.exist?("bin/dev") && File.read("bin/dev").include?("Procfile.dev")
@@ -64,7 +67,7 @@ unless File.exist?("bin/dev") && File.read("bin/dev").include?("Procfile.dev")
   chmod "bin/dev", 0o755, verbose: false
 end
 
-say "Installing @rspack/cli and @rspack/core"
-run pm.add_dev_command("@rspack/cli", "@rspack/core")
+say "Installing @rspack/cli, @rspack/core and @rspack/dev-server"
+run pm.add_dev_command("@rspack/cli", "@rspack/core", "@rspack/dev-server")
 
 say "rspack_rails installed. Run bin/dev to start developing.", :green

@@ -14,3 +14,24 @@ module RspackRails
     def run_command: (String script) -> String
   end
 end
+
+module RspackRails
+  def self.config: () -> Configuration
+  def self.configure: () { (Configuration) -> void } -> void
+  def self.dev_server: () -> DevServer
+
+  class Configuration
+    attr_accessor dev_server_host: String
+    attr_accessor dev_server_port: Integer
+    attr_writer dev_server_enabled: bool?
+    def initialize: (?Hash[String, String] env) -> void
+    def dev_server_enabled: () -> bool
+    def dev_server_url: () -> String
+  end
+
+  class DevServer
+    def initialize: (Configuration config, ?check_interval: Float | Integer) -> void
+    def running?: () -> bool
+    def url: (String | Symbol path) -> String
+  end
+end
