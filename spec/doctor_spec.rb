@@ -97,6 +97,25 @@ RSpec.describe RspackRails::Doctor do
     expect(check("Layout").status).to eq(:warn)
   end
 
+  it "accepts a Slim layout" do
+    set_up_complete_app
+    @root.join("app/views/layouts/application.html.erb").delete
+    write("app/views/layouts/application.html.slim", "head\n  = rspack_javascript_tag \"application\"\n")
+    expect(check("Layout").status).to eq(:ok)
+  end
+
+  it "finds rspack_javascript_tag in any layout" do
+    set_up_complete_app
+    write("app/views/layouts/application.html.erb", "<%= yield %>")
+    write("app/views/layouts/admin.html.erb", '<%= rspack_javascript_tag "admin" %>')
+    expect(check("Layout").detail).to eq("admin.html.erb uses rspack_javascript_tag")
+  end
+
+  it "suggests the tag in the layout's syntax" do
+    write("app/views/layouts/application.html.haml", "%head\n")
+    expect(check("Layout").hint).to start_with('Add = rspack_javascript_tag "application" to')
+  end
+
   it "requires @hotwired/stimulus once autoload is installed" do
     set_up_complete_app
     write("app/javascript/controllers/autoload.js")

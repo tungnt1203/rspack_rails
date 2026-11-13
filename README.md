@@ -31,7 +31,7 @@ rspack_rails follows the `jsbundling-rails` model: Rspack writes bundles to `app
 
 ## Requirements
 
-- Ruby 3.1+ and Rails 7.0+ (CI runs a real app on Rails 7.2 with Sprockets and 8.1 with Propshaft)
+- Ruby 3.2+ and Rails 7.2+ (CI runs real apps on Rails 7.2 with Sprockets and 8.1 with Propshaft)
 - Node.js 20.19+ or 22.12+ (whatever the installed `@rspack/core` asks for; `rspack:doctor` checks it)
 - bun, yarn, pnpm or npm, detected from the lockfile
 
@@ -47,7 +47,7 @@ The installer:
 
 - creates `rspack.config.mjs` and `app/javascript/application.js` (an existing `application.ts`, `.jsx` or `.tsx` is kept as the entry)
 - adds `build`, `build:watch` and `dev` (`rspack serve`) scripts to `package.json`
-- adds `rspack_javascript_tag "application"` to your layout
+- adds `rspack_javascript_tag "application"` to your layout (ERB, Slim or Haml)
 - adds a `js:` process running the dev server to `Procfile.dev` and sets up `bin/dev`
 - installs `@rspack/cli`, `@rspack/core` and `@rspack/dev-server`
 
@@ -203,6 +203,8 @@ bin/rails rspack:install:typescript   # tsconfig.json, typescript, "typecheck" s
 npm run typecheck
 ```
 
+The installer also adds `app/javascript/types/assets.d.ts`, so imports of stylesheets, images and fonts type-check (`import heroUrl from "./hero.png"` is a `string`).
+
 After that, type errors also show in the dev server overlay while you work (`ts-checker-rspack-plugin`); builds stay fast and leave checking to `typecheck`. `paths` aliases in `tsconfig.json` are honored, so `"@/*": ["./app/javascript/*"]` makes `import "@/lib/api"` work in both TypeScript and Rspack.
 
 ### Images and fonts
@@ -287,7 +289,7 @@ end
 | `bin/rails rspack:install:sass` | Sets up Sass, migrating from dartsass-rails |
 | `bin/rails rspack:migrate` | Moves an importmap or jsbundling app to Rspack |
 | `bin/rails rspack:build` | Installs JavaScript dependencies, then runs `build` |
-| `bin/rails rspack:clobber` | Removes Rspack output from `app/assets/builds` (also runs with `assets:clobber`) |
+| `bin/rails rspack:clobber` | Removes Rspack output from `app/assets/builds`, leaving other tools' files alone (also runs with `assets:clobber`) |
 | `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, `Procfile.dev` and the dev server |
 | `bin/rails rspack:analyze` | Writes an Rsdoctor bundle report to `tmp/rsdoctor/rsdoctor-report.html` |
 
@@ -321,6 +323,7 @@ bundle exec rake                      # specs + rubocop
 bin/integration                       # new Rails app + every installer, build, doctor and precompile
 bin/integration "~> 7.2.0"            # against a specific Rails version
 bin/integration-migrate importmap     # rails new + rspack:migrate (or: jsbundling, tailwind, sass)
+bin/integration-typescript            # application.ts entry + Slim layout through every installer
 ```
 
 ## License

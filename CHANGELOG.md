@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-13
+
+- Requires Ruby 3.2+ and Rails 7.2+, the versions CI runs (Ruby 3.1 and Rails 7.0/7.1 are end of life)
+- Slim and Haml layouts: installers add `rspack_javascript_tag` / `rspack_stylesheet_tag` in the layout's syntax, and `rspack:migrate` removes `javascript_importmap_tags` from every layout
+- `rspack:doctor` checks every layout in `app/views/layouts` (ERB, Slim, Haml), not only `application.html.erb`
+- `rspack:clobber` (and `assets:clobber`) removes only rspack's output: entry scripts, `*.bundle.css`, `runtime.js`, source maps and `*.digested.*`. Files from other tools in `app/assets/builds` stay
+- Fix: `npm run typecheck` failed on `import "./application.css"` with recent TypeScript releases, which turn on `noUncheckedSideEffectImports` by default. `rspack:install:typescript` adds `app/javascript/types/assets.d.ts` with types for stylesheets, images and fonts; existing apps can re-run it
+- CI: an app with an `application.ts` entry and a Slim layout runs through every installer
+
 ## [0.9.1] - 2026-11-13
 
 - Fix: `rspack:install` and `rspack:install:stimulus` created `app/javascript/application.js` in apps whose entry is `application.ts` (or `.jsx`, `.tsx`), which then shadowed it. All installers now use the same entry discovery as `rspack.config.mjs`

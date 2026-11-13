@@ -51,6 +51,27 @@ jobs:
       - name: Generate a Rails app and run every installer, build and precompile
         run: bin/integration "${{ matrix.rails }}"
 
+  typescript:
+    runs-on: ubuntu-latest
+    name: TypeScript entry + Slim layout (Rails ${{ matrix.rails }})
+    strategy:
+      fail-fast: false
+      matrix:
+        rails: ['~> 7.2.0', '~> 8.1.0']
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Generate an app with application.ts and a Slim layout, run every installer, build and precompile
+        run: bin/integration-typescript "${{ matrix.rails }}"
+
   migrate:
     runs-on: ubuntu-latest
     name: Migrate ${{ matrix.from }} (Rails ${{ matrix.rails }})

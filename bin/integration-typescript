@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# End-to-end check for an app that is not shaped like `rails new`: its entry
+# is app/javascript/application.ts and its layout is Slim. Every installer
+# must keep application.ts as the entry (no application.js next to it) and
+# write the helpers in Slim syntax. Then build, doctor and precompile.
+#
+#   bin/integration-typescript
+#   bin/integration-typescript "~> 8.1.0"
+set -euo pipefail
+
+GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REQUIREMENT="${1:-}"
+WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
+
+step() { printf '\n==> %s\n' "$*"; }
+fail() { echo "FAIL: $*"; exit 1; }
+assert_no_application_js() { [ ! -e app/javascript/application.js ] || fail "$1 created app/javascript/application.js"; }
+
+rails_cmd=(rails)
+if [ -n "$REQUIREMENT" ]; then
+  gem list -i rails -v "$REQUIREMENT" >/dev/null || gem install rails -v "$REQUIREMENT" --no-document
+  version=$(ruby -e 'puts Gem::Specification.find_all_by_name("rails", ARGV[0]).map(&:version).max' "$REQUIREMENT")
+  rails_cmd=(rails "_${version}_")
+fi
+
+step "Generating app with $("${rails_cmd[@]}" --version) in $WORK_DIR"
+cd "$WORK_DIR"
+"${rails_cmd[@]}" new app --quiet --skip-javascript --skip-bundle --skip-git --skip-test --skip-system-test \
+  --skip-active-record --skip-docker --skip-ci --skip-rubocop --skip-brakeman
+cd app
+echo "gem \"rspack_rails\", path: \"$GEM_ROOT\"" >> Gemfile
+bundle install --quiet
+
+step "A TypeScript entry and a Slim layout"
+mkdir -p app/javascript
+printf 'const greeting: string = "from-application-ts"\nconsole.log(greeting)\n' > app/javascript/application.ts
+rm app/views/layouts/application.html.erb
+cat > app/views/layouts/application.html.slim <<'SLIM'
+doctype html
+html
+  head
+    title App
+    = csrf_meta_tags
+  body
+    == yield
+SLIM
+
+step "rspack:install"
+bin/rails rspack:install
+assert_no_application_js rspack:install
+grep -q '^    = rspack_javascript_tag "application"' app/views/layouts/application.html.slim ||
+  fail "rspack_javascript_tag not added to the Slim head"
+
+for installer in stimulus typescript react tailwind sass; do
+  step "rspack:install:$installer"
+  bin/rails "rspack:install:$installer"
+  assert_no_application_js "rspack:install:$installer"
+done
+
+grep -q 'controllers/autoload' app/javascript/application.ts || fail "Stimulus import not in application.ts"
+grep -q 'components/mount' app/javascript/application.ts || fail "React import not in application.ts"
+grep -q 'application.css' app/javascript/application.ts || fail "Tailwind import not in application.ts"
+grep -q 'application.scss' app/javascript/application.ts || fail "Sass import not in application.ts"
+[ "$(grep -c 'rspack_stylesheet_tag' app/views/layouts/application.html.slim)" = 1 ] ||
+  fail "expected one rspack_stylesheet_tag in the Slim layout"
+cat app/views/layouts/application.html.slim
+
+step "typecheck (CSS, Sass and image imports included)"
+mkdir -p app/javascript/images
+head -c 20000 /dev/urandom > app/javascript/images/hero.png
+printf 'import heroUrl from "./images/hero.png"\nconst hero: string = heroUrl\nconsole.log(hero)\n' >> app/javascript/application.ts
+npm run typecheck
+
+step "rspack:build"
+bin/rails rspack:build
+grep -q 'from-application-ts' app/assets/builds/application.js || fail "application.ts not in the bundle"
+
+step "rspack:doctor"
+doctor=$(bin/rails rspack:doctor)
+echo "$doctor"
+grep -q 'Layout: application.html.slim uses rspack_javascript_tag' <<<"$doctor" || fail "doctor missed the Slim layout"
+grep -q 'Stylesheet: application.html.slim uses rspack_stylesheet_tag' <<<"$doctor" ||
+  fail "doctor missed the Slim stylesheet tag"
+
+step "assets:precompile (production)"
+export RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1
+bin/rails assets:clobber
+[ -z "$(ls app/assets/builds)" ] || fail "rspack:clobber left files: $(ls app/assets/builds)"
+bin/rails assets:precompile
+grep -q 'from-application-ts' public/assets/application-*.js || fail "application.ts not in the production bundle"
+
+step "OK"

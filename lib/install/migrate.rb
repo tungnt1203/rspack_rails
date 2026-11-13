@@ -8,7 +8,6 @@ extend RspackRails::Installer
 
 migration = RspackRails::Migration.new(Rails.root)
 pm = RspackRails::PackageManager.detect(Rails.root)
-layout = RspackRails::Installer::LAYOUT
 stimulus = File.exist?("app/javascript/controllers/application.js")
 
 case migration.source
@@ -25,7 +24,7 @@ when :importmap
   packages = migration.npm_install_args
   vendored = migration.vendored_files
 
-  gsub_file layout, /^\s*<%= javascript_importmap_tags.*%>\n/, "" if File.exist?(layout)
+  remove_from_layouts "javascript_importmap_tags"
   if File.exist?("app/assets/config/manifest.js")
     gsub_file "app/assets/config/manifest.js", %r{^//= link_tree \.\./\.\./javascript .js\n}, ""
     gsub_file "app/assets/config/manifest.js", %r{^//= link_tree \.\./\.\./\.\./vendor/javascript .js\n}, ""
