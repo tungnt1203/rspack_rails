@@ -83,6 +83,28 @@ namespace :rspack do
     system(env, command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
   end
 
+  desc "Analyze the production bundle with Rsdoctor (report in tmp/rsdoctor)"
+  task analyze: :dependencies do
+    require "json"
+    pm = RspackRails::PackageManager.detect(Rails.root)
+    config = Rails.root.join("rspack.config.mjs")
+    unless config.exist? && config.read.include?("RsdoctorRspackPlugin")
+      raise RspackRails::Error,
+            "rspack.config.mjs predates rspack:analyze. Re-run `bin/rails rspack:install` and accept the new config."
+    end
+
+    package = JSON.parse(Rails.root.join("package.json").read)
+    unless package.fetch("devDependencies", {}).merge(package.fetch("dependencies", {})).key?("@rsdoctor/rspack-plugin")
+      command = pm.add_dev_command("@rsdoctor/rspack-plugin")
+      system(command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
+    end
+
+    command = pm.run_command("build")
+    system({ "RSDOCTOR" => "true", "NODE_ENV" => "production" }, command, chdir: Rails.root) ||
+      raise(RspackRails::Error, "#{command} failed")
+    puts "Rsdoctor report: #{Rails.root.join("tmp/rsdoctor/rsdoctor-report.html")}"
+  end
+
   desc "Remove rspack build output"
   task :clobber do
     patterns = %w[**/*.{js,js.map,css,css.map} **/*.digested.*].map { |p| Rails.root.join("app/assets/builds", p).to_s }
