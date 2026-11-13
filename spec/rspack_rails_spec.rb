@@ -31,6 +31,7 @@ RSpec.describe RspackRails do
     it "builds commands for the detected manager" do
       pm = detect_with("yarn.lock")
       expect(pm.install_command).to eq("yarn install")
+      expect(pm.add_command("@hotwired/stimulus")).to eq("yarn add @hotwired/stimulus")
       expect(pm.run_command("build")).to eq("yarn run build")
       expect(pm.add_dev_command("@rspack/cli", "@rspack/core")).to eq("yarn add --dev @rspack/cli @rspack/core")
     end

@@ -18,6 +18,13 @@ module RspackRails
       npm: "npm install"
     }.freeze
 
+    ADD = {
+      bun: "bun add",
+      yarn: "yarn add",
+      pnpm: "pnpm add",
+      npm: "npm install"
+    }.freeze
+
     ADD_DEV = {
       bun: "bun add --dev",
       yarn: "yarn add --dev",
@@ -38,6 +45,10 @@ module RspackRails
 
     def install_command
       INSTALL.fetch(name)
+    end
+
+    def add_command(*packages)
+      [ADD.fetch(name), *packages].join(" ")
     end
 
     def add_dev_command(*packages)
