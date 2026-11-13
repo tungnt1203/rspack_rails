@@ -3,6 +3,7 @@
 ## [0.9.1] - 2026-11-13
 
 - Fix: `rspack:install` and `rspack:install:stimulus` created `app/javascript/application.js` in apps whose entry is `application.ts` (or `.jsx`, `.tsx`), which then shadowed it. All installers now use the same entry discovery as `rspack.config.mjs`
+- Fix: re-running `rspack:install` on Sprockets added `//= link_tree ../builds` to `manifest.js` again
 - `rspack:install:sass`, `:tailwind` and `:react` accept a `.jsx`/`.tsx` main entry
 - Installer templates share their steps through `RspackRails::Installer`
 

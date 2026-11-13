@@ -14,7 +14,8 @@ if File.exist?(".gitignore") && !File.read(".gitignore").include?("/app/assets/b
   append_to_file ".gitignore", "\n/app/assets/builds/*\n!/app/assets/builds/.keep\n/node_modules\n"
 end
 
-if Rails.root.join("app/assets/config/manifest.js").exist?
+manifest = Rails.root.join("app/assets/config/manifest.js")
+if manifest.exist? && !manifest.read.include?("link_tree ../builds")
   append_to_file "app/assets/config/manifest.js", %(//= link_tree ../builds\n)
 end
 
