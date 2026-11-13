@@ -12,11 +12,16 @@ module RspackRails
                 "\n")
     end
 
+    # Links the CSS that rspack extracts from an entry's imports
+    # (app/assets/builds/<entry>.bundle.css).
     def rspack_stylesheet_tag(*entries, **options)
-      return stylesheet_link_tag(*entries, **options) unless RspackRails.dev_server.running?
+      unless RspackRails.dev_server.running?
+        return stylesheet_link_tag(*entries.map { |entry| "#{entry}.bundle" }, **options)
+      end
 
-      safe_join(entries.map { |entry| stylesheet_link_tag(RspackRails.dev_server.url("#{entry}.css"), **options) },
-                "\n")
+      safe_join(entries.map do |entry|
+        stylesheet_link_tag(RspackRails.dev_server.url("#{entry}.bundle.css"), **options)
+      end, "\n")
     end
   end
 end

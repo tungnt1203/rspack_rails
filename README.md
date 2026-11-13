@@ -57,17 +57,44 @@ end
 bin/rails rspack:install:stimulus
 ```
 
-This installs `@hotwired/stimulus` and adds `app/javascript/controllers/autoload.js`, imported from `application.js`. Every `*_controller.js` under `app/javascript/controllers` is registered automatically, with the usual naming (`admin/user_card_controller.js` becomes `admin--user-card`). There is no manifest to keep up to date.
+This installs `@hotwired/stimulus` and adds `app/javascript/controllers/autoload.js`, imported from `application.js`. Every `*_controller.js` (or `.ts`) under `app/javascript/controllers` is registered automatically, with the usual naming (`admin/user_card_controller.js` becomes `admin--user-card`). There is no manifest to keep up to date.
 
 Under `rspack serve`, editing a controller or adding a new one hot-swaps it in the open page without a reload, so form input and other page state survive.
 
 If `application.js` imported `./controllers` (the stimulus-rails index), the installer switches it to `./controllers/autoload`. stimulus-rails may still rewrite `controllers/index.js` when you run `bin/rails generate stimulus`, but nothing imports that file any more.
+
+### CSS
+
+Import CSS from your JavaScript and rspack extracts it to `app/assets/builds/<entry>.bundle.css`:
+
+```js
+// app/javascript/application.js
+import "./styles/application.css"
+```
+
+```erb
+<%= rspack_stylesheet_tag "application" %>
+```
+
+`*.module.css` files are compiled as CSS modules. Under `rspack serve`, CSS changes are applied without a page reload.
+
+The `.bundle` suffix keeps the output from clashing with `app/assets/stylesheets/application.css`. Rails 8's default `stylesheet_link_tag :app` links every CSS file under `app/assets`, so it also links the bundle. That is harmless: the dev server keeps `app/assets/builds` up to date and its own link comes later in the cascade. A rule you delete keeps applying until the next reload.
+
+### TypeScript
+
+`.ts` files compile out of the box with Rspack's built-in SWC loader, including Stimulus controllers (`*_controller.ts`). SWC strips types without checking them. For type checking:
+
+```bash
+bin/rails rspack:install:typescript   # tsconfig.json, typescript, "typecheck" script
+npm run typecheck
+```
 
 ### Tasks
 
 | Task | What it does |
 |---|---|
 | `bin/rails rspack:install:stimulus` | Sets up Stimulus with controller autoloading |
+| `bin/rails rspack:install:typescript` | Adds tsconfig.json, typescript and a `typecheck` script |
 | `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, Procfile and dev server |
 | `bin/rails rspack:build` | Installs JS dependencies, then runs `build` |
 | `bin/rails rspack:clobber` | Removes rspack output from `app/assets/builds` |

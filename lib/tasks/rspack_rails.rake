@@ -15,6 +15,13 @@ namespace :rspack do
       system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
         raise(RspackRails::Error, "rspack:install:stimulus failed")
     end
+
+    desc "Set up TypeScript type checking (tsconfig.json, typescript, typecheck script)"
+    task :typescript do
+      template = File.expand_path("../install/typescript.rb", __dir__)
+      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
+        raise(RspackRails::Error, "rspack:install:typescript failed")
+    end
   end
 
   desc "Check the rspack setup of this app"

@@ -23,7 +23,7 @@ RSpec.describe RspackRails::Helper do
     end
 
     it "links stylesheets from the dev server" do
-      expect(view.rspack_stylesheet_tag("application")).to include('href="http://localhost:3036/application.css"')
+      expect(view.rspack_stylesheet_tag("application")).to include('href="http://localhost:3036/application.bundle.css"')
     end
   end
 
@@ -35,6 +35,13 @@ RSpec.describe RspackRails::Helper do
       expect(html).not_to include("3036")
       expect(html).to include("application.js")
       expect(html).to include('data-turbo-track="reload"')
+    end
+
+    it "links the extracted .bundle.css from the asset pipeline" do
+      html = view.rspack_stylesheet_tag("application", "admin")
+      expect(html).to include("application.bundle.css")
+      expect(html).to include("admin.bundle.css")
+      expect(html).not_to include("3036")
     end
   end
 end
