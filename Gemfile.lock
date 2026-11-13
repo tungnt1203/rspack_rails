@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     rspack_rails (0.1.0)
-      railties (>= 7.0)
+      railties (>= 7.0, < 9)
 
 GEM
   remote: https://rubygems.org/
