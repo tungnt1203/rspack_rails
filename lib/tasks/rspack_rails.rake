@@ -30,6 +30,13 @@ namespace :rspack do
         raise(RspackRails::Error, "rspack:install:react failed")
     end
 
+    desc "Set up Sass (migrates from dartsass-rails)"
+    task :sass do
+      template = File.expand_path("../install/sass.rb", __dir__)
+      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
+        raise(RspackRails::Error, "rspack:install:sass failed")
+    end
+
     desc "Set up Tailwind CSS v4 (migrates from tailwindcss-rails)"
     task :tailwind do
       template = File.expand_path("../install/tailwind.rb", __dir__)
@@ -74,6 +81,28 @@ namespace :rspack do
     node_env = Rails.env.development? || Rails.env.test? ? "development" : "production"
     env = { "NODE_ENV" => ENV.fetch("NODE_ENV", node_env) }
     system(env, command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
+  end
+
+  desc "Analyze the production bundle with Rsdoctor (report in tmp/rsdoctor)"
+  task analyze: :dependencies do
+    require "json"
+    pm = RspackRails::PackageManager.detect(Rails.root)
+    config = Rails.root.join("rspack.config.mjs")
+    unless config.exist? && config.read.include?("RsdoctorRspackPlugin")
+      raise RspackRails::Error,
+            "rspack.config.mjs predates rspack:analyze. Re-run `bin/rails rspack:install` and accept the new config."
+    end
+
+    package = JSON.parse(Rails.root.join("package.json").read)
+    unless package.fetch("devDependencies", {}).merge(package.fetch("dependencies", {})).key?("@rsdoctor/rspack-plugin")
+      command = pm.add_dev_command("@rsdoctor/rspack-plugin")
+      system(command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
+    end
+
+    command = pm.run_command("build")
+    system({ "RSDOCTOR" => "true", "NODE_ENV" => "production" }, command, chdir: Rails.root) ||
+      raise(RspackRails::Error, "#{command} failed")
+    puts "Rsdoctor report: #{Rails.root.join("tmp/rsdoctor/rsdoctor-report.html")}"
   end
 
   desc "Remove rspack build output"

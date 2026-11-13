@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # End-to-end check of `rspack:migrate`: generate an importmap, jsbundling
 # (esbuild) or importmap + tailwindcss-rails Rails app, migrate it to rspack
-# (and to rspack:install:tailwind), then build, run the doctor and precompile
-# for production.
+# (and to rspack:install:tailwind), or importmap + dartsass-rails, then build,
+# run the doctor and precompile for production.
 #
 #   bin/integration-migrate importmap
 #   bin/integration-migrate jsbundling "~> 8.1.0"
 #   bin/integration-migrate tailwind
+#   bin/integration-migrate sass
 set -euo pipefail
 
 GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MODE="${1:?usage: bin/integration-migrate importmap|jsbundling|tailwind [rails requirement]}"
+MODE="${1:?usage: bin/integration-migrate importmap|jsbundling|tailwind|sass [rails requirement]}"
 REQUIREMENT="${2:-}"
 WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
 
@@ -30,6 +31,7 @@ case "$MODE" in
   importmap) js_flag=() ;;
   jsbundling) js_flag=(-j esbuild) ;;
   tailwind) js_flag=(--css tailwind) ;;
+  sass) js_flag=(--css sass) ;;
   *) fail "unknown mode $MODE" ;;
 esac
 
@@ -67,6 +69,20 @@ grep -q 'rspack_javascript_tag "application"' app/views/layouts/application.html
 grep -q 'controllers/autoload' app/javascript/application.js || fail "autoload import missing"
 grep -q '^js: .* dev$' Procfile.dev || fail "Procfile.dev does not run the dev server"
 
+if [ "$MODE" = sass ]; then
+  mkdir -p app/assets/stylesheets/components
+  printf '$brand: #c0ffee;\n' > app/assets/stylesheets/_variables.scss
+  printf '@use "../variables" as v;\n.card { .title { color: v.$brand; } }\n' > app/assets/stylesheets/components/_card.scss
+  printf '@use "variables";\n@use "components/card";\n' > app/assets/stylesheets/application.scss
+  git add -A && git -c user.email=ci@example.com -c user.name=ci commit -qm "sass partials"
+
+  step "rspack:install:sass"
+  bin/rails rspack:install:sass
+  ! grep -q dartsass-rails Gemfile || fail "dartsass-rails still in Gemfile"
+  ! grep -q '^css:' Procfile.dev || fail "Procfile.dev still runs dartsass:watch"
+  grep -q 'assets/stylesheets/application.scss' app/javascript/application.js || fail "scss import missing"
+fi
+
 if [ "$MODE" = tailwind ]; then
   step "rspack:install:tailwind"
   bin/rails rspack:install:tailwind
@@ -90,6 +106,10 @@ bin/rails assets:precompile
 assert_match "$(ls public/assets)" '^application-[0-9a-f]+\.js$'
 grep -q 'Hello World' public/assets/application-*.js || fail "hello controller missing from bundle"
 grep -q 'turbo' public/assets/application-*.js || fail "turbo missing from bundle"
+
+if [ "$MODE" = sass ]; then
+  grep -q '.card .title{color:#c0ffee}' public/assets/application.bundle-*.css || fail "Sass partials not compiled"
+fi
 
 if [ "$MODE" = tailwind ]; then
   # The generated layout uses `container mx-auto mt-28 px-5 flex`.
