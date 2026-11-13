@@ -75,9 +75,15 @@ echo '<p class="text-fuchsia-700 tracking-widest">hi</p>' > app/views/pages/home
 step "Adding an admin entry point"
 mkdir -p app/javascript/entrypoints
 cat > app/javascript/entrypoints/admin.ts <<'TS'
+import { suffix } from "@/lib/suffix" // a tsconfig "paths" alias
+
 const area: string = "admin-entry"
-console.log(area)
+const settings: { level?: number } = JSON.parse("{}")
+console.log(area, suffix, settings?.level ?? 0)
 TS
+mkdir -p app/javascript/lib
+echo 'export const suffix: string = "via-ts-alias"' > app/javascript/lib/suffix.ts
+ruby -rjson -e 'c = JSON.parse(File.read("tsconfig.json")); c["compilerOptions"]["paths"] = { "@/*" => ["./app/javascript/*"] }; File.write("tsconfig.json", JSON.pretty_generate(c))'
 
 step "rspack:install:sass"
 bin/rails rspack:install:sass
@@ -102,6 +108,7 @@ TSX
 
 step "typecheck"
 npm run typecheck
+grep -q '"ts-checker-rspack-plugin"' package.json || { echo "ts-checker-rspack-plugin not installed"; exit 1; }
 
 step "rspack:build"
 bin/rails rspack:build
@@ -112,12 +119,24 @@ assert_file app/assets/builds/application.js.map
 ls app/assets/builds | grep -Eq '^hero-[0-9a-f]+\.digested\.png$' || { echo "hero image not emitted"; exit 1; }
 grep -q 'data:image/svg' app/assets/builds/application.bundle.css || { echo "small image not inlined"; exit 1; }
 [ -d node_modules/.cache/rspack ] || { echo "persistent cache missing"; exit 1; }
+grep -q 'via-ts-alias' app/assets/builds/admin.js || { echo "tsconfig paths alias not resolved"; exit 1; }
 grep -q 'Hello, ' app/assets/builds/application.js || { echo "Hello component missing"; exit 1; }
 grep -q 'badge:' app/assets/builds/application.js || { echo "nested component missing"; exit 1; }
 grep -q '.sassy .inner' app/assets/builds/application.bundle.css || { echo "Sass not compiled"; exit 1; }
 grep -q '13px' app/assets/builds/application.bundle.css || { echo "Sass partial not resolved"; exit 1; }
 grep -q 'text-fuchsia-700' app/assets/builds/application.bundle.css || { echo "tailwind utility not generated"; exit 1; }
 find app/assets/builds -name '*hot-update*' | grep -q . && { echo "hot-update files in builds"; exit 1; }
+
+step "Browser targets and React Compiler"
+# Default target (Baseline widely available) keeps ?? ; a .browserslistrc for old browsers lowers it.
+grep -q '??' app/assets/builds/admin.js || { echo "?? lowered without a browserslist config"; exit 1; }
+echo "chrome 70" > .browserslistrc
+NODE_ENV=production node_modules/.bin/rspack build > /dev/null
+grep -q '??' app/assets/builds/admin.js && { echo ".browserslistrc not applied"; exit 1; }
+rm .browserslistrc
+RSPACK_REACT_COMPILER=true node_modules/.bin/rspack build --node-env development > /dev/null
+grep -q 'react/compiler-runtime' app/assets/builds/application.js || { echo "React Compiler not applied"; exit 1; }
+bin/rails rspack:build
 
 step "rspack serve (lazy compilation reaches the dev server)"
 node_modules/.bin/rspack serve > tmp/rspack-serve.log 2>&1 & # not npx: $! must be rspack itself
@@ -131,6 +150,8 @@ proxied=$(bin/rails runner '
   response = Rack::MockRequest.new(Rails.application).get("/rspack/application.js", "HTTP_HOST" => "localhost")
   puts response.status, response.body.include?("worker")' 2>&1) || { kill $serve_pid; echo "$proxied"; exit 1; }
 assert_match "$proxied" '^200$'
+for _ in $(seq 1 40); do grep -q 'type-check' tmp/rspack-serve.log && break; sleep 0.5; done
+grep -q 'type-check' tmp/rspack-serve.log || { kill $serve_pid; echo "no type checking under rspack serve"; exit 1; }
 kill $serve_pid; wait $serve_pid 2>/dev/null || true
 curl -s -o /dev/null http://localhost:3036/application.js && { echo "rspack serve still running"; exit 1; }
 [ "$code" = 200 ] || { echo "lazy compilation endpoint returned $code"; exit 1; }

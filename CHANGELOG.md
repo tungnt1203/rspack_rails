@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-13
+
+- `tsconfig.json` `paths` aliases resolve in rspack (`resolve.tsConfig`)
+- `rspack:install:typescript` adds `ts-checker-rspack-plugin`: type errors show in the dev server overlay
+- JS and CSS target the app's browserslist config, or Baseline "widely available" without one (was a fixed ES2022 for TypeScript/JSX)
+- React Compiler through the built-in SWC loader with `RSPACK_REACT_COMPILER=true`
+- Fix: the persistent cache ignored changes to `RSPACK_REACT_COMPILER`, `package.json`, `tsconfig.json` and `.browserslistrc`
+- Existing apps: re-run `bin/rails rspack:install` and accept the new `rspack.config.mjs`; re-run `rspack:install:typescript` for the type checker
+
 ## [0.7.1] - 2026-11-13
 
 - Fix: `new Worker(new URL("./worker.js", import.meta.url))` threw `SecurityError` under `rspack serve`, because the worker script came from `localhost:3036`, another origin than the page. Rails now proxies the dev server under `/rspack/` (`RspackRails::DevServerProxy`, active only while the dev server is enabled), so bundles, chunks, workers, images and hot updates are same-origin
