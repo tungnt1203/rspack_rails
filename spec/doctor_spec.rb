@@ -87,6 +87,15 @@ RSpec.describe RspackRails::Doctor do
     expect(check("Stimulus").status).to eq(:ok)
   end
 
+  it "warns when extracted CSS is built but not linked" do
+    set_up_complete_app
+    expect(check("Stylesheet")).to be_nil
+    write("app/assets/builds/application.bundle.css", "body{}")
+    expect(check("Stylesheet").status).to eq(:warn)
+    write("app/views/layouts/application.html.erb", '<%= rspack_stylesheet_tag "application" %>')
+    expect(check("Stylesheet").status).to eq(:ok)
+  end
+
   it "warns when the dev server is not running" do
     set_up_complete_app
     allow(dev_server).to receive(:running?).and_return(false)

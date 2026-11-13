@@ -9,6 +9,7 @@ module RspackRails
   # Inspects a Rails app's rspack setup and reports what is missing.
   class Doctor
     Check = Struct.new(:status, :name, :detail, :hint)
+    LAYOUT = "app/views/layouts/application.html.erb"
     SYMBOLS = { ok: "✓", warn: "!", error: "✗" }.freeze
 
     def initialize(root, config: RspackRails.config, dev_server: RspackRails.dev_server, node_version: nil)
@@ -21,7 +22,7 @@ module RspackRails
     def checks
       @checks ||= [
         node_check, package_check(:cli), package_check(:core), package_check(:"dev-server"),
-        config_check, scripts_check, entry_check, build_check, layout_check, procfile_check,
+        config_check, scripts_check, entry_check, build_check, layout_check, stylesheet_check, procfile_check,
         stimulus_check, dev_server_check
       ].compact
     end
@@ -105,7 +106,7 @@ module RspackRails
     end
 
     def layout_check
-      layout = read("app/views/layouts/application.html.erb")
+      layout = read(LAYOUT)
       return Check.new(:warn, "Layout", "app/views/layouts/application.html.erb not found") unless layout
 
       if layout.include?("javascript_importmap_tags")
@@ -116,6 +117,16 @@ module RspackRails
 
       Check.new(:warn, "Layout", "does not use rspack_javascript_tag",
                 %(Add <%= rspack_javascript_tag "application" %> to get the dev server and HMR))
+    end
+
+    def stylesheet_check
+      return unless exist?("app/assets/builds/application.bundle.css")
+
+      linked = read(LAYOUT)&.include?("rspack_stylesheet_tag")
+      return Check.new(:ok, "Stylesheet", "uses rspack_stylesheet_tag") if linked
+
+      Check.new(:warn, "Stylesheet", "application.bundle.css is built but not linked",
+                %(Add <%= rspack_stylesheet_tag "application" %> to your layout))
     end
 
     def procfile_check
