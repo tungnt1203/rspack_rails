@@ -16,9 +16,9 @@ end
 
 if !File.exist?(entry)
   create_file entry, %(import "./controllers/autoload"\n)
-elsif File.read(entry).match?(%r{^import ["']\./controllers(/index(\.js)?)?["'];?$})
-  say "Replacing the controllers/index.js import with controllers/autoload"
-  gsub_file entry, %r{^import ["']\./controllers(/index(\.js)?)?["'];?$}, %(import "./controllers/autoload")
+elsif File.read(entry).match?(%r{^import ["'](?:\./)?controllers(/index(\.js)?)?["'];?$})
+  say "Replacing the controllers import with controllers/autoload"
+  gsub_file entry, %r{^import ["'](?:\./)?controllers(/index(\.js)?)?["'];?$}, %(import "./controllers/autoload")
 elsif !File.read(entry).include?("./controllers/autoload")
   append_to_file entry, %(import "./controllers/autoload"\n)
 end
@@ -28,6 +28,6 @@ if File.exist?("app/javascript/controllers/index.js")
 end
 
 say "Installing @hotwired/stimulus"
-run pm.add_command("@hotwired/stimulus")
+run pm.add_command("@hotwired/stimulus"), abort_on_failure: true
 
 say "Stimulus installed. Controllers in app/javascript/controllers are registered automatically.", :green

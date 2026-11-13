@@ -14,6 +14,7 @@ Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the
 - **Stimulus autoloading**: drop a `*_controller.js` (or `.ts`) in `app/javascript/controllers`, no manifest to maintain
 - **TypeScript and CSS modules** out of the box, through Rspack's built-in SWC and native CSS
 - **Multiple entry points** from `app/javascript/entrypoints/`
+- **`rspack:migrate`** moves an importmap or jsbundling app over in one command
 - **`rspack:doctor`** checks Node.js, packages, config and layout, and says what to fix
 - Works with **Propshaft and Sprockets**; CI runs a real app on Rails 7.2 and 8.1
 
@@ -33,6 +34,28 @@ The installer:
 - adds `rspack_javascript_tag "application"` to your layout
 - adds a `js:` process running the dev server to `Procfile.dev` and sets up `bin/dev`
 - installs `@rspack/cli`, `@rspack/core` and `@rspack/dev-server` with your package manager (bun, yarn, pnpm or npm, detected from the lockfile)
+
+## Migrating from importmap or jsbundling
+
+```bash
+git commit -am "Before rspack"     # rspack:migrate refuses to run on a dirty tree (FORCE=1 to override)
+bin/rails rspack:migrate
+git diff                           # review
+bin/dev
+```
+
+**From importmap-rails**
+- Every `pin` in `config/importmap.rb` becomes an npm dependency. Versions recorded by importmap (`# @1.2.3` or jspm URLs) are kept. Gem-served pins such as Turbo install the latest npm release.
+- `javascript_importmap_tags` is replaced with `rspack_javascript_tag`, and `import "controllers"` with the Stimulus autoloader.
+- `config/importmap.rb`, `bin/importmap`, vendored packages, the `importmap-rails` gem, `stale_when_importmap_changes` and the `bin/importmap audit` CI step are removed.
+- Bare imports of app code (`import "controllers/application"`) keep working through `resolve.modules`.
+
+**From jsbundling-rails** (esbuild, webpack, rollup)
+- The `jsbundling-rails` gem, the old bundler package and its config file are removed. `Procfile.dev` runs the rspack dev server.
+- `javascript_include_tag "application"` becomes `rspack_javascript_tag`, and the generated `controllers/index.js` gives way to the autoloader.
+- Extra entry files in the root of `app/javascript/` are listed so you can move them to `app/javascript/entrypoints/`.
+
+The task finishes by listing any remaining lines that mention importmap or jsbundling. Shakapacker/Webpacker apps are not supported yet.
 
 ## Usage
 
@@ -127,6 +150,7 @@ npm run typecheck
 |---|---|
 | `bin/rails rspack:install:stimulus` | Sets up Stimulus with controller autoloading |
 | `bin/rails rspack:install:typescript` | Adds tsconfig.json, typescript and a `typecheck` script |
+| `bin/rails rspack:migrate` | Moves an importmap or jsbundling app to rspack |
 | `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, Procfile and dev server |
 | `bin/rails rspack:build` | Installs JS dependencies, then runs `build` |
 | `bin/rails rspack:clobber` | Removes rspack output from `app/assets/builds` |
@@ -158,6 +182,7 @@ bin/setup
 bundle exec rake   # specs + rubocop
 bin/integration    # new Rails app + every installer, build, doctor and precompile
 bin/integration "~> 7.2.0"   # against a specific Rails version
+bin/integration-migrate importmap    # rails new + rspack:migrate (or: jsbundling)
 ```
 
 ## License

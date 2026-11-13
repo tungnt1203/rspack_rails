@@ -50,3 +50,25 @@ jobs:
           node-version: '22'
       - name: Generate a Rails app and run every installer, build and precompile
         run: bin/integration "${{ matrix.rails }}"
+
+  migrate:
+    runs-on: ubuntu-latest
+    name: Migrate ${{ matrix.from }} (Rails ${{ matrix.rails }})
+    strategy:
+      fail-fast: false
+      matrix:
+        from: [importmap, jsbundling]
+        rails: ['~> 7.2.0', '~> 8.1.0']
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Generate an app, run rspack:migrate, build and precompile
+        run: bin/integration-migrate ${{ matrix.from }} "${{ matrix.rails }}"

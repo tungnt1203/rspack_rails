@@ -68,6 +68,6 @@ unless File.exist?("bin/dev") && File.read("bin/dev").include?("Procfile.dev")
 end
 
 say "Installing @rspack/cli, @rspack/core and @rspack/dev-server"
-run pm.add_dev_command("@rspack/cli", "@rspack/core", "@rspack/dev-server")
+run pm.add_dev_command("@rspack/cli", "@rspack/core", "@rspack/dev-server"), abort_on_failure: true
 
 say "rspack_rails installed. Run bin/dev to start developing.", :green

@@ -14,6 +14,6 @@ package = JSON.parse(File.read("package.json"))
 File.write("package.json", "#{JSON.pretty_generate(package)}\n")
 
 say "Installing typescript"
-run pm.add_dev_command("typescript")
+run pm.add_dev_command("typescript"), abort_on_failure: true
 
 say "TypeScript ready. Rspack compiles .ts files; run `#{pm.run_command("typecheck")}` to type-check.", :green
