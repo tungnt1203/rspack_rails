@@ -30,6 +30,13 @@ namespace :rspack do
         raise(RspackRails::Error, "rspack:install:react failed")
     end
 
+    desc "Set up Sass (migrates from dartsass-rails)"
+    task :sass do
+      template = File.expand_path("../install/sass.rb", __dir__)
+      system(RbConfig.ruby, "./bin/rails", "app:template", "LOCATION=#{template}") ||
+        raise(RspackRails::Error, "rspack:install:sass failed")
+    end
+
     desc "Set up Tailwind CSS v4 (migrates from tailwindcss-rails)"
     task :tailwind do
       template = File.expand_path("../install/tailwind.rb", __dir__)
