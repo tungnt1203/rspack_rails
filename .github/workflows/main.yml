@@ -57,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        from: [importmap, jsbundling, tailwind]
+        from: [importmap, jsbundling, tailwind, sass]
         rails: ['~> 7.2.0', '~> 8.1.0']
 
     steps:

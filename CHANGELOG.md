@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-13
+
+- Fix: dynamic `import()` failed under `rspack serve` ("Problem communicating active modules to the server: HTTP 404"). Rspack 2's dev server compiles them lazily and its client called the Rails origin; it now calls the dev server. `RSPACK_LAZY_COMPILATION=false` turns lazy compilation off
+- `rspack:install:sass`: Sass through `sass-loader` and `sass-embedded`, with `app/assets/stylesheets` as a load path. Moves an app off dartsass-rails
+- `rspack:analyze`: production build into `tmp/rsdoctor` and a single-file Rsdoctor report, no server needed
+- Existing apps: re-run `bin/rails rspack:install` and accept the new `rspack.config.mjs`
+
 ## [0.6.0] - 2026-11-13
 
 - `rspack:install:react`: React with Fast Refresh under `rspack serve`, and `app/javascript/components/` autoloaded by path

@@ -14,6 +14,8 @@ Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the
 - **Stimulus autoloading**: drop a `*_controller.js` (or `.ts`) in `app/javascript/controllers`, no manifest to maintain
 - **TypeScript and CSS modules** out of the box, through Rspack's built-in SWC and native CSS
 - **React** with Fast Refresh and a `react_component` helper, via `rspack:install:react`
+- **Sass** with `rspack:install:sass`, which also moves a `dartsass-rails` app over
+- **`rspack:analyze`**: an Rsdoctor report of what is in your production bundle
 - **Tailwind CSS v4** with `rspack:install:tailwind`, which also moves a `tailwindcss-rails` app over
 - **Images and fonts** imported from JavaScript or CSS `url()`, fingerprinted for Propshaft
 - **Persistent cache**, so rebuilds and dev server restarts reuse earlier work
@@ -166,6 +168,18 @@ This installs `tailwindcss` and `@tailwindcss/webpack`, creates `app/javascript/
 
 Coming from `tailwindcss-rails` (`rails new --css tailwind`)? Run `bin/rails rspack:migrate` first, then `rspack:install:tailwind`. It moves `app/assets/tailwind/application.css` (with your `@theme`, `@plugin` and `@source` lines) to `app/javascript/application.css`, removes the gem, the `css:` line in `Procfile.dev` and the old `tailwind.css` build.
 
+### Sass
+
+```bash
+bin/rails rspack:install:sass
+```
+
+This installs `sass-loader` and `sass-embedded` and creates `app/javascript/application.scss`, imported from `application.js`. Import any `.scss` or `.sass` file from JavaScript; `*.module.scss` files are CSS modules. `app/assets/stylesheets` is a load path, so `@use "variables"` finds `app/assets/stylesheets/_variables.scss`.
+
+Coming from `dartsass-rails` (`rails new --css sass`)? Run `bin/rails rspack:migrate` first, then `rspack:install:sass`. It imports `app/assets/stylesheets/application.scss` where it is, so its partials keep working, and removes the gem, the `css:` line in `Procfile.dev` and the old build. If you had custom builds in `config/initializers/dartsass.rb`, import each of those files from JavaScript.
+
+Inside partials, `url()` is resolved from the file that was imported from JavaScript, not from the partial.
+
 ### Images and fonts
 
 Import an image from JavaScript, or reference images and fonts from CSS with `url()`:
@@ -196,6 +210,8 @@ npm run typecheck
 | `bin/rails rspack:install:tailwind` | Sets up Tailwind CSS v4, migrating from tailwindcss-rails |
 | `bin/rails rspack:migrate` | Moves an importmap or jsbundling app to rspack |
 | `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, Procfile and dev server |
+| `bin/rails rspack:install:sass` | Sets up Sass, migrating from dartsass-rails |
+| `bin/rails rspack:analyze` | Writes an Rsdoctor bundle report to `tmp/rsdoctor/rsdoctor-report.html` |
 | `bin/rails rspack:build` | Installs JS dependencies, then runs `build` |
 | `bin/rails rspack:clobber` | Removes rspack output from `app/assets/builds` |
 
@@ -204,6 +220,10 @@ npm run typecheck
 When `RAILS_ENV` or `NODE_ENV` is `production`, the generated config builds in production mode (minified). `rspack:build` sets `NODE_ENV` from `Rails.env`: `development` in development and test, `production` everywhere else. Lazy-loaded chunks are named `*.digested.js`, so Propshaft serves them without fingerprinting them a second time.
 
 Source maps are on in development (`cheap-module-source-map`) and off in production, so your source never lands in `public/assets`. Set `RSPACK_DEVTOOL` to choose another [devtool](https://rspack.rs/config/devtool), for example `RSPACK_DEVTOOL=hidden-source-map` to upload maps to an error tracker, or `RSPACK_DEVTOOL=false` to turn them off.
+
+Under `rspack serve`, dynamic `import()`s are compiled the first time the page asks for them (lazy compilation), which keeps startup fast in large apps. Set `RSPACK_LAZY_COMPILATION=false` to compile everything upfront.
+
+`bin/rails rspack:analyze` runs a production build into `tmp/rsdoctor/build` (leaving `app/assets/builds` alone) and writes a single-file [Rsdoctor](https://rsdoctor.rs) report to `tmp/rsdoctor/rsdoctor-report.html`: bundle and module sizes, duplicate packages and build timings. It installs `@rsdoctor/rspack-plugin` the first time.
 
 Rspack keeps a persistent cache in `node_modules/.cache/rspack`. Editing `rspack.config.mjs` or the lockfile starts a fresh cache; delete the directory to clear it by hand.
 

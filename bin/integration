@@ -77,6 +77,14 @@ const area: string = "admin-entry"
 console.log(area)
 TS
 
+step "rspack:install:sass"
+bin/rails rspack:install:sass
+assert_file app/javascript/application.scss
+mkdir -p app/assets/stylesheets
+printf '$gap: 13px;\n' > app/assets/stylesheets/_spacing.scss
+{ printf '@use "spacing";\n'; cat app/javascript/application.scss; printf '.sassy { .inner { margin: spacing.$gap; } }\n'; } > tmp/application.scss
+mv tmp/application.scss app/javascript/application.scss
+
 step "rspack:install:react"
 bin/rails rspack:install:react
 assert_file app/javascript/components/mount.js
@@ -103,8 +111,30 @@ grep -q 'data:image/svg' app/assets/builds/application.bundle.css || { echo "sma
 [ -d node_modules/.cache/rspack ] || { echo "persistent cache missing"; exit 1; }
 grep -q 'Hello, ' app/assets/builds/application.js || { echo "Hello component missing"; exit 1; }
 grep -q 'badge:' app/assets/builds/application.js || { echo "nested component missing"; exit 1; }
+grep -q '.sassy .inner' app/assets/builds/application.bundle.css || { echo "Sass not compiled"; exit 1; }
+grep -q '13px' app/assets/builds/application.bundle.css || { echo "Sass load path not used"; exit 1; }
 grep -q 'text-fuchsia-700' app/assets/builds/application.bundle.css || { echo "tailwind utility not generated"; exit 1; }
 find app/assets/builds -name '*hot-update*' | grep -q . && { echo "hot-update files in builds"; exit 1; }
+
+step "rspack serve (lazy compilation reaches the dev server)"
+npx rspack serve > tmp/rspack-serve.log 2>&1 &
+serve_pid=$!
+for _ in $(seq 1 60); do curl -s -o /dev/null http://localhost:3036/application.js && break; sleep 0.5; done
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3036/_rspack/lazy/trigger -d '')
+grep -lq 'localhost%3A3036%2F_rspack%2Flazy%2Ftrigger' app/assets/builds/*lazy-compilation-proxy*.js ||
+  { kill $serve_pid; echo "lazy compilation does not call the dev server"; exit 1; }
+kill $serve_pid; wait $serve_pid 2>/dev/null || true
+[ "$code" = 200 ] || { echo "lazy compilation endpoint returned $code"; exit 1; }
+bin/rails rspack:build # replace the dev server's output
+
+step "rspack:analyze"
+before=$(ls app/assets/builds)
+analyze=$(bin/rails rspack:analyze)
+echo "$analyze"
+assert_match "$analyze" 'Rsdoctor report: .*tmp/rsdoctor/rsdoctor-report\.html'
+assert_file tmp/rsdoctor/rsdoctor-report.html
+assert_file tmp/rsdoctor/build/application.js
+[ "$(ls app/assets/builds)" = "$before" ] || { echo "rspack:analyze changed app/assets/builds"; exit 1; }
 
 step "rspack:doctor"
 doctor=$(bin/rails rspack:doctor)
@@ -130,6 +160,7 @@ font=$(ls public/assets | grep -E '^brand-[0-9a-f]+\.digested\.woff2$') || { ech
 grep -q "/assets/$hero" public/assets/application.bundle-*.css || { echo "CSS does not point at $hero"; exit 1; }
 grep -q "/assets/$font" public/assets/application.bundle-*.css || { echo "CSS does not point at $font"; exit 1; }
 grep -q "$hero" public/assets/application-*.js || { echo "JS image import missing"; exit 1; }
+grep -q '.sassy .inner{margin:13px}' public/assets/application.bundle-*.css || { echo "Sass missing in production"; exit 1; }
 grep -q 'tracking-widest' public/assets/application.bundle-*.css || { echo "tailwind utility missing in production"; exit 1; }
 grep -q 'badge:' public/assets/application-*.js || { echo "React component missing in production"; exit 1; }
 grep -q 'jsxDEV' public/assets/application-*.js && { echo "development JSX runtime in production"; exit 1; }
