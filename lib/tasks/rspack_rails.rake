@@ -79,10 +79,9 @@ namespace :rspack do
     puts "Rsdoctor report: #{Rails.root.join("tmp/rsdoctor/rsdoctor-report.html")}"
   end
 
-  desc "Remove rspack build output"
+  desc "Remove rspack build output from app/assets/builds"
   task :clobber do
-    patterns = %w[**/*.{js,js.map,css,css.map} **/*.digested.*].map { |p| Rails.root.join("app/assets/builds", p).to_s }
-    Dir[*patterns].uniq.each { |f| FileUtils.rm_f(f) } # a lazy chunk matches both patterns
+    RspackRails::Entrypoints.outputs(Rails.root).each { |file| FileUtils.rm_f(file) }
   end
 end
 

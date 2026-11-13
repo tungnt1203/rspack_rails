@@ -8,6 +8,9 @@ pm = RspackRails::PackageManager.detect(Rails.root)
 
 say "Adding tsconfig.json"
 copy_file "#{__dir__}/typescript/tsconfig.json", "tsconfig.json"
+unless File.exist?("app/javascript/types/assets.d.ts")
+  copy_file "#{__dir__}/typescript/assets.d.ts", "app/javascript/types/assets.d.ts"
+end
 
 say "Adding typecheck script"
 update_package_json { |package| (package["scripts"] ||= {})["typecheck"] = "tsc --noEmit" }

@@ -7,7 +7,6 @@ require "rspack_rails/installer"
 extend RspackRails::Installer
 
 pm = RspackRails::PackageManager.detect(Rails.root)
-layout = RspackRails::Installer::LAYOUT
 stylesheet = "app/javascript/application.css"
 tailwind_rails_source = "app/assets/tailwind/application.css"
 
@@ -38,9 +37,7 @@ unless File.read(entry).match?(%r{^import ["']\./application\.css["']})
   prepend_to_file entry, %(import "./application.css"\n)
 end
 
-if File.exist?(layout) && File.read(layout).match?(/^\s*<%= stylesheet_link_tag "tailwind".*%>\n/)
-  gsub_file layout, /^\s*<%= stylesheet_link_tag "tailwind".*%>\n/, ""
-end
+remove_from_layouts 'stylesheet_link_tag[ (]"tailwind"'
 add_stylesheet_tag
 
 if tailwind_rails

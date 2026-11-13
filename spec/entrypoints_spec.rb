@@ -59,4 +59,17 @@ RSpec.describe RspackRails::Entrypoints do
     write("app/javascript/entrypoints/admin.js")
     expect(described_class.discover(@root).keys).to eq(["admin"])
   end
+
+  it "lists rspack's files in app/assets/builds and nothing else" do
+    write("app/javascript/application.js")
+    write("app/javascript/entrypoints/print.css")
+    %w[application.js application.js.map application.bundle.css runtime.js print.bundle.css print.js
+       lazy-1a2b.digested.js hero-1a2b.digested.png media/font-1a2b.digested.woff2
+       tailwind.css other.js .keep].each { |file| write("app/assets/builds/#{file}") }
+
+    files = described_class.outputs(@root).map { |path| path.relative_path_from(@root.join("app/assets/builds")).to_s }
+    expect(files).to match_array(%w[application.js application.js.map application.bundle.css runtime.js
+                                    print.bundle.css print.js lazy-1a2b.digested.js hero-1a2b.digested.png
+                                    media/font-1a2b.digested.woff2])
+  end
 end

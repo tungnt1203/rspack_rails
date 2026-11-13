@@ -5,12 +5,12 @@ require "open3"
 require "pathname"
 require_relative "node_version"
 require_relative "entrypoints"
+require_relative "layouts"
 
 module RspackRails
   # Inspects a Rails app's rspack setup and reports what is missing.
   class Doctor
     Check = Struct.new(:status, :name, :detail, :hint)
-    LAYOUT = "app/views/layouts/application.html.erb"
     SYMBOLS = { ok: "✓", warn: "!", error: "✗" }.freeze
 
     def initialize(root, config: RspackRails.config, dev_server: RspackRails.dev_server, node_version: nil)
@@ -117,24 +117,30 @@ module RspackRails
     end
 
     def layout_check
-      layout = read(LAYOUT)
-      return Check.new(:warn, "Layout", "app/views/layouts/application.html.erb not found") unless layout
+      return Check.new(:warn, "Layout", "no layout found in #{Layouts::DIR}") if layouts.empty?
 
-      if layout.include?("javascript_importmap_tags")
-        return Check.new(:warn, "Layout", "still includes javascript_importmap_tags",
+      importmap = layouts_including("javascript_importmap_tags")
+      if importmap.any?
+        return Check.new(:warn, "Layout", "#{names(importmap)} still includes javascript_importmap_tags",
                          "Remove it if rspack replaces importmap, or the app may load JavaScript twice")
       end
-      return Check.new(:ok, "Layout", "uses rspack_javascript_tag") if layout.include?("rspack_javascript_tag")
+      rspack = layouts_including("rspack_javascript_tag")
+      return Check.new(:ok, "Layout", "#{names(rspack)} uses rspack_javascript_tag") if rspack.any?
 
-      Check.new(:warn, "Layout", "does not use rspack_javascript_tag",
-                %(Add <%= rspack_javascript_tag "application" %> to get the dev server and HMR))
+      missing_layout_tag_check
+    end
+
+    def missing_layout_tag_check
+      tag = Layouts.tag(layouts.first, 'rspack_javascript_tag "application"')
+      Check.new(:warn, "Layout", "no layout uses rspack_javascript_tag",
+                "Add #{tag} to #{layouts.first} to get the dev server and HMR")
     end
 
     def stylesheet_check
       return unless exist?("app/assets/builds/application.bundle.css")
 
-      linked = read(LAYOUT)&.include?("rspack_stylesheet_tag")
-      return Check.new(:ok, "Stylesheet", "uses rspack_stylesheet_tag") if linked
+      linked = layouts_including("rspack_stylesheet_tag")
+      return Check.new(:ok, "Stylesheet", "#{names(linked)} uses rspack_stylesheet_tag") if linked.any?
 
       Check.new(:warn, "Stylesheet", "application.bundle.css is built but not linked",
                 %(Add <%= rspack_stylesheet_tag "application" %> to your layout))
@@ -195,6 +201,19 @@ module RspackRails
       JSON.parse(read("package.json")) if exist?("package.json")
     rescue JSON::ParserError
       nil
+    end
+
+    def layouts
+      @layouts ||= Layouts.all(@root)
+    end
+
+    def layouts_including(text)
+      layouts.select { |path| read(path).include?(text) }
+    end
+
+    # "application.html.erb, admin.html.slim"
+    def names(paths)
+      paths.map { |path| File.basename(path) }.join(", ")
     end
 
     def entrypoints

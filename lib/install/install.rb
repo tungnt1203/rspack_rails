@@ -35,23 +35,27 @@ update_package_json do |package|
   scripts["dev"] = "rspack serve"
 end
 
-include_tag = %(<%= rspack_javascript_tag "application", "data-turbo-track": "reload" %>)
-layout = RspackRails::Installer::LAYOUT
-if File.exist?(layout)
+js_tag = %(rspack_javascript_tag "application", "data-turbo-track": "reload")
+if (layout = self.layout)
   content = File.read(layout)
   if content.include?("javascript_importmap_tags")
-    say "Found javascript_importmap_tags in your layout. Remove it if you are replacing importmap with rspack.",
+    say "Found javascript_importmap_tags in #{layout}. Remove it if you are replacing importmap with rspack.",
         :yellow
   end
-  if content.match?(/javascript_include_tag "application".*$/)
+  # <%= javascript_include_tag "application" ... %> in ERB, = javascript_include_tag ... in Slim/Haml.
+  include_tag = if RspackRails::Layouts.erb?(layout)
+                  /<%= javascript_include_tag "application".*%>/
+                else
+                  /=[ \t]*javascript_include_tag[ (]"application".*$/
+                end
+  if content.match?(include_tag)
     say "Switching javascript_include_tag to rspack_javascript_tag"
-    gsub_file layout, /<%= javascript_include_tag "application".*%>/, include_tag
-  elsif !content.include?("rspack_javascript_tag")
-    say "Adding rspack_javascript_tag to application layout"
-    insert_into_file layout, "    #{include_tag}\n", before: %r{^[ \t]*</head>}
+    gsub_file layout, include_tag, RspackRails::Layouts.tag(layout, js_tag)
+  else
+    add_to_layout js_tag, marker: "rspack_javascript_tag"
   end
 else
-  say "Add this to your layout: #{include_tag}", :yellow
+  say "Add this to your layout: <%= #{js_tag} %>", :yellow
 end
 
 say "Configuring bin/dev"

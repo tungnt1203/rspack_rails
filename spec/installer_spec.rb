@@ -76,10 +76,27 @@ RSpec.describe RspackRails::Installer do
 
   describe "#add_stylesheet_tag" do
     it "adds the tag before </head> once" do
-      write(described_class::LAYOUT, "<head>\n  </head>\n")
+      write("app/views/layouts/application.html.erb", "<head>\n  </head>\n")
       2.times { host.add_stylesheet_tag }
-      expect(@root.join(described_class::LAYOUT).read.scan("rspack_stylesheet_tag").size).to eq(1)
+      expect(@root.join("app/views/layouts/application.html.erb").read.scan("rspack_stylesheet_tag").size).to eq(1)
     end
+
+    it "uses Slim syntax in a Slim layout" do
+      write("app/views/layouts/application.html.slim", "html\n  head\n    title App\n  body\n    == yield\n")
+      host.add_stylesheet_tag
+      expect(@root.join("app/views/layouts/application.html.slim").read).to eq(
+        "html\n  head\n    title App\n    " \
+        "= rspack_stylesheet_tag \"application\", \"data-turbo-track\": \"reload\"\n  body\n    == yield\n"
+      )
+    end
+  end
+
+  it "removes a helper from every layout, whatever the syntax" do
+    write("app/views/layouts/application.html.erb", "<head>\n    <%= javascript_importmap_tags %>\n</head>\n")
+    write("app/views/layouts/admin.html.haml", "%head\n  = javascript_importmap_tags\n  = csrf_meta_tags\n")
+    host.remove_from_layouts("javascript_importmap_tags")
+    expect(@root.join("app/views/layouts/application.html.erb").read).to eq("<head>\n</head>\n")
+    expect(@root.join("app/views/layouts/admin.html.haml").read).to eq("%head\n  = csrf_meta_tags\n")
   end
 
   describe ".run" do

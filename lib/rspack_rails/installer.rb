@@ -2,13 +2,13 @@
 
 require "json"
 require_relative "entrypoints"
+require_relative "layouts"
 
 module RspackRails
   # Shared steps for the Rails application templates in lib/install. Each
   # template runs inside a Rails generator and does `extend RspackRails::Installer`,
   # so these methods can use Thor actions (say, gsub_file, insert_into_file).
   module Installer
-    LAYOUT = "app/views/layouts/application.html.erb"
     TEMPLATES = File.expand_path("../install", __dir__)
 
     # Runs lib/install/<name>.rb as an application template (bin/rails app:template).
@@ -56,16 +56,37 @@ module RspackRails
       File.write("package.json", "#{JSON.pretty_generate(package)}\n")
     end
 
-    def add_stylesheet_tag
-      unless File.exist?(LAYOUT)
-        say %(Add this to your layout: <%= rspack_stylesheet_tag "application" %>), :yellow
-        return
-      end
-      return if File.read(LAYOUT).include?("rspack_stylesheet_tag")
+    # app/views/layouts/application.html.{erb,slim,haml}, or nil.
+    def layout
+      Layouts.main(destination_root)
+    end
 
-      say "Adding rspack_stylesheet_tag to #{LAYOUT}"
-      insert_into_file LAYOUT, %(    <%= rspack_stylesheet_tag "application", "data-turbo-track": "reload" %>\n),
-                       before: %r{^[ \t]*</head>}
+    # Adds `code` (a helper call) to the end of <head> in the application
+    # layout, unless the layout already mentions `marker`.
+    def add_to_layout(code, marker:)
+      path = layout
+      return say("Add this to your layout: <%= #{code} %>", :yellow) unless path
+
+      content = File.read(path)
+      return if content.include?(marker)
+
+      updated = Layouts.insert_in_head(path, content, code)
+      return say("Add this to the <head> of #{path}: #{Layouts.tag(path, code)}", :yellow) unless updated
+
+      say "Adding #{marker} to #{path}"
+      File.write(path, updated)
+    end
+
+    def add_stylesheet_tag
+      add_to_layout(%(rspack_stylesheet_tag "application", "data-turbo-track": "reload"),
+                    marker: "rspack_stylesheet_tag")
+    end
+
+    # Removes lines that call `helper` (ERB, Slim or Haml) from every layout.
+    def remove_from_layouts(helper)
+      Layouts.all(destination_root).each do |path|
+        gsub_file path, /^[ \t]*(?:<%=|=)[ \t]*#{helper}(?!\w).*\n/, ""
+      end
     end
   end
 end

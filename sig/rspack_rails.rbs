@@ -47,6 +47,17 @@ module RspackRails
     def self.discover: (untyped root) -> Hash[String, Array[String]]
     def self.main_entry: (Pathname root) -> String?
     def self.css_only?: (Array[String] paths) -> bool
+    def self.outputs: (untyped root) -> Array[Pathname]
+  end
+
+  module Layouts
+    DIR: String
+    EXTENSIONS: Array[String]
+    def self.all: (untyped root) -> Array[String]
+    def self.main: (untyped root) -> String?
+    def self.erb?: (String path) -> bool
+    def self.tag: (String path, String code) -> String
+    def self.insert_in_head: (String path, String content, String code) -> String?
   end
 
   module Helper
@@ -56,7 +67,6 @@ module RspackRails
   end
 
   module Installer
-    LAYOUT: String
     TEMPLATES: String
     def self.run: (String name, ?task: String) -> true
     def main_entry!: () -> String
@@ -64,7 +74,10 @@ module RspackRails
     def gem_in_gemfile?: (String name) -> bool
     def remove_gem: (String name) -> void
     def update_package_json: () { (Hash[String, untyped]) -> void } -> void
+    def layout: () -> String?
+    def add_to_layout: (String code, marker: String) -> void
     def add_stylesheet_tag: () -> void
+    def remove_from_layouts: (String helper) -> void
   end
 
   class Doctor

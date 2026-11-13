@@ -14,7 +14,7 @@ Gem::Specification.new do |spec|
                      "Works with Propshaft and Sprockets."
   spec.license = "MIT"
   spec.homepage = "https://github.com/tungnt1203/rspack_rails"
-  spec.required_ruby_version = ">= 3.1.0"
+  spec.required_ruby_version = ">= 3.2.0"
 
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
 
@@ -25,5 +25,5 @@ Gem::Specification.new do |spec|
   spec.files = Dir["lib/**/*", "sig/**/*", "README.md", "CHANGELOG.md", "LICENSE.txt"]
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "railties", ">= 7.0", "< 9"
+  spec.add_dependency "railties", ">= 7.2", "< 9"
 end
