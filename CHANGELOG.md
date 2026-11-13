@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- Multiple entry points: every `app/javascript/entrypoints/*.{js,ts}` becomes a bundle named after the file; `application.ts` works as the main entry
+- `rspack:doctor` lists entry points and reports any that are not built
+- Fix: the dev server no longer writes `*.hot-update.js` files into `app/assets/builds`
+- Existing apps: re-run `bin/rails rspack:install` and accept the new `rspack.config.mjs`
+
 ## [0.2.0] - 2026-11-13
 
 - CSS imported from JavaScript is extracted to `app/assets/builds/<entry>.bundle.css` and hot-reloaded under `rspack serve`; `*.module.css` are CSS modules
