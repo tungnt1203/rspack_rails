@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-13
+
+- Stylesheet entry points: `app/javascript/entrypoints/*.{css,scss,sass}` build `<name>.bundle.css` without a JavaScript file; `admin.js` and `admin.css` side by side make one entry. Under `rspack serve`, `rspack_stylesheet_tag` adds the entry's script so its changes hot-reload
+- Fix: with two entries on one page (`rspack_javascript_tag "application", "admin"`), HMR stopped working after the first update, because each entry carried its own runtime. Under `rspack serve` entries now share `runtime.js`, which the helpers link once per page; normal builds stay self-contained and remove the dev server's `runtime.js`
+- `rspack:doctor` knows `.jsx`/`.tsx` and stylesheet entry points
+- Existing apps: re-run `bin/rails rspack:install` and accept the new `rspack.config.mjs`
+
 ## [0.8.0] - 2026-11-13
 
 - `tsconfig.json` `paths` aliases resolve in rspack (`resolve.tsConfig`)

@@ -107,7 +107,9 @@ module RspackRails
     end
 
     def build_check
-      missing = entrypoints.keys.reject { |name| exist?("app/assets/builds/#{name}.js") }
+      missing = entrypoints.reject do |name, paths|
+        exist?("app/assets/builds/#{name}#{Entrypoints.css_only?(paths) ? ".bundle.css" : ".js"}")
+      end.keys
       return Check.new(:ok, "Build output", "app/assets/builds has #{entrypoints.keys.join(", ")}") if missing.empty?
 
       Check.new(:warn, "Build output", "not built yet: #{missing.join(", ")}",
