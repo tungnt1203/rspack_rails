@@ -11,6 +11,8 @@ Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the
 
 rspack_rails follows the `jsbundling-rails` model: Rspack writes bundles to `app/assets/builds`, and Propshaft (or Sprockets) serves and fingerprints them in production.
 
+**See it in a real app:** [rspack_rails-demo](https://github.com/tungnt1203/rspack_rails-demo) is a Rails 8 app with Stimulus controllers in TypeScript, Tailwind CSS, code splitting and a second entry point. Its git history has one commit per installer, so you can see exactly what each one changes.
+
 **Development**
 - One command setup: `bin/rails rspack:install`, then `bin/dev`
 - HMR for JavaScript, CSS and Stimulus controllers, with an automatic fallback to the asset pipeline when the dev server is not running

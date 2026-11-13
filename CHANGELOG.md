@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.10.2] - 2026-11-13
+
+- Fix: `rspack:install` and `rspack:doctor` treated `stylesheet_link_tag :app` inside an ERB comment as a real tag, and the installer rewrote the comment. Only output tags (`<%=` in ERB, `=` in Slim/Haml) count now
+- README links to [rspack_rails-demo](https://github.com/tungnt1203/rspack_rails-demo)
+
 ## [0.10.1] - 2026-11-13
 
 - Fix: after a `rspack build` (which `rspack:build` runs before tests and `assets:precompile`), `rspack serve` reused the build's cached modules, compiled without HMR, so editing a Stimulus controller reloaded the page instead of hot-swapping it. `rspack serve`, development builds and production builds now keep separate persistent caches (`cache.name`)

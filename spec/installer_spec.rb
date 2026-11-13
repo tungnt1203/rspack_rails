@@ -115,6 +115,20 @@ RSpec.describe RspackRails::Installer do
       expect(@root.join(layout).read).to eq("<head>\n</head>\n")
     end
 
+    it "leaves comments that mention stylesheet_link_tag :app alone" do
+      write(layout, %(<%# not stylesheet_link_tag :app %>\n<%= stylesheet_link_tag "application" %>\n))
+      expect { host.replace_app_stylesheets_tag }.not_to(change { @root.join(layout).read })
+    end
+
+    it "handles Slim" do
+      slim = "app/views/layouts/application.html.slim"
+      @root.join(layout).delete
+      write(slim, "head\n  = stylesheet_link_tag :app\n")
+      write("app/assets/stylesheets/application.css")
+      host.replace_app_stylesheets_tag
+      expect(@root.join(slim).read).to eq(%(head\n  = stylesheet_link_tag "application"\n))
+    end
+
     it "leaves the layout alone when the app has several stylesheets" do
       write("app/assets/stylesheets/application.css")
       write("app/assets/stylesheets/admin.css")

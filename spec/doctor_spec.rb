@@ -144,6 +144,14 @@ RSpec.describe RspackRails::Doctor do
     expect(stylesheet.detail).to include("stylesheet_link_tag :app")
   end
 
+  it "ignores stylesheet_link_tag :app in a comment" do
+    set_up_complete_app
+    write("app/views/layouts/application.html.erb",
+          %(<%# not stylesheet_link_tag :app %>\n<%= rspack_javascript_tag "application" %>))
+    write("app/assets/builds/print.bundle.css", "nav{display:none}")
+    expect(doctor.checks.map(&:status).uniq).to eq([:ok])
+  end
+
   it "warns when the dev server is not running" do
     set_up_complete_app
     allow(dev_server).to receive(:running?).and_return(false)
