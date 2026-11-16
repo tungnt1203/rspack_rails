@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+- CI runs the integration suite with Yarn 1 and bun (`PACKAGE_MANAGER=yarn bin/integration`, or `bun`), on Rails 8.1. The installer detects the package manager from the lockfile, so the script creates one before `rspack:install`
+
+- `RSPACK_DEV_SERVER_PUBLIC_URL`: where the browser opens the HMR websocket, for a dev server it cannot reach at `RSPACK_DEV_SERVER_HOST:PORT` (GitHub Codespaces, a remote dev container, a TLS proxy). `https://` becomes `wss://`, and `/ws` is added when the URL has no path. Hot updates used to fail to connect there, as the websocket always pointed at `ws://localhost:3036/ws`
+- CI: the browser test runs the dev server on `0.0.0.0` with a public URL of `127.0.0.1`, and checks the HMR websocket connects to it
+- The Stimulus and React loaders (`app/javascript/controllers/autoload.js`, `app/javascript/components/mount.js`) are kept up to date like `config/rspack/rails.mjs`: `rspack:sync` and `rspack:build` rewrite them when the gem changes, and save hand edits to `tmp/rspack_rails/` first. They used to stay as their installer first copied them. Copies from 0.17.0 and earlier, which carry no checksum, are replaced without a backup when they match a released version. `rspack:doctor` reports a loader that is outdated or edited
+- Deprecated, removed in 1.0: `RspackRails.config.dev_server_host=` and `dev_server_port=`. `rspack serve` never read them, so Rails looked for the dev server where none listened; set `RSPACK_DEV_SERVER_HOST` and `RSPACK_DEV_SERVER_PORT` instead. Deprecations go through `Rails.application.deprecators[:rspack_rails]`
+- Renamed, the old names work with a deprecation warning until 1.0: `SKIP_RSPACK_BUILD` is now `RSPACK_SKIP_BUILD`, and `FORCE` (for `rspack:migrate`) is now `RSPACK_FORCE`
+- README: what of the rspack config is stable across releases (`railsConfig` and its callback's second argument). `sig/rspack_rails.rbs` lists only the public API
+
 ## [0.17.0] - 2026-11-16
 
 - Lazy compilation goes through Rails: under `rspack serve`, the client posts the modules to compile to `/rspack/_rspack/lazy/trigger` on the page's origin, and `RspackRails::DevServerProxy` forwards that POST (and only that one) to the dev server. It used to call `http://localhost:3036/` directly, a cross-origin request that only worked where the browser can reach that port. Only the HMR websocket still goes to the dev server directly

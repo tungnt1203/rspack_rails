@@ -168,6 +168,19 @@ RSpec.describe RspackRails::Doctor do
     expect(check("Stimulus").status).to eq(:ok)
   end
 
+  it "checks the Stimulus and React loaders once installed" do
+    set_up_complete_app
+    expect(check("Stimulus loader")).to be_nil
+    write("app/javascript/controllers/autoload.js", RspackRails::ManagedFile::STIMULUS.content)
+    expect(check("Stimulus loader").status).to eq(:ok)
+
+    write("app/javascript/components/mount.js", "// mine\n")
+    react = check("React loader")
+    expect(react.status).to eq(:warn)
+    expect(react.detail).to include("hand edits")
+    expect(react.hint).to include("delete app/javascript/components/mount.js")
+  end
+
   it "warns when extracted CSS is built but not linked" do
     set_up_complete_app
     expect(check("Stylesheet")).to be_nil

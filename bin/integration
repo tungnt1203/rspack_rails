@@ -7,15 +7,62 @@
 #   bin/integration "~> 7.2.0" # installs/uses a matching Rails version
 #   RSPACK_VERSION=2.0 bin/integration  # pins @rspack/* to ~2.0.0 (the oldest supported)
 #   RSPACK_VERSION=3.0.0-beta.1 RSPACK_DEV_SERVER_VERSION=3.0.0-beta.0 bin/integration  # exact versions
+#   PACKAGE_MANAGER=yarn bin/integration   # or bun; default npm. Yarn is Yarn 1
 set -euo pipefail
 
 GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REQUIREMENT="${1:-}"
 WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
 
+PACKAGE_MANAGER="${PACKAGE_MANAGER:-npm}"
+
 step() { printf '\n==> %s\n' "$*"; }
 assert_file() { [ -f "$1" ] || { echo "Expected file $1"; exit 1; }; }
 assert_match() { grep -Eq "$2" <<<"$1" || { echo "Expected output to match $2, got:"; echo "$1"; exit 1; }; }
+
+# dev dependency install and script running, for the package manager under test.
+add_dev() {
+  case "$PACKAGE_MANAGER" in
+    yarn) yarn add --dev "$@" ;;
+    bun) bun add --dev "$@" ;;
+    npm) npm install --save-dev "$@" ;;
+  esac
+}
+run_script() { "$PACKAGE_MANAGER" run "$@"; }
+
+# A lockfile before rspack:install, so the installer detects this package manager
+# instead of defaulting to npm. Yarn 1: the gem's frozen install is `yarn install
+# --frozen-lockfile`, which Yarn 2+ does not support.
+use_package_manager() {
+  case "$PACKAGE_MANAGER" in
+    npm) return ;;
+    yarn | bun) ;;
+    *) echo "Unknown PACKAGE_MANAGER: $PACKAGE_MANAGER (npm, yarn or bun)"; exit 1 ;;
+  esac
+  step "Using $PACKAGE_MANAGER"
+  if [ "$PACKAGE_MANAGER" = yarn ]; then
+    # Node 22 ships Corepack, which provides Yarn 1. Node 25+ does not, so a
+    # Yarn 1 already on PATH is used as it is.
+    if command -v corepack >/dev/null; then
+      export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+      corepack enable
+      corepack prepare yarn@1.22.22 --activate
+    fi
+    command -v yarn >/dev/null || { echo "Yarn 1 is not installed"; exit 1; }
+    [ "$(yarn --version | cut -d. -f1)" = 1 ] ||
+      { echo "Need Yarn 1 (found $(yarn --version)): the gem's frozen install uses --frozen-lockfile"; exit 1; }
+  fi
+  command -v "$PACKAGE_MANAGER" >/dev/null || { echo "$PACKAGE_MANAGER is not installed"; exit 1; }
+  cp "$GEM_ROOT/lib/install/package.json" package.json
+  # `bun install` deletes the lockfile when package.json has no dependencies,
+  # and the installer would then fall back to npm. An empty file is enough:
+  # detection only checks that it exists, and `bun add` rewrites it.
+  if [ "$PACKAGE_MANAGER" = bun ]; then
+    touch bun.lock
+  else
+    "$PACKAGE_MANAGER" install
+  fi
+}
 
 rails_cmd=(rails)
 if [ -n "$REQUIREMENT" ]; then
@@ -32,10 +79,17 @@ cd app
 echo "gem \"rspack_rails\", path: \"$GEM_ROOT\"" >> Gemfile
 bundle install --quiet
 
+use_package_manager
+
 step "rspack:install"
 bin/rails rspack:install
+case "$PACKAGE_MANAGER" in
+  yarn) assert_file yarn.lock; assert_match "$(cat Procfile.dev)" '^js: yarn run dev$' ;;
+  bun) assert_file bun.lock; assert_match "$(cat Procfile.dev)" '^js: bun run dev$' ;;
+esac
 assert_file config/rspack/rails.mjs
-node -p 'require("./package.json").devDependencies["@rspack/core"]' | grep -q '^\^2\.' ||
+# npm saves "^2.3.2"; Yarn 1 keeps the range it was given, "^2".
+node -p 'require("./package.json").devDependencies["@rspack/core"]' | grep -Eq '^\^2($|\.)' ||
   { echo "@rspack/core is not pinned to ^2"; exit 1; }
 if [ -n "${RSPACK_VERSION:-}" ]; then
   # "2.0" means ~2.0.0; anything else (3.0.0-beta.1, beta) is passed to npm as is.
@@ -44,7 +98,7 @@ if [ -n "${RSPACK_VERSION:-}" ]; then
     *) spec="~${RSPACK_VERSION}.0" ;;
   esac
   step "Installing @rspack/core and @rspack/cli $spec, @rspack/dev-server ${RSPACK_DEV_SERVER_VERSION:-$spec}"
-  npm install --save-dev "@rspack/core@$spec" "@rspack/cli@$spec" "@rspack/dev-server@${RSPACK_DEV_SERVER_VERSION:-$spec}"
+  add_dev "@rspack/core@$spec" "@rspack/cli@$spec" "@rspack/dev-server@${RSPACK_DEV_SERVER_VERSION:-$spec}"
   installed=$(node -p 'require("@rspack/core/package.json").version')
   echo "Using @rspack/core $installed"
   case "$spec" in "~"*) [[ "$installed" == "$RSPACK_VERSION".* ]] || { echo "@rspack/core is not ${RSPACK_VERSION}.x"; exit 1; } ;; esac
@@ -151,7 +205,7 @@ export default function Badge({ label }: { label: string }) {
 TSX
 
 step "typecheck"
-npm run typecheck
+run_script typecheck
 grep -q '"ts-checker-rspack-plugin"' package.json || { echo "ts-checker-rspack-plugin not installed"; exit 1; }
 
 step "rspack:build"
@@ -208,6 +262,19 @@ replaced=$(bin/rails rspack:build 2>&1)
 assert_match "$replaced" 'had hand edits, which rspack_rails replaced \(saved to tmp/rspack_rails/rails-[0-9]+\.mjs\)'
 grep -q '// a hand edit' tmp/rspack_rails/rails-*.mjs || { echo "hand edit not saved"; exit 1; }
 grep -q '// a hand edit' config/rspack/rails.mjs && { echo "hand edit not replaced"; exit 1; }
+
+step "The Stimulus and React loaders are kept up to date too"
+# As 0.17.0 and earlier copied them: no checksum, so only their content says they are unedited.
+cp "$GEM_ROOT/spec/fixtures/managed/autoload-0.17.0.js" app/javascript/controllers/autoload.js
+echo '// a hand edit' >> app/javascript/components/mount.js
+doctor=$(bin/rails rspack:doctor || true)
+assert_match "$doctor" 'Stimulus loader: app/javascript/controllers/autoload.js is not the one from rspack_rails'
+assert_match "$doctor" 'React loader: app/javascript/components/mount.js has hand edits'
+synced=$(bin/rails rspack:sync 2>&1)
+assert_match "$synced" 'Updated app/javascript/controllers/autoload.js'
+assert_match "$synced" 'mount.js had hand edits, which rspack_rails replaced \(saved to tmp/rspack_rails/mount-[0-9]+\.js\)'
+grep -q 'Checksum: ' app/javascript/controllers/autoload.js || { echo "autoload.js not rewritten"; exit 1; }
+grep -q '// a hand edit' app/javascript/components/mount.js && { echo "mount.js hand edit not replaced"; exit 1; }
 
 step "Browser targets and React Compiler"
 # Default target (Baseline widely available) keeps ?? ; a .browserslistrc for old browsers lowers it.

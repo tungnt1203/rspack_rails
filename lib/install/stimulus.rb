@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 # Rails application template run by `bin/rails rspack:install:stimulus`.
+require "rspack_rails/installer"
+extend RspackRails::Installer
+
 pm = RspackRails::PackageManager.detect(Rails.root)
 entry = RspackRails::Entrypoints.main_entry(Rails.root)
 controllers_import = %r{^import ["'](?:\./)?controllers(/index(\.js)?)?["'];?$}
@@ -9,7 +12,7 @@ say "Installing Stimulus with controller autoloading"
 unless File.exist?("app/javascript/controllers/application.js")
   copy_file "#{__dir__}/stimulus/application.js", "app/javascript/controllers/application.js"
 end
-copy_file "#{__dir__}/stimulus/autoload.js", "app/javascript/controllers/autoload.js"
+install_managed_file RspackRails::ManagedFile::STIMULUS
 
 if Dir.glob("app/javascript/controllers/**/*_controller.{js,ts}").empty?
   copy_file "#{__dir__}/stimulus/hello_controller.js", "app/javascript/controllers/hello_controller.js"

@@ -8,6 +8,10 @@ module RspackRails
       load File.expand_path("../tasks/rspack_rails.rake", __dir__)
     end
 
+    initializer "rspack_rails.deprecator" do |app|
+      app.deprecators[:rspack_rails] = RspackRails.deprecator
+    end
+
     # Always installed; it only acts while the dev server is enabled.
     initializer "rspack_rails.dev_server_proxy" do |app|
       require_relative "dev_server_proxy"
