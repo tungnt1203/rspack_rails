@@ -12,3 +12,7 @@
 
 /.idea
 .idea/
+
+# Hallmark working files (screenshots, build log)
+.hallmark/
+site/.hallmark/

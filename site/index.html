@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>rspack_rails: hot reloading for new Rails apps</title>
+  <meta name="description" content="A Ruby gem that builds a Rails app's JavaScript and CSS with Rspack and applies every save to the open page.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="media/hmr-poster.jpg">
+  <link rel="stylesheet" href="styles.css">
+  <script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the page</a>
+
+  <header class="nav">
+    <div class="container nav__bar">
+      <a class="wordmark" href="./" aria-label="rspack_rails, home">rspack_rails</a>
+      <nav aria-label="Page">
+        <ul class="nav__links">
+          <li><a href="#create">How it works</a></li>
+          <li><a href="#requirements">Requirements</a></li>
+          <li><a href="https://github.com/tungnt1203/rspack_rails">GitHub</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container hero__grid">
+        <div class="hero__text">
+          <h1 id="hero-title">Rspack hot reloading for Rails</h1>
+          <p class="lead">For new Rails apps: every save lands in the open page.</p>
+          <div class="command" data-command>
+            <code class="command__text" id="cmd-hero" data-text="rails new myapp -m https://raw.githubusercontent.com/tungnt1203/rspack_rails/main/template.rb">rails new myapp -m<br>https://raw.githubusercontent.com/<wbr>tungnt1203/<wbr>rspack_rails/<wbr>main/<wbr>template.rb</code>
+            <div class="command__actions">
+              <button class="btn btn--primary" type="button" data-copy="cmd-hero">Copy the command</button>
+              <a class="btn btn--quiet" href="https://github.com/tungnt1203/rspack_rails">Read the source</a>
+            </div>
+            <p class="command__status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <figure class="hero__visual" data-loop>
+          <div class="frame frame--video">
+            <video muted loop playsinline preload="metadata" poster="media/hmr-poster.jpg" width="1296" height="1080"
+                   aria-label="A view edit and a controller edit in the demo app, applied to the open page">
+              <source src="media/hmr.webm" type="video/webm">
+              <source src="media/hmr.mp4" type="video/mp4">
+            </video>
+          </div>
+          <figcaption>
+            <span>Recorded in the demo app: a view, then a controller.</span>
+            <button class="btn btn--quiet btn--small" type="button" data-loop-toggle>Pause</button>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <div class="stages">
+    <section class="stage stage--create" id="create" aria-labelledby="create-title">
+      <div class="container split split--5-7">
+        <div class="split__text">
+          <h2 id="create-title">1.0 Create the app</h2>
+          <p class="lead">The template adds the gem, asks five questions and builds once.</p>
+        </div>
+        <figure class="terminal">
+          <figcaption>Terminal</figcaption>
+<pre class="wrap" tabindex="0" aria-label="Terminal output"><code><span class="prompt">$</span> rails new myapp -m …/rspack_rails/main/template.rb
+  Add Stimulus with controller autoloading? (y/N) <b>y</b>
+  Add TypeScript type checking? (y/N) <b>y</b>
+  Add React with Fast Refresh? (y/N) <b>n</b>
+  Add Tailwind CSS v4? (y/N) <b>y</b>
+  Add Sass? (y/N) <b>n</b>
+rspack_rails is set up with stimulus, typescript, tailwind.
+Run bin/dev to start.</code></pre>
+        </figure>
+      </div>
+    </section>
+
+    <section class="stage stage--develop" id="develop" aria-labelledby="develop-title">
+      <div class="container">
+        <div class="head-split">
+          <h2 id="develop-title">2.0 Save, and the page follows</h2>
+          <p class="lead">Under <code>bin/dev</code>, scripts and styles swap in place. A view edit reloads the page, its new classes already built.</p>
+        </div>
+        <div class="switch" data-switch>
+          <div class="tabs" role="tablist" aria-label="What you edit">
+            <button type="button" role="tab" id="tab-controller" aria-controls="panel-controller" aria-selected="true">Controller</button>
+            <button type="button" role="tab" id="tab-view" aria-controls="panel-view" aria-selected="false" tabindex="-1">View</button>
+          </div>
+          <div class="pair" role="tabpanel" id="panel-controller" aria-labelledby="tab-controller">
+            <figure>
+              <div class="frame"><img src="media/edit-controller.jpg" width="1280" height="873" loading="lazy" alt="counter_controller.ts in the editor, the label changed from click to tap"></div>
+              <figcaption>counter_controller.ts: “click” becomes “tap”.</figcaption>
+            </figure>
+            <figure>
+              <div class="frame"><img src="media/page-controller.jpg" width="1280" height="873" loading="lazy" alt="The demo page showing 0 taps, with the amber card still in place"></div>
+              <figcaption>The controller is swapped; the page never reloads.</figcaption>
+            </figure>
+          </div>
+          <div class="pair" role="tabpanel" id="panel-view" aria-labelledby="tab-view">
+            <figure>
+              <div class="frame"><img src="media/edit-view.jpg" width="1280" height="873" loading="lazy" alt="home.html.erb in the editor, bg-amber-100 added to the first card"></div>
+              <figcaption>home.html.erb gains <code>bg-amber-100</code>.</figcaption>
+            </figure>
+            <figure>
+              <div class="frame"><img src="media/page-view.jpg" width="1280" height="873" loading="lazy" alt="The demo page reloaded with the first card in amber"></div>
+              <figcaption>The page reloads with the class already built.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage stage--check band" id="check" aria-labelledby="check-title">
+      <div class="container register">
+        <div class="register__head">
+          <h2 id="check-title">3.0 Ask the doctor</h2>
+          <p class="lead"><code>bin/rails rspack:doctor</code> checks the setup and says what to fix. An error exits with status 1, so CI can run it.</p>
+        </div>
+        <table>
+          <caption class="visually-hidden">Output of rspack:doctor in a new app</caption>
+          <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Detail</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Node.js</th><td class="mark">✓</td><td>v26.5.1 (rspack needs ^20.19.0 || &gt;=22.12.0)</td></tr>
+            <tr><th scope="row">@rspack/core</th><td class="mark">✓</td><td>2.3.2</td></tr>
+            <tr><th scope="row">Layout</th><td class="mark">✓</td><td>application.html.erb uses rspack_javascript_tag</td></tr>
+            <tr><th scope="row">Dockerfile</th><td class="mark">✓</td><td>installs Node.js and node modules</td></tr>
+            <tr><th scope="row">Dev server</th><td class="mark">!</td><td>not running at http://localhost:3036</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="stage stage--ship" id="ship" aria-labelledby="ship-title">
+      <div class="container split split--7-5">
+        <figure class="terminal">
+          <figcaption>Dockerfile, build stage<span class="scroll-note">, scrolls sideways</span></figcaption>
+<pre tabindex="0" aria-label="Dockerfile lines"><code># Install Node.js: assets:precompile runs rspack (rspack_rails)
+ARG NODE_VERSION=22.12.0
+RUN curl -sL …/node-build/archive/master.tar.gz | tar xz -C /tmp/ &amp;&amp; …
+
+# Install node modules
+COPY package.json package-lock.json ./
+RUN npm ci
+
+RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+RUN rm -rf node_modules</code></pre>
+        </figure>
+        <div class="split__text">
+          <h2 id="ship-title">4.0 Ship with Kamal</h2>
+          <p class="lead">Node.js joins the build stage; the final image ships without it.</p>
+          <p>Dev containers get Node.js and port 3036 too.</p>
+        </div>
+      </div>
+    </section>
+
+    </div>
+
+    <section class="requirements" id="requirements" aria-labelledby="req-title">
+      <div class="container">
+        <h2 id="req-title">Tested on every pull request</h2>
+        <div class="span">
+          <span class="span__end">Rails 7.2</span>
+          <div class="dim" aria-hidden="true"></div>
+          <span class="span__end">Rails 8.1</span>
+          <p class="span__label">A new app on each, built and precompiled</p>
+        </div>
+        <dl class="rows">
+          <div><dt>Ruby</dt><dd>3.2 or newer</dd></div>
+          <div><dt>Node.js</dt><dd>20.19 or 22.12 and newer</dd></div>
+          <div><dt>Package manager</dt><dd>bun, yarn, pnpm or npm, read from the lockfile</dd></div>
+          <div><dt>Asset pipeline</dt><dd>Propshaft or Sprockets</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="close band" id="start" aria-labelledby="start-title">
+      <div class="container close__grid">
+        <div class="close__head">
+          <h2 id="start-title">Start at stage one</h2>
+          <p>Already have an app? <code>bundle add rspack_rails</code>, then <code>bin/rails rspack:install</code>.</p>
+        </div>
+        <div class="command" data-command>
+          <code class="command__text" id="cmd-close" data-text="rails new myapp -m https://raw.githubusercontent.com/tungnt1203/rspack_rails/main/template.rb">rails new myapp -m<br>https://raw.githubusercontent.com/<wbr>tungnt1203/<wbr>rspack_rails/<wbr>main/<wbr>template.rb</code>
+          <div class="command__actions">
+            <button class="btn btn--primary" type="button" data-copy="cmd-close">Copy the command</button>
+            <a class="btn btn--quiet btn--text" href="https://github.com/tungnt1203/rspack_rails-demo">See the demo app</a>
+          </div>
+          <p class="command__status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="footer__statement">One gem, from rails new to Kamal.</p>
+      <ul class="footer__links">
+        <li><a href="https://github.com/tungnt1203/rspack_rails">GitHub</a></li>
+        <li><a href="https://rubygems.org/gems/rspack_rails">RubyGems</a></li>
+        <li><a href="https://github.com/tungnt1203/rspack_rails-demo">Demo app</a></li>
+        <li><a href="https://github.com/tungnt1203/rspack_rails/blob/main/CHANGELOG.md">Changelog</a></li>
+        <li><a href="https://github.com/tungnt1203/rspack_rails/blob/main/LICENSE.txt">MIT licence</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="site.js" defer></script>
+</body>
+</html>
