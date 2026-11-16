@@ -72,6 +72,28 @@ jobs:
       - name: Edit a controller, add one, edit CSS and a view under rspack serve; Chromium checks nothing reloads
         run: bin/integration-hmr "${{ matrix.rails }}"
 
+  template:
+    runs-on: ubuntu-latest
+    name: rails new -m template.rb (${{ matrix.mode }}, Rails ${{ matrix.rails }})
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [skip-js, importmap]
+        rails: ['~> 7.2.0', '~> 8.1.0']
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Generate an app from template.rb, typecheck, doctor and precompile
+        run: bin/integration-template ${{ matrix.mode }} "${{ matrix.rails }}"
+
   typescript:
     runs-on: ubuntu-latest
     name: TypeScript entry + Slim layout (Rails ${{ matrix.rails }})

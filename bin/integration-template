@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# End-to-end check of template.rb: `rails new -m template.rb`, then build,
+# doctor and production precompile.
+#
+#   bin/integration-template skip-js          # --skip-javascript, RSPACK_FEATURES=stimulus,typescript,react
+#   bin/integration-template importmap        # default rails new (importmap) + --css tailwind, migrated
+#   bin/integration-template importmap "~> 8.1.0"
+set -euo pipefail
+
+GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MODE="${1:?usage: bin/integration-template skip-js|importmap [rails requirement]}"
+REQUIREMENT="${2:-}"
+WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
+
+step() { printf '\n==> %s\n' "$*"; }
+fail() { echo "FAIL: $*"; exit 1; }
+
+rails_cmd=(rails)
+if [ -n "$REQUIREMENT" ]; then
+  gem list -i rails -v "$REQUIREMENT" >/dev/null || gem install rails -v "$REQUIREMENT" --no-document
+  version=$(ruby -e 'puts Gem::Specification.find_all_by_name("rails", ARGV[0]).map(&:version).max' "$REQUIREMENT")
+  rails_cmd=(rails "_${version}_")
+fi
+
+skip=(--skip-test --skip-system-test --skip-active-record --skip-docker --skip-ci --skip-rubocop --skip-brakeman)
+case "$MODE" in
+  skip-js)
+    flags=(--skip-javascript)
+    export RSPACK_FEATURES=stimulus,typescript,react
+    ;;
+  importmap)
+    flags=(--css tailwind)
+    export RSPACK_FEATURES=typescript # tailwind and stimulus come from rails new
+    ;;
+  *) fail "unknown mode $MODE" ;;
+esac
+
+step "rails new -m template.rb ($MODE) with $("${rails_cmd[@]}" --version) in $WORK_DIR"
+cd "$WORK_DIR"
+RSPACK_RAILS_PATH="$GEM_ROOT" "${rails_cmd[@]}" new app --quiet "${flags[@]}" "${skip[@]}" -m "$GEM_ROOT/template.rb"
+cd app
+
+step "Checking the app"
+grep -q 'gem "rspack_rails"' Gemfile || fail "rspack_rails not in Gemfile"
+[ -f rspack.config.mjs ] || fail "rspack.config.mjs missing"
+[ -f app/assets/builds/application.js ] || fail "template did not build"
+grep -q 'rspack_javascript_tag "application"' app/views/layouts/application.html.erb || fail "layout tag missing"
+grep -q 'stylesheet_link_tag :app' app/views/layouts/application.html.erb && fail "stylesheet_link_tag :app left in the layout"
+grep -q '"typescript"' package.json || fail "typescript not installed"
+[ -f app/javascript/controllers/autoload.js ] || fail "Stimulus autoload missing"
+
+if [ "$MODE" = skip-js ]; then
+  [ -f app/javascript/components/Hello.tsx ] || fail "React sample is not .tsx (TypeScript must be set up first)"
+  grep -q '"@types/react"' package.json || fail "@types/react missing"
+else
+  [ ! -f config/importmap.rb ] || fail "config/importmap.rb not removed"
+  ! grep -q importmap-rails Gemfile || fail "importmap-rails still in Gemfile"
+  ! grep -q tailwindcss-rails Gemfile || fail "tailwindcss-rails still in Gemfile"
+  grep -q '@import "tailwindcss"' app/javascript/application.css || fail "Tailwind not moved to rspack"
+fi
+
+step "typecheck"
+npm run typecheck
+
+step "rspack:doctor"
+bin/rails rspack:doctor
+
+step "assets:precompile (production)"
+RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
+ls public/assets | grep -Eq '^application-[0-9a-f]+\.js$' || fail "application.js not precompiled"
+
+step "OK"
