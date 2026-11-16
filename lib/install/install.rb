@@ -77,7 +77,8 @@ end
 
 configure_containers pm, port: RspackRails.config.dev_server_port
 
-say "Installing @rspack/cli, @rspack/core and @rspack/dev-server"
-run pm.add_dev_command("@rspack/cli", "@rspack/core", "@rspack/dev-server"), abort_on_failure: true
+say "Installing @rspack/cli, @rspack/core and @rspack/dev-server (Rspack #{RspackRails::RspackVersion::MAJOR})"
+rspack_packages = %w[@rspack/cli @rspack/core @rspack/dev-server].map { |name| RspackRails::RspackVersion.pin(name) }
+run pm.add_dev_command(*rspack_packages), abort_on_failure: true
 
 say "rspack_rails installed. Run bin/dev to start developing.", :green

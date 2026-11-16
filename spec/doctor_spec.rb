@@ -83,10 +83,25 @@ RSpec.describe RspackRails::Doctor do
     expect(check("rspack.config.mjs").hint).to include("rspack:install")
   end
 
+  it "fails on Rspack 1, which config/rspack/rails.mjs does not support" do
+    set_up_complete_app
+    install_package("@rspack/core", version: "1.7.12")
+    expect(check("@rspack/core").status).to eq(:error)
+    expect(check("@rspack/core").detail).to eq("1.7.12, but rspack_rails needs Rspack 2")
+    expect(check("@rspack/core").hint).to include("@rspack/core@^2")
+  end
+
+  it "warns about a newer Rspack major than rspack_rails is tested with" do
+    set_up_complete_app
+    install_package("@rspack/dev-server", version: "3.0.0-beta.1")
+    expect(check("@rspack/dev-server").status).to eq(:warn)
+    expect(check("@rspack/dev-server").detail).to include("tested with Rspack 2")
+  end
+
   it "reports an empty directory as failing" do
     expect(doctor).not_to be_ok
     expect(check("rspack.config.mjs").status).to eq(:error)
-    expect(check("@rspack/core").hint).to eq("Run `npm install --save-dev @rspack/core`")
+    expect(check("@rspack/core").hint).to eq("Run `npm install --save-dev @rspack/core@^2`")
   end
 
   it "flags a Node.js version rspack does not support" do

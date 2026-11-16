@@ -30,13 +30,18 @@ jobs:
 
   integration:
     runs-on: ubuntu-latest
-    name: Rails ${{ matrix.rails }} app
+    name: Rails ${{ matrix.rails }} app${{ matrix.rspack && format(' (Rspack {0})', matrix.rspack) || '' }}
     strategy:
       fail-fast: false
       matrix:
         rails:
           - '~> 7.2.0'
           - '~> 8.1.0'
+        rspack: ['']
+        include:
+          # The oldest Rspack the installers' ^2 range allows; the other jobs get the latest 2.x.
+          - rails: '~> 8.1.0'
+            rspack: '2.0'
 
     steps:
       - uses: actions/checkout@v5
@@ -50,6 +55,8 @@ jobs:
           node-version: '22'
       - name: Generate a Rails app and run every installer, build and precompile
         run: bin/integration "${{ matrix.rails }}"
+        env:
+          RSPACK_VERSION: ${{ matrix.rspack }}
 
   hmr:
     runs-on: ubuntu-latest

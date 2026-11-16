@@ -6,6 +6,7 @@ require_relative "layouts"
 require_relative "containers"
 require_relative "package_manager"
 require_relative "config_installer"
+require_relative "rspack_version"
 
 module RspackRails
   # Shared steps for the Rails application templates in lib/install. Each
