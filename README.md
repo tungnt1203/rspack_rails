@@ -327,7 +327,7 @@ The task exits with status 1 when there are errors, so it can run in CI.
 
 The config comes in two files:
 
-- `config/rspack/rails.mjs` holds the defaults described in this README. rspack_rails owns it: `rspack:build` (which runs before `assets:precompile` and tests) rewrites it whenever the gem version changes, and `bin/rails rspack:sync` does so on demand. Commit it, but don't edit it.
+- `config/rspack/rails.mjs` holds the defaults described in this README. rspack_rails owns it: `rspack:build` (which runs before `assets:precompile` and tests) rewrites it whenever the gem version changes, and `bin/rails rspack:sync` does so on demand. Commit it, but don't edit it: a checksum in the file tells hand edits apart, `rspack:doctor` warns about them, and the next rewrite saves them to `tmp/rspack_rails/` before replacing them.
 - `rspack.config.mjs` is yours. It passes a callback to `railsConfig`, which receives the full config and can change anything in it:
 
 ```js
