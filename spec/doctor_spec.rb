@@ -39,7 +39,8 @@ RSpec.describe RspackRails::Doctor do
     install_package("@rspack/core", engines: { node: "^20.19.0 || >=22.12.0" })
     install_package("@rspack/cli")
     install_package("@rspack/dev-server")
-    write("rspack.config.mjs", 'publicPath: isDevServer ? "/rspack/" : "auto",')
+    write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
+    write("config/rspack/rails.mjs", RspackRails::RspackConfig.base_content)
     write("package.json", JSON.generate(scripts: { build: "rspack build", dev: "rspack serve" }))
     write("app/javascript/application.js")
     write("app/assets/builds/application.js", "console.log(1)")
@@ -52,6 +53,27 @@ RSpec.describe RspackRails::Doctor do
     expect(doctor.checks.map(&:status).uniq).to eq([:ok])
     expect(doctor).to be_ok
     expect(doctor.summary).to eq("Everything looks good.")
+  end
+
+  it "warns about an outdated config/rspack/rails.mjs" do
+    set_up_complete_app
+    write("config/rspack/rails.mjs", "// from an older rspack_rails")
+    expect(check("rspack.config.mjs").status).to eq(:warn)
+    expect(check("rspack.config.mjs").hint).to include("rspack:sync")
+  end
+
+  it "fails when config/rspack/rails.mjs is missing" do
+    set_up_complete_app
+    @root.join("config/rspack/rails.mjs").delete
+    expect(check("rspack.config.mjs").status).to eq(:error)
+    expect(check("rspack.config.mjs").hint).to include("rspack:sync")
+  end
+
+  it "warns about a standalone config from before 0.13.0" do
+    set_up_complete_app
+    write("rspack.config.mjs", 'publicPath: isDevServer ? "/rspack/" : "auto",')
+    expect(check("rspack.config.mjs").status).to eq(:warn)
+    expect(check("rspack.config.mjs").hint).to include("railsConfig")
   end
 
   it "warns about a config from before the dev server proxy" do

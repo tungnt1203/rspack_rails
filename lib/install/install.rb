@@ -24,7 +24,7 @@ say "Creating rspack entry point"
 unless RspackRails::Entrypoints.main_entry(Rails.root)
   copy_file "#{__dir__}/application.js", "app/javascript/application.js"
 end
-copy_file "#{__dir__}/rspack.config.mjs", "rspack.config.mjs"
+install_rspack_config
 
 say "Configuring package.json"
 copy_file "#{__dir__}/package.json", "package.json" unless File.exist?("package.json")

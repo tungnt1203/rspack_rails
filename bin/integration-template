@@ -43,6 +43,7 @@ cd app
 step "Checking the app"
 grep -q 'gem "rspack_rails"' Gemfile || fail "rspack_rails not in Gemfile"
 [ -f rspack.config.mjs ] || fail "rspack.config.mjs missing"
+[ -f config/rspack/rails.mjs ] || fail "config/rspack/rails.mjs missing"
 [ -f app/assets/builds/application.js ] || fail "template did not build"
 grep -q 'rspack_javascript_tag "application"' app/views/layouts/application.html.erb || fail "layout tag missing"
 grep -q 'stylesheet_link_tag :app' app/views/layouts/application.html.erb && fail "stylesheet_link_tag :app left in the layout"

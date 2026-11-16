@@ -54,9 +54,32 @@ RSpec.describe RspackRails::Installer do
       expect { host.require_config!("sass-loader", "Sass") }.not_to raise_error
     end
 
+    it "passes and updates config/rspack/rails.mjs when rspack.config.mjs builds on it" do
+      write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
+      write("config/rspack/rails.mjs", "// old")
+      expect { host.require_config!("sass-loader", "Sass") }.not_to raise_error
+      expect(@root.join("config/rspack/rails.mjs").read).to eq(RspackRails::RspackConfig.base_content)
+    end
+
     it "exits when rspack.config.mjs predates the feature" do
       write("rspack.config.mjs", "")
       expect { host.require_config!("sass-loader", "Sass") }.to raise_error(SystemExit)
+    end
+  end
+
+  describe "#install_rspack_config" do
+    it "writes both config files in a new app" do
+      host.install_rspack_config
+      expect(RspackRails::RspackConfig.managed?(@root)).to be(true)
+      expect(RspackRails::RspackConfig.current?(@root)).to be(true)
+    end
+
+    it "keeps an app's own rspack.config.mjs that builds on the base" do
+      custom = %(import { railsConfig } from "./config/rspack/rails.mjs";\nexport default railsConfig(); // mine\n)
+      write("rspack.config.mjs", custom)
+      host.install_rspack_config
+      expect(@root.join("rspack.config.mjs").read).to eq(custom)
+      expect(RspackRails::RspackConfig.current?(@root)).to be(true)
     end
   end
 
