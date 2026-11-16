@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rspack_rails/installer"
+require "rspack_rails/rspack_config"
 
 namespace :rspack do
   desc "Set up rspack in this Rails app"
@@ -47,8 +48,18 @@ namespace :rspack do
     system(command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
   end
 
+  desc "Update config/rspack/rails.mjs to this version of rspack_rails (rspack:build does it too)"
+  task :sync do
+    if RspackRails::RspackConfig.managed?(Rails.root)
+      puts "Updated #{RspackRails::RspackConfig::BASE}" if RspackRails::RspackConfig.sync(Rails.root)
+    else
+      warn "rspack.config.mjs does not build on #{RspackRails::RspackConfig::BASE}. Re-run " \
+           "`bin/rails rspack:install` and accept the new rspack.config.mjs to have rspack_rails keep it up to date."
+    end
+  end
+
   desc "Build JavaScript bundles with rspack"
-  task build: :dependencies do
+  task build: %i[sync dependencies] do
     command = RspackRails::PackageManager.detect(Rails.root).run_command("build")
     # `rspack build` defaults NODE_ENV to production. Development and test
     # builds keep source maps and skip minification; staging etc. stay production.
@@ -58,11 +69,12 @@ namespace :rspack do
   end
 
   desc "Analyze the production bundle with Rsdoctor (report in tmp/rsdoctor)"
-  task analyze: :dependencies do
+  task analyze: %i[sync dependencies] do
     require "json"
     pm = RspackRails::PackageManager.detect(Rails.root)
-    config = Rails.root.join("rspack.config.mjs")
-    unless config.exist? && config.read.include?("RsdoctorRspackPlugin")
+    config = Rails.root.join(RspackRails::RspackConfig::APP)
+    unless RspackRails::RspackConfig.managed?(Rails.root) ||
+           (config.exist? && config.read.include?("RsdoctorRspackPlugin"))
       raise RspackRails::Error,
             "rspack.config.mjs predates rspack:analyze. Re-run `bin/rails rspack:install` and accept the new config."
     end

@@ -63,7 +63,7 @@ bin/dev
 
 The installer:
 
-- creates `rspack.config.mjs` and `app/javascript/application.js` (an existing `application.ts`, `.jsx` or `.tsx` is kept as the entry)
+- creates `rspack.config.mjs` (your config, built on `config/rspack/rails.mjs`, see [Customizing the rspack config](#customizing-the-rspack-config)) and `app/javascript/application.js` (an existing `application.ts`, `.jsx` or `.tsx` is kept as the entry)
 - adds `build`, `build:watch` and `dev` (`rspack serve`) scripts to `package.json`
 - adds `rspack_javascript_tag "application"` to your layout (ERB, Slim or Haml), and replaces Rails 8's `stylesheet_link_tag :app`, which would also link Rspack's bundles
 - adds a `js:` process running the dev server to `Procfile.dev` and sets up `bin/dev`
@@ -246,7 +246,7 @@ Files under 8 KB are inlined as data URIs. Larger ones are written to `app/asset
 - **Browser targets**: JavaScript and CSS are compiled for the browsers in your [browserslist](https://github.com/browserslist/browserslist) config (`.browserslistrc`, or `"browserslist"` in `package.json`). Without one, the target is Baseline "widely available", which matches Rails 8's `allow_browser versions: :modern`.
 - **Source maps**: on in development (`cheap-module-source-map`), off in production, so your source never lands in `public/assets`. `RSPACK_DEVTOOL` picks another [devtool](https://rspack.rs/config/devtool), e.g. `hidden-source-map` to upload maps to an error tracker.
 - **Lazy compilation**: under `rspack serve`, dynamic `import()`s are compiled the first time the page asks for them, which keeps startup fast in large apps.
-- **Persistent cache**: kept in `node_modules/.cache/rspack`. Editing `rspack.config.mjs`, `package.json`, the lockfile, `tsconfig.json` or `.browserslistrc` starts a fresh cache; delete the directory to clear it by hand.
+- **Persistent cache**: kept in `node_modules/.cache/rspack`. Editing `rspack.config.mjs`, `config/rspack/rails.mjs`, `package.json`, the lockfile, `tsconfig.json` or `.browserslistrc` starts a fresh cache; delete the directory to clear it by hand.
 
 ### Deploying (Docker and Kamal)
 
@@ -290,6 +290,30 @@ The task exits with status 1 when there are errors, so it can run in CI.
 
 ## Configuration
 
+### Customizing the rspack config
+
+The config comes in two files:
+
+- `config/rspack/rails.mjs` holds the defaults described in this README. rspack_rails owns it: `rspack:build` (which runs before `assets:precompile` and tests) rewrites it whenever the gem version changes, and `bin/rails rspack:sync` does so on demand. Commit it, but don't edit it.
+- `rspack.config.mjs` is yours. It passes a callback to `railsConfig`, which receives the full config and can change anything in it:
+
+```js
+import path from "node:path";
+import { rspack } from "@rspack/core";
+import { railsConfig } from "./config/rspack/rails.mjs";
+
+export default railsConfig((config, { root, isDevServer, isProduction }) => {
+  config.resolve.alias = { "~": path.resolve(root, "app/javascript") };
+  config.plugins.push(new rspack.DefinePlugin({ __SENTRY_ENABLED__: isProduction }));
+  config.module.rules.push({ test: /\.md$/, type: "asset/source" });
+  return config; // or change it in place and return nothing
+});
+```
+
+Upgrading the gem never touches `rspack.config.mjs`, so your changes stay put. When rspack runs on its own (`bin/dev`, `npm run build`) with a `config/rspack/rails.mjs` from another version than `Gemfile.lock`, it prints a warning that tells you to run `rspack:sync`.
+
+### Environment variables
+
 `rspack.config.mjs` and the gem read the same environment variables, so a `.env` file (loaded by foreman) changes both.
 
 | Variable | Default | Effect |
@@ -326,21 +350,23 @@ end
 | `bin/rails rspack:install:tailwind` | Sets up Tailwind CSS v4, migrating from tailwindcss-rails |
 | `bin/rails rspack:install:sass` | Sets up Sass, migrating from dartsass-rails |
 | `bin/rails rspack:migrate` | Moves an importmap or jsbundling app to Rspack |
-| `bin/rails rspack:build` | Installs JavaScript dependencies, then runs `build` |
+| `bin/rails rspack:build` | Updates `config/rspack/rails.mjs`, installs JavaScript dependencies, then runs `build` |
+| `bin/rails rspack:sync` | Updates `config/rspack/rails.mjs` to this version of rspack_rails |
 | `bin/rails rspack:clobber` | Removes Rspack output from `app/assets/builds`, leaving other tools' files alone (also runs with `assets:clobber`) |
 | `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, `Procfile.dev` and the dev server |
 | `bin/rails rspack:analyze` | Writes an Rsdoctor bundle report to `tmp/rsdoctor/rsdoctor-report.html` |
 
 ## Upgrading
 
-New versions often ship an updated `rspack.config.mjs`; the [CHANGELOG](CHANGELOG.md) says when. After `bundle update rspack_rails`:
-
 ```bash
-bin/rails rspack:install   # answer "y" to overwrite rspack.config.mjs (or diff and merge your own changes)
+bundle update rspack_rails
+bin/rails rspack:sync      # or let the next rspack:build do it
 bin/rails rspack:doctor
 ```
 
-Re-running the installer is safe: it leaves your entry, layout and `Procfile.dev` alone when they are already set up. Installers for features that need a newer config (`rspack:install:sass`, `:tailwind`, `:react`) tell you when to do this.
+`config/rspack/rails.mjs` follows the gem; your `rspack.config.mjs` is left alone. Commit both. Some releases also change other files (`Dockerfile`, `bin/setup`); the [CHANGELOG](CHANGELOG.md) says when to re-run `bin/rails rspack:install`. Re-running it is safe: it leaves your config, entry, layout and `Procfile.dev` alone when they are already set up.
+
+**From a version before 0.13.0**, `rspack.config.mjs` held the whole config. Run `bin/rails rspack:install` once and answer "y" to replace it (answer "d" first to see your own changes), then move those changes into the `railsConfig` callback. `rspack:doctor` warns until you do. From then on, upgrades need no merging.
 
 ## Troubleshooting
 

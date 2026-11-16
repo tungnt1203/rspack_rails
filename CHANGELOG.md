@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-16
+
+- The rspack config is split in two. `config/rspack/rails.mjs` holds the defaults and belongs to the gem: `rspack:build` (before `assets:precompile` and tests) and the new `rspack:sync` rewrite it when the gem version changes. `rspack.config.mjs` is the app's own and passes a callback to `railsConfig()` to change anything. Upgrading no longer means overwriting `rspack.config.mjs` and merging your changes back by hand
+- When `config/rspack/rails.mjs` is from another version than `Gemfile.lock`, rspack prints a warning (e.g. under `bin/dev` before the next `rspack:build`)
+- `rspack:doctor` checks that `config/rspack/rails.mjs` exists and matches the gem, and warns about a standalone `rspack.config.mjs`
+- Re-running `rspack:install` keeps a `rspack.config.mjs` that builds on `config/rspack/rails.mjs` without asking. `rspack:install:sass`, `:tailwind` and `:react` update `config/rspack/rails.mjs` instead of asking for a new config
+- Existing apps: run `bin/rails rspack:install` once, answer "y" to replace `rspack.config.mjs` ("d" shows your changes), and move your changes into the `railsConfig` callback
+
 ## [0.12.0] - 2026-11-16
 
 - Docker and Kamal: `rspack:install` makes the `Dockerfile` install Node.js and node modules (frozen install from the lockfile) in the build stage and remove them after `assets:precompile`. Rails only does this for apps created with a JavaScript bundler, so a `--skip-javascript` or importmap app failed to build its image with `npm install failed`

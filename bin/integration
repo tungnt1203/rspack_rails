@@ -32,6 +32,20 @@ bundle install --quiet
 
 step "rspack:install"
 bin/rails rspack:install
+assert_file config/rspack/rails.mjs
+grep -q 'config/rspack/rails.mjs' rspack.config.mjs || { echo "rspack.config.mjs does not build on the base"; exit 1; }
+
+step "Customizing rspack.config.mjs"
+cat > rspack.config.mjs <<'JS'
+import { rspack } from "@rspack/core";
+import { railsConfig } from "./config/rspack/rails.mjs";
+
+export default railsConfig((config, { isProduction }) => {
+  config.plugins.push(new rspack.DefinePlugin({ __CUSTOM__: JSON.stringify(isProduction ? "custom-prod" : "custom-dev") }));
+});
+JS
+cp rspack.config.mjs tmp/custom-rspack.config.mjs
+echo 'window.custom = __CUSTOM__' >> app/javascript/application.js
 # Rails 8's `stylesheet_link_tag :app` would also link rspack's *.bundle.css files.
 grep -q 'stylesheet_link_tag :app' app/views/layouts/application.html.erb && { echo "stylesheet_link_tag :app left in the layout"; exit 1; }
 step "rspack:install:stimulus"
@@ -132,6 +146,20 @@ grep -q '13px' app/assets/builds/application.bundle.css || { echo "Sass partial 
 grep -q 'text-fuchsia-700' app/assets/builds/application.bundle.css || { echo "tailwind utility not generated"; exit 1; }
 find app/assets/builds -name '*hot-update*' | grep -q . && { echo "hot-update files in builds"; exit 1; }
 
+grep -q 'custom-dev' app/assets/builds/application.js || { echo "railsConfig callback not applied"; exit 1; }
+
+step "Upgrading: the base is rewritten, the app's config is kept"
+sed -i.bak 's/^export const VERSION = .*/export const VERSION = "0.0.1";/' config/rspack/rails.mjs && rm config/rspack/rails.mjs.bak
+stale=$(node_modules/.bin/rspack build --node-env development 2>&1)
+assert_match "$stale" 'config/rspack/rails.mjs is from rspack_rails 0.0.1'
+doctor=$(bin/rails rspack:doctor || true)
+assert_match "$doctor" 'rspack:sync'
+synced=$(bin/rails rspack:build) # no pipe: grep -q would close it while npm still writes
+assert_match "$synced" 'Updated config/rspack/rails.mjs'
+grep -q 'VERSION = "0.0.1"' config/rspack/rails.mjs && { echo "base still stale"; exit 1; }
+bin/rails rspack:install < /dev/null # would prompt (and fail without a tty) if it touched rspack.config.mjs
+cmp -s rspack.config.mjs tmp/custom-rspack.config.mjs || { echo "rspack:install changed the app's rspack.config.mjs"; exit 1; }
+
 step "Browser targets and React Compiler"
 # Default target (Baseline widely available) keeps ?? ; a .browserslistrc for old browsers lowers it.
 grep -q '??' app/assets/builds/admin.js || { echo "?? lowered without a browserslist config"; exit 1; }
@@ -202,6 +230,7 @@ assert_match "$assets" '^application\.bundle-[0-9a-f]+\.css$'
 assert_match "$assets" '^admin-[0-9a-f]+\.js$'
 grep -q 'admin-entry' public/assets/admin-*.js || { echo "admin entry missing from bundle"; exit 1; }
 grep -q 'typed' public/assets/application-*.js || { echo "typed controller missing from bundle"; exit 1; }
+grep -q 'custom-prod' public/assets/application-*.js || { echo "railsConfig callback not applied in production"; exit 1; }
 hero=$(ls public/assets | grep -E '^hero-[0-9a-f]+\.digested\.png$') || { echo "hero image not in public/assets"; exit 1; }
 font=$(ls public/assets | grep -E '^brand-[0-9a-f]+\.digested\.woff2$') || { echo "font not in public/assets"; exit 1; }
 grep -q "/assets/$hero" public/assets/application.bundle-*.css || { echo "CSS does not point at $hero"; exit 1; }

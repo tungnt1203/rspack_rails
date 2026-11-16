@@ -5,12 +5,15 @@ require_relative "entrypoints"
 require_relative "layouts"
 require_relative "containers"
 require_relative "package_manager"
+require_relative "config_installer"
 
 module RspackRails
   # Shared steps for the Rails application templates in lib/install. Each
   # template runs inside a Rails generator and does `extend RspackRails::Installer`,
   # so these methods can use Thor actions (say, gsub_file, insert_into_file).
   module Installer
+    include ConfigInstaller
+
     TEMPLATES = File.expand_path("../install", __dir__)
 
     # Runs lib/install/<name>.rb as an application template (bin/rails app:template).
@@ -27,16 +30,6 @@ module RspackRails
       return entry if entry
 
       say "No app/javascript/application.{js,ts,jsx,tsx} found. Run `bin/rails rspack:install` first.", :red
-      exit 1
-    end
-
-    # Exits unless rspack.config.mjs mentions `marker`, i.e. it is recent enough
-    # for the feature being installed.
-    def require_config!(marker, feature)
-      return if File.exist?("rspack.config.mjs") && File.read("rspack.config.mjs").include?(marker)
-
-      say "rspack.config.mjs predates #{feature} support. Re-run `bin/rails rspack:install` and accept the new " \
-          "rspack.config.mjs, then run this task again.", :red
       exit 1
     end
 

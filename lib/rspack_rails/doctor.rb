@@ -7,6 +7,7 @@ require_relative "node_version"
 require_relative "entrypoints"
 require_relative "layouts"
 require_relative "containers"
+require_relative "rspack_config"
 
 module RspackRails
   # Inspects a Rails app's rspack setup and reports what is missing.
@@ -83,6 +84,8 @@ module RspackRails
       return Check.new(:error, "rspack.config.mjs", "missing", "Run `bin/rails rspack:install`") unless
         exist?("rspack.config.mjs")
 
+      return managed_config_check if RspackConfig.managed?(@root)
+
       # Generated before 0.7.1: rspack serve hands out http://localhost:3036/ URLs.
       unless read("rspack.config.mjs").include?('"/rspack/"')
         return Check.new(:warn, "rspack.config.mjs", "loads chunks and workers from the dev server's origin",
@@ -90,7 +93,28 @@ module RspackRails
                          "(Web Workers fail under rspack serve otherwise)")
       end
 
-      Check.new(:ok, "rspack.config.mjs", "found")
+      standalone_config_check
+    end
+
+    # Generated before 0.13.0: the whole config, merged by hand on every upgrade.
+    def standalone_config_check
+      Check.new(:warn, "rspack.config.mjs", "standalone; upgrades of rspack_rails do not update it",
+                "Re-run `bin/rails rspack:install`, accept the new rspack.config.mjs and move your changes " \
+                "into its railsConfig callback")
+    end
+
+    def managed_config_check
+      base = RspackConfig::BASE
+      unless exist?(base)
+        return Check.new(:error, "rspack.config.mjs", "imports #{base}, which is missing",
+                         "Run `bin/rails rspack:sync`")
+      end
+      unless RspackConfig.current?(@root)
+        return Check.new(:warn, "rspack.config.mjs", "#{base} is not the one from rspack_rails #{VERSION}",
+                         "Run `bin/rails rspack:sync` (rspack:build does it too)")
+      end
+
+      Check.new(:ok, "rspack.config.mjs", "uses #{base} from rspack_rails #{VERSION}")
     end
 
     def scripts_check

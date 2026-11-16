@@ -1,0 +1,48 @@
+# frozen_string_literal: true
+
+require "tmpdir"
+require "rspack_rails/rspack_config"
+
+RSpec.describe RspackRails::RspackConfig do
+  around do |example|
+    Dir.mktmpdir do |dir|
+      @root = Pathname(dir)
+      example.run
+    end
+  end
+
+  def write(path, content = "")
+    file = @root.join(path)
+    file.dirname.mkpath
+    file.write(content)
+  end
+
+  it "stamps the gem version into config/rspack/rails.mjs" do
+    expect(described_class.base_content).to include(%(export const VERSION = "#{RspackRails::VERSION}"))
+    expect(described_class.base_content).not_to include("__RSPACK_RAILS_VERSION__")
+  end
+
+  it "knows a config built on config/rspack/rails.mjs from a standalone one" do
+    expect(described_class.managed?(@root)).to be(false)
+    write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
+    expect(described_class.managed?(@root)).to be(true)
+    write("rspack.config.mjs", %(export default defineConfig({ entry: {} });))
+    expect(described_class.managed?(@root)).to be(false)
+  end
+
+  it "writes config/rspack/rails.mjs when missing or outdated, and leaves a current one alone" do
+    expect(described_class.sync(@root)).to be(true)
+    expect(@root.join("config/rspack/rails.mjs").read).to eq(described_class.base_content)
+    expect(described_class.sync(@root)).to be(false)
+
+    write("config/rspack/rails.mjs", "// from rspack_rails 0.0.1")
+    expect(described_class.current?(@root)).to be(false)
+    expect(described_class.sync(@root)).to be(true)
+    expect(described_class.current?(@root)).to be(true)
+  end
+
+  it "ships an app config that imports the base" do
+    template = File.read(File.expand_path("../lib/install/rspack.config.mjs", __dir__))
+    expect(template).to include(%(from "./config/rspack/rails.mjs"))
+  end
+end
