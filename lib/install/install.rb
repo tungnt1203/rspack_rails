@@ -33,6 +33,8 @@ update_package_json do |package|
   scripts["build"] = "rspack build"
   scripts["build:watch"] = "rspack build --watch"
   scripts["dev"] = "rspack serve"
+  # import "#/lib/utils" for app/javascript/lib/utils (Node.js subpath imports, which rspack resolves).
+  (package["imports"] ||= {})["#/*"] ||= "./app/javascript/*"
 end
 
 js_tag = %(rspack_javascript_tag "application", "data-turbo-track": "reload")

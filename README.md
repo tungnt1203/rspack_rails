@@ -150,6 +150,17 @@ app/javascript/entrypoints/print.scss   -> print.bundle.css (no print.js)
 
 `admin.js` and `admin.css` side by side make one entry. Entries can share a page: under `rspack serve` the helpers link one shared `runtime.js`, so hot updates reach every entry. Restart the dev server after adding a new entry point.
 
+### Importing app code
+
+Import files in `app/javascript` from anywhere with `#/`, the [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) prefix that rspack resolves from `package.json`:
+
+```js
+import { formatDate } from "#/lib/dates"        // app/javascript/lib/dates.js (or .ts)
+import logo from "#/images/logo.svg"
+```
+
+`rspack:install` adds `"imports": { "#/*": "./app/javascript/*" }` to `package.json`, and `rspack:install:typescript` adds the same mapping to the `paths` of `tsconfig.json`, so type checking and your editor follow it too. Bare imports such as `import "lib/dates"` keep working as they did with importmap.
+
 ### Stimulus
 
 ```bash
