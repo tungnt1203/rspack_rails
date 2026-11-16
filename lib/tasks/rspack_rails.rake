@@ -72,17 +72,15 @@ namespace :rspack do
 
   desc "Analyze the production bundle with Rsdoctor (report in tmp/rsdoctor)"
   task analyze: %i[sync dependencies] do
-    require "json"
-    pm = RspackRails::PackageManager.detect(Rails.root)
-    config = Rails.root.join(RspackRails::RspackConfig::APP)
+    app = RspackRails::App.new(Rails.root)
+    pm = app.package_manager
     unless RspackRails::RspackConfig.managed?(Rails.root) ||
-           (config.exist? && config.read.include?("RsdoctorRspackPlugin"))
+           app.read(RspackRails::RspackConfig::APP).to_s.include?("RsdoctorRspackPlugin")
       raise RspackRails::Error,
             "rspack.config.mjs predates rspack:analyze. Re-run `bin/rails rspack:install` and accept the new config."
     end
 
-    package = JSON.parse(Rails.root.join("package.json").read)
-    unless package.fetch("devDependencies", {}).merge(package.fetch("dependencies", {})).key?("@rsdoctor/rspack-plugin")
+    unless app.dependency?("@rsdoctor/rspack-plugin")
       command = pm.add_dev_command("@rsdoctor/rspack-plugin")
       system(command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
     end

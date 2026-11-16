@@ -1,11 +1,8 @@
 # frozen_string_literal: true
 
-require "json"
 require "open3"
-require "pathname"
+require_relative "app"
 require_relative "node_version"
-require_relative "entrypoints"
-require_relative "layouts"
 require_relative "containers"
 require_relative "rspack_config"
 require_relative "rspack_version"
@@ -31,7 +28,8 @@ module RspackRails
     }.freeze
 
     def initialize(root, config: RspackRails.config, dev_server: RspackRails.dev_server, node_version: nil)
-      @root = Pathname(root)
+      @app = App.new(root)
+      @root = @app.root
       @config = config
       @dev_server = dev_server
       @node_version = node_version
@@ -132,7 +130,7 @@ module RspackRails
     end
 
     def scripts_check
-      scripts = package_json&.fetch("scripts", {}) || {}
+      scripts = package_json.fetch("scripts", {})
       missing = %w[build dev].reject { |name| scripts.key?(name) }
       return Check.new(:ok, "package.json scripts", "build, dev") if missing.empty?
 
@@ -264,24 +262,19 @@ module RspackRails
     end
 
     def installed_package(name)
-      node_modules_package("@rspack/#{name}")
+      @app.node_package("@rspack/#{name}")
     end
 
     def node_modules_package(name)
-      path = @root.join("node_modules", name, "package.json")
-      JSON.parse(path.read) if path.exist?
-    rescue JSON::ParserError
-      nil
+      @app.node_package(name)
     end
 
     def package_json
-      JSON.parse(read("package.json")) if exist?("package.json")
-    rescue JSON::ParserError
-      nil
+      @app.package_json
     end
 
     def layouts
-      @layouts ||= Layouts.all(@root)
+      @layouts ||= @app.layouts
     end
 
     def layouts_including(text)
@@ -294,20 +287,19 @@ module RspackRails
     end
 
     def entrypoints
-      @entrypoints ||= Entrypoints.discover(@root)
+      @entrypoints ||= @app.entrypoints
     end
 
     def package_manager
-      @package_manager ||= PackageManager.detect(@root)
+      @package_manager ||= @app.package_manager
     end
 
     def exist?(path)
-      @root.join(path).exist?
+      @app.path(path).exist?
     end
 
     def read(path)
-      file = @root.join(path)
-      file.read if file.exist?
+      @app.read(path)
     end
   end
 end

@@ -13,7 +13,7 @@ module RspackRails
       sync_rspack_config
       return if RspackConfig.managed?(destination_root)
 
-      if File.exist?(RspackConfig::APP)
+      if rspack_app.file?(RspackConfig::APP)
         say "rspack.config.mjs now builds on #{RspackConfig::BASE}, which rspack_rails updates on its own. " \
             "Accept the new file, then move your changes into its railsConfig callback.", :yellow
       end
@@ -25,7 +25,7 @@ module RspackRails
     # that file is current; an older standalone one must mention `marker`.
     def require_config!(marker, feature)
       return sync_rspack_config if RspackConfig.managed?(destination_root)
-      return if File.exist?(RspackConfig::APP) && File.read(RspackConfig::APP).include?(marker)
+      return if rspack_app.read(RspackConfig::APP).to_s.include?(marker)
 
       say "rspack.config.mjs predates #{feature} support. Re-run `bin/rails rspack:install` and accept the new " \
           "rspack.config.mjs, then run this task again.", :red
