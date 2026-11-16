@@ -1,0 +1,40 @@
+name: Rspack next
+
+# Runs the integration suite against the newest @rspack release, prereleases
+# included (bin/rspack-next-version), so a breaking change in an upcoming
+# Rspack, such as 3.0 betas, shows up here before apps get it. GitHub emails
+# the repository owner when a scheduled run fails.
+on:
+  schedule:
+    - cron: "0 3 * * 1" # Mondays, 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    name: Rails ${{ matrix.rails }} app on the newest Rspack
+    strategy:
+      fail-fast: false
+      matrix:
+        rails: ['~> 8.1.0']
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Find the newest @rspack releases
+        id: versions
+        run: |
+          echo "core=$(bin/rspack-next-version @rspack/core)" >> "$GITHUB_OUTPUT"
+          echo "dev_server=$(bin/rspack-next-version @rspack/dev-server)" >> "$GITHUB_OUTPUT"
+      - name: Integration on @rspack/core ${{ steps.versions.outputs.core }}, @rspack/dev-server ${{ steps.versions.outputs.dev_server }}
+        run: bin/integration "${{ matrix.rails }}"
+        env:
+          RSPACK_VERSION: ${{ steps.versions.outputs.core }}
+          RSPACK_DEV_SERVER_VERSION: ${{ steps.versions.outputs.dev_server }}
