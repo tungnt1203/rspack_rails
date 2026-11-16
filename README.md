@@ -5,9 +5,9 @@
 
 Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the Rust-powered, webpack-compatible bundler, and get **hot module replacement** in development.
 
-![Editing CSS and a Stimulus controller while the page keeps its state](docs/hmr.gif)
+![Editing a view and a Stimulus controller in the rspack_rails demo app](docs/hmr.gif)
 
-*Above: CSS and a Stimulus controller are edited while the page is open. Both update in place, and the counter keeps its value because the page never reloads.*
+*Above, in the [demo app](https://github.com/tungnt1203/rspack_rails-demo): a Tailwind class added to an ERB view shows up after an automatic reload, then an edited Stimulus controller is swapped in place without one.*
 
 rspack_rails follows the `jsbundling-rails` model: Rspack writes bundles to `app/assets/builds`, and Propshaft (or Sprockets) serves and fingerprints them in production.
 
