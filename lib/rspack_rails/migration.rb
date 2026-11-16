@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-require "json"
-require "pathname"
+require_relative "app"
 
 module RspackRails
   # Detects how an app bundles JavaScript today and works out what
@@ -19,7 +18,8 @@ module RspackRails
     attr_reader :root
 
     def initialize(root)
-      @root = Pathname(root)
+      @app = App.new(root)
+      @root = @app.root
     end
 
     # :rspack, :shakapacker, :importmap, :jsbundling or :none
@@ -109,17 +109,15 @@ module RspackRails
     end
 
     def package_json
-      @package_json ||= file?("package.json") ? JSON.parse(read("package.json")) : {}
-    rescue JSON::ParserError
-      @package_json = {}
+      @package_json ||= @app.package_json
     end
 
     def file?(path)
-      root.join(path).file?
+      @app.file?(path)
     end
 
     def read(path)
-      root.join(path).read if file?(path)
+      @app.read(path)
     end
   end
 end

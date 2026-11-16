@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
 require "json"
-require_relative "entrypoints"
-require_relative "layouts"
+require_relative "app"
 require_relative "containers"
-require_relative "package_manager"
 require_relative "config_installer"
 require_relative "rspack_version"
 
@@ -24,10 +22,16 @@ module RspackRails
         raise(Error, "#{task} failed")
     end
 
+    # The app being installed into. Its file access does not depend on the
+    # current directory.
+    def rspack_app
+      App.new(destination_root)
+    end
+
     # The app's main entry (app/javascript/application.{js,ts,jsx,tsx}), or exits
     # with a hint when there is none.
     def main_entry!
-      entry = Entrypoints.main_entry(Pathname(destination_root))
+      entry = rspack_app.main_entry
       return entry if entry
 
       say "No app/javascript/application.{js,ts,jsx,tsx} found. Run `bin/rails rspack:install` first.", :red
@@ -35,7 +39,7 @@ module RspackRails
     end
 
     def gem_in_gemfile?(name)
-      File.exist?("Gemfile") && File.read("Gemfile").match?(/^\s*gem\s+["']#{Regexp.escape(name)}["']/)
+      rspack_app.read("Gemfile").to_s.match?(/^\s*gem\s+["']#{Regexp.escape(name)}["']/)
     end
 
     # Removes a gem from the Gemfile, along with the comment line describing it.
@@ -47,9 +51,9 @@ module RspackRails
 
     # Reads package.json, yields it and writes it back.
     def update_package_json
-      package = JSON.parse(File.read("package.json"))
+      package = JSON.parse(rspack_app.read("package.json"))
       yield package
-      File.write("package.json", "#{JSON.pretty_generate(package)}\n")
+      rspack_app.path("package.json").write("#{JSON.pretty_generate(package)}\n")
     end
 
     # app/views/layouts/application.html.{erb,slim,haml}, or nil.
@@ -63,14 +67,14 @@ module RspackRails
       path = layout
       return say("Add this to your layout: <%= #{code} %>", :yellow) unless path
 
-      content = File.read(path)
+      content = rspack_app.read(path)
       return if content.include?(marker)
 
       updated = Layouts.insert_in_head(path, content, code)
       return say("Add this to the <head> of #{path}: #{Layouts.tag(path, code)}", :yellow) unless updated
 
       say "Adding #{marker} to #{path}"
-      File.write(path, updated)
+      rspack_app.path(path).write(updated)
     end
 
     def add_stylesheet_tag
@@ -83,10 +87,11 @@ module RspackRails
     # entry would apply on screen). When the app's own CSS is just
     # app/assets/stylesheets/application.css, link that file instead.
     def replace_app_stylesheets_tag
-      layouts = Layouts.all(destination_root).select { |path| File.read(path).match?(Layouts::APP_STYLESHEETS) }
+      app = rspack_app
+      layouts = app.layouts.select { |path| app.read(path).match?(Layouts::APP_STYLESHEETS) }
       return if layouts.empty?
 
-      own = Dir.glob("app/assets/stylesheets/**/*.css")
+      own = Dir.glob("app/assets/stylesheets/**/*.css", base: app.root).sort
       unless own.empty? || own == ["app/assets/stylesheets/application.css"]
         return say "#{layouts.join(", ")} uses `stylesheet_link_tag :app`, which also links rspack's " \
                    "*.bundle.css files. List your own stylesheets instead, e.g. stylesheet_link_tag " \
@@ -121,15 +126,15 @@ module RspackRails
     end
 
     def edit_container_file(path, change)
-      return unless File.exist?(path)
+      content = rspack_app.read(path)
+      return unless content
 
-      content = File.read(path)
       updated = yield content
       return say("Could not update #{path} automatically; #{change} by hand.", :yellow) unless updated
       return if updated == content
 
       say "Updating #{path}: #{change}"
-      File.write(path, updated)
+      rspack_app.path(path).write(updated)
     end
 
     # Removes lines that call `helper` (ERB, Slim or Haml) from every layout.
