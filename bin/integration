@@ -137,6 +137,10 @@ ls app/assets/builds | grep -Eq '^hero-[0-9a-f]+\.digested\.png$' || { echo "her
 grep -q 'data:image/svg' app/assets/builds/application.bundle.css || { echo "small image not inlined"; exit 1; }
 [ -d node_modules/.cache/rspack ] || { echo "persistent cache missing"; exit 1; }
 assert_file app/assets/builds/print.bundle.css
+assert_file app/assets/builds/.rspack-manifest.json
+ruby -rjson -e 'e = JSON.parse(File.read("app/assets/builds/.rspack-manifest.json"))["entries"]
+  abort "manifest: #{e}" unless e["print"] == { "js" => [], "css" => ["print.bundle.css"], "stylesheetOnly" => true } &&
+                                e["application"]["js"] == ["application.js"]'
 [ -e app/assets/builds/print.js ] && { echo "stylesheet-only entry emitted print.js"; exit 1; }
 grep -q 'via-ts-alias' app/assets/builds/admin.js || { echo "tsconfig paths alias not resolved"; exit 1; }
 grep -q 'Hello, ' app/assets/builds/application.js || { echo "Hello component missing"; exit 1; }
@@ -243,6 +247,7 @@ grep -q 'jsxDEV' public/assets/application-*.js && { echo "development JSX runti
 grep -lq 'postMessage' public/assets/*.digested.js || { echo "worker chunk missing"; exit 1; }
 grep -lq 'lazy-chunk' public/assets/*.digested.js || { echo "lazy chunk missing"; exit 1; }
 ls public/assets | grep -q '\.map$' && { echo "source maps in public/assets"; exit 1; }
+ls -a public/assets | grep -q 'rspack-manifest' && { echo ".rspack-manifest.json in public/assets"; exit 1; }
 
 step "Helpers in production"
 html=$(bin/rails runner \
@@ -252,6 +257,9 @@ assert_match "$html" 'src="/assets/admin-[0-9a-f]+\.js"'
 assert_match "$html" 'href="/assets/application\.bundle-[0-9a-f]+\.css"'
 assert_match "$html" 'href="/assets/print\.bundle-[0-9a-f]+\.css"'
 grep -q 'runtime' <<<"$html" && { echo "production links a runtime"; exit 1; }
+# admin imports no CSS: the manifest lists none, so no link to a missing admin.bundle.css.
+none=$(bin/rails runner 'puts ApplicationController.render(inline: %(<%= rspack_stylesheet_tag "admin" %>))')
+[ -z "$none" ] || { echo "linked CSS for an entry without any: $none"; exit 1; }
 react=$(bin/rails runner 'puts ApplicationController.render(inline: %(<%= react_component "admin/Badge", label: "x" %>))')
 assert_match "$react" 'data-react-component="admin/Badge"'
 

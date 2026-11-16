@@ -1,32 +1,26 @@
 # frozen_string_literal: true
 
-require_relative "entrypoints"
-
 module RspackRails
-  # View helpers that load bundles from `rspack serve` when it is running
-  # and fall back to the asset pipeline (app/assets/builds) otherwise.
+  # View helpers that link the files RspackRails::Manifest lists for an
+  # entry: from `rspack serve` when it is running, from the asset pipeline
+  # (app/assets/builds) otherwise.
   module Helper
-    def rspack_javascript_tag(*entries, **options)
-      options = { defer: true }.merge(options)
-      tags = entries.map do |entry|
-        source = RspackRails.dev_server.running? ? RspackRails.dev_server.url("#{entry}.js") : entry
-        javascript_include_tag(source, **options)
-      end
-      safe_join([rspack_runtime_tag(options), *tags].compact, "\n")
+    # The entry's scripts as listed in .rspack-manifest.json (under `rspack
+    # serve`, runtime.js first). A script already on the page, such as the
+    # runtime shared by several entries, is linked once.
+    def rspack_javascript_tag(*entries, **)
+      rspack_script_tags(entries.flat_map { |entry| RspackRails.manifest[entry].scripts }, { defer: true, ** })
     end
 
-    # Links the CSS that rspack extracts from an entry's imports
+    # The CSS that rspack extracts from an entry's imports
     # (app/assets/builds/<entry>.bundle.css). Under `rspack serve`, a
     # stylesheet-only entry (app/javascript/entrypoints/print.css) also gets
     # its script, which carries the hot update client.
     def rspack_stylesheet_tag(*entries, **options)
-      unless RspackRails.dev_server.running?
-        return stylesheet_link_tag(*entries.map { |entry| "#{entry}.bundle" }, **options)
-      end
-
-      links = entries.map { |entry| stylesheet_link_tag(RspackRails.dev_server.url("#{entry}.bundle.css"), **options) }
-      hot = entries.select { |entry| rspack_stylesheet_entry?(entry) }
-      safe_join([*links, (rspack_javascript_tag(*hot) if hot.any?)].compact, "\n")
+      entries = entries.map { |entry| RspackRails.manifest[entry] }
+      links = entries.flat_map(&:stylesheets).uniq.map { |file| stylesheet_link_tag(rspack_source(file), **options) }
+      hot = entries.select(&:stylesheet_only).flat_map(&:scripts)
+      safe_join([*links, rspack_script_tags(hot, { defer: true })].reject(&:empty?), "\n")
     end
 
     # A mount point for app/javascript/components/<name>.{jsx,tsx}, rendered
@@ -42,31 +36,16 @@ module RspackRails
 
     private
 
-    # Under `rspack serve` all entries share runtime.js, linked once per page.
-    # Without the dev server it is linked only while app/assets/builds still
-    # holds the dev server's output (a normal build removes runtime.js).
-    def rspack_runtime_tag(options)
-      return if @rspack_runtime_linked
-
-      source = if RspackRails.dev_server.running?
-                 RspackRails.dev_server.url("runtime.js")
-               elsif rspack_root.join("app/assets/builds/runtime.js").file?
-                 "runtime"
-               end
-      return unless source
-
-      @rspack_runtime_linked = true
-      javascript_include_tag(source, **options)
+    def rspack_script_tags(files, options)
+      @rspack_linked_scripts ||= Set.new
+      tags = files.select { |file| @rspack_linked_scripts.add?(file) }
+                  .map { |file| javascript_include_tag(rspack_source(file), **options) }
+      safe_join(tags, "\n")
     end
 
-    def rspack_stylesheet_entry?(entry)
-      @rspack_entrypoints ||= Entrypoints.discover(rspack_root)
-      paths = @rspack_entrypoints[entry.to_s]
-      paths ? Entrypoints.css_only?(paths) : false
-    end
-
-    def rspack_root
-      defined?(::Rails.root) && ::Rails.root ? ::Rails.root : Pathname(Dir.pwd)
+    # From the dev server while it runs, from the asset pipeline otherwise.
+    def rspack_source(file)
+      RspackRails.dev_server.running? ? RspackRails.dev_server.url(file) : file
     end
   end
 end

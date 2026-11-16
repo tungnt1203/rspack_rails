@@ -114,6 +114,7 @@ browser  ───────────────────▶  Rails :30
    └───────────────────────────── HMR websocket ──────────────────────────┘
 ```
 
+- **Manifest**: every build, and `rspack serve` after each rebuild, writes `app/assets/builds/.rspack-manifest.json` with the scripts and stylesheets of each entry. The view helpers link exactly those files, so an entry without CSS gets no stylesheet link and the dev server's shared `runtime.js` is linked once per page. It is a dotfile, so it never reaches `public/assets`.
 - **Dev server running** (`bin/dev`): the view helpers point at `/rspack/<entry>.js`. Rails proxies those requests to `rspack serve`, so scripts, chunks, Web Workers and images are same-origin with the page. Only the HMR websocket goes to `localhost:3036` directly. JavaScript and CSS changes are hot-swapped; views are rendered by Rails, so editing a file in `app/views`, `app/helpers` or `app/components` reloads the page.
 - **Dev server not running**: the helpers fall back to `javascript_include_tag` / `stylesheet_link_tag`, and Propshaft serves the last build from `app/assets/builds`.
 - **Production**: always the asset pipeline. `rspack:build` runs before `assets:precompile`.

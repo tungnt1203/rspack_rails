@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-16
+
+- rspack writes `app/assets/builds/.rspack-manifest.json` (each entry's scripts and stylesheets, runtime first), on every build and after each rebuild under `rspack serve`. `rspack_javascript_tag` and `rspack_stylesheet_tag` link what it lists instead of guessing file names from `app/javascript`, so the helpers no longer scan entry points or check for `runtime.js` on disk
+- `rspack_stylesheet_tag` links nothing for an entry that imports no CSS (it linked a missing `<entry>.bundle.css`, an error in production)
+- A script already on the page (such as a second `rspack_javascript_tag` for the same entry) is linked once
+- `rspack:clobber` removes the manifest
+
 ## [0.13.0] - 2026-11-16
 
 - The rspack config is split in two. `config/rspack/rails.mjs` holds the defaults and belongs to the gem: `rspack:build` (before `assets:precompile` and tests) and the new `rspack:sync` rewrite it when the gem version changes. `rspack.config.mjs` is the app's own and passes a callback to `railsConfig()` to change anything. Upgrading no longer means overwriting `rspack.config.mjs` and merging your changes back by hand
