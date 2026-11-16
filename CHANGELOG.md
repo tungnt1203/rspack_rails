@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 - CI: `bin/integration-hmr` runs `rails server` and `rspack serve` and drives Chromium with Playwright: editing a Stimulus controller keeps its state, a new controller connects, and CSS and Tailwind changes apply, all without a page reload. It fails on 0.10.0, which had the stale-cache HMR bug
+- `template.rb`: a new app in one command, `rails new myapp -m https://raw.githubusercontent.com/tungnt1203/rspack_rails/main/template.rb`. It asks for Stimulus, TypeScript, React, Tailwind and Sass (or reads `RSPACK_FEATURES`), migrates the default importmap setup and `--css tailwind`/`--css sass`, and builds once. CI runs it on Rails 7.2 and 8.1
 
 ## [0.10.2] - 2026-11-13
 

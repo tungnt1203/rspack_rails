@@ -39,6 +39,22 @@ rspack_rails follows the `jsbundling-rails` model: Rspack writes bundles to `app
 
 ## Installation
 
+### A new app
+
+```bash
+rails new myapp -m https://raw.githubusercontent.com/tungnt1203/rspack_rails/main/template.rb
+cd myapp
+bin/dev
+```
+
+The template asks which extras to add (Stimulus, TypeScript, React, Tailwind CSS, Sass) and sets them up. It works with any `rails new` options: the default importmap setup is migrated to Rspack, and `--css tailwind` or `--css sass` are moved over. To skip the questions, list what you want:
+
+```bash
+RSPACK_FEATURES=stimulus,typescript,tailwind rails new myapp -m https://raw.githubusercontent.com/tungnt1203/rspack_rails/main/template.rb
+```
+
+### An existing app
+
 ```bash
 bundle add rspack_rails
 bin/rails rspack:install
@@ -327,6 +343,7 @@ bin/integration "~> 7.2.0"            # against a specific Rails version
 bin/integration-migrate importmap     # rails new + rspack:migrate (or: jsbundling, tailwind, sass)
 bin/integration-typescript            # application.ts entry + Slim layout through every installer
 bin/integration-hmr                   # rails server + rspack serve, Chromium checks edits hot-reload
+bin/integration-template skip-js      # rails new -m template.rb (or: importmap)
 ```
 
 ## License
