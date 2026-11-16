@@ -46,7 +46,8 @@ step "Using the released gem inside the image (a local path is outside the build
 # The Dockerfile edits under test were made by the local checkout above; the
 # image only runs rspack:build, which every release has.
 sed -i.bak 's|^gem "rspack_rails", path: .*|gem "rspack_rails", ">= 0.11"|' Gemfile && rm Gemfile.bak
-bundle lock --add-platform x86_64-linux aarch64-linux >/dev/null
+# --update: the lockfile has this checkout's version, which may not be released yet.
+bundle lock --update rspack_rails --add-platform x86_64-linux aarch64-linux >/dev/null
 bundle install --quiet
 
 step "docker build"
