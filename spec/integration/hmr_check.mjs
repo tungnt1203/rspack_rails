@@ -62,21 +62,16 @@ await check("CSS edit applies without a reload", async () => {
   await notReloaded();
 });
 
-await check("A Tailwind class added to a view is generated without a reload", async () => {
-  // The element is already on the page; only the view change makes Tailwind emit the class.
-  await page.evaluate(() => {
-    const probe = document.createElement("span");
-    probe.id = "tailwind-probe";
-    probe.className = "text-fuchsia-900";
-    document.body.append(probe);
+await check("Editing a view reloads the page, with the view's new Tailwind class", async () => {
+  // Views are rendered by Rails: rspack serve reloads the page (watchFiles),
+  // and Tailwind has generated the class by then.
+  edit("app/views/pages/home.html.erb", (source) => `${source}\n<p id="new-view" class="text-fuchsia-900">new</p>\n`);
+  await page.waitForSelector("#new-view", { timeout: 20_000 });
+  if (await page.evaluate(() => window.__noReload === true)) throw new Error("the page did not reload");
+  await waitFor(() => {
+    const color = (selector) => getComputedStyle(document.querySelector(selector)).color;
+    return color("#new-view") !== color(".probe");
   });
-  const before = await page.evaluate(() => getComputedStyle(document.querySelector("#tailwind-probe")).color);
-  edit("app/views/pages/home.html.erb", (source) => `${source}\n<p class="text-fuchsia-900">new class</p>\n`);
-  await waitFor(
-    (initial) => getComputedStyle(document.querySelector("#tailwind-probe")).color !== initial,
-    before,
-  );
-  await notReloaded();
 });
 
 await browser.close();

@@ -13,6 +13,9 @@ GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REQUIREMENT="${1:-}"
 WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
 PLAYWRIGHT_VERSION="1.65.0"
+# Not 3000/3036, so a dev server already running on this machine does not clash.
+RAILS_PORT="${RAILS_PORT:-3100}"
+export RSPACK_DEV_SERVER_PORT="${RSPACK_DEV_SERVER_PORT:-3136}"
 
 step() { printf '\n==> %s\n' "$*"; }
 
@@ -81,19 +84,20 @@ else
 fi
 
 step "Starting rails server and rspack serve"
-bin/rails server -p 3000 > tmp/rails-server.log 2>&1 &
+bin/rails server -p "$RAILS_PORT" > tmp/rails-server.log 2>&1 &
 rails_pid=$!
 node_modules/.bin/rspack serve > tmp/rspack-serve.log 2>&1 &
 serve_pid=$!
 cleanup() { kill "$rails_pid" "$serve_pid" 2>/dev/null || true; wait "$rails_pid" "$serve_pid" 2>/dev/null || true; }
 trap cleanup EXIT
 for _ in $(seq 1 120); do
-  curl -sf -o /dev/null http://localhost:3036/application.js && curl -sf -o /dev/null http://localhost:3000/ && break
+  curl -sf -o /dev/null "http://localhost:$RSPACK_DEV_SERVER_PORT/application.js" &&
+    curl -sf -o /dev/null "http://localhost:$RAILS_PORT/" && break
   sleep 0.5
 done
 
 step "Hot updates in Chromium"
-if ! node "$GEM_ROOT/spec/integration/hmr_check.mjs" "$PWD" "http://localhost:3000/"; then
+if ! node "$GEM_ROOT/spec/integration/hmr_check.mjs" "$PWD" "http://localhost:$RAILS_PORT/"; then
   echo "--- rspack serve ---"; tail -20 tmp/rspack-serve.log
   exit 1
 fi

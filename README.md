@@ -15,7 +15,7 @@ rspack_rails follows the `jsbundling-rails` model: Rspack writes bundles to `app
 
 **Development**
 - One command setup: `bin/rails rspack:install`, then `bin/dev`
-- HMR for JavaScript, CSS and Stimulus controllers, with an automatic fallback to the asset pipeline when the dev server is not running
+- HMR for JavaScript, CSS and Stimulus controllers, and an automatic page reload when you edit a view, with a fallback to the asset pipeline when the dev server is not running
 - Stimulus autoloading: drop a `*_controller.js` (or `.ts`) in `app/javascript/controllers`, with no manifest to maintain
 - Persistent cache, so rebuilds and dev server restarts reuse earlier work
 
@@ -112,7 +112,7 @@ browser  ───────────────────▶  Rails :30
    └───────────────────────────── HMR websocket ──────────────────────────┘
 ```
 
-- **Dev server running** (`bin/dev`): the view helpers point at `/rspack/<entry>.js`. Rails proxies those requests to `rspack serve`, so scripts, chunks, Web Workers and images are same-origin with the page. Only the HMR websocket goes to `localhost:3036` directly.
+- **Dev server running** (`bin/dev`): the view helpers point at `/rspack/<entry>.js`. Rails proxies those requests to `rspack serve`, so scripts, chunks, Web Workers and images are same-origin with the page. Only the HMR websocket goes to `localhost:3036` directly. JavaScript and CSS changes are hot-swapped; views are rendered by Rails, so editing a file in `app/views`, `app/helpers` or `app/components` reloads the page.
 - **Dev server not running**: the helpers fall back to `javascript_include_tag` / `stylesheet_link_tag`, and Propshaft serves the last build from `app/assets/builds`.
 - **Production**: always the asset pipeline. `rspack:build` runs before `assets:precompile`.
 
@@ -177,7 +177,7 @@ import "./styles/application.css"
 bin/rails rspack:install:tailwind
 ```
 
-This installs `tailwindcss` and `@tailwindcss/webpack`, creates `app/javascript/application.css` with `@import "tailwindcss";`, imports it from your entry and adds `rspack_stylesheet_tag "application"` to the layout. Classes in your views, helpers and JavaScript are picked up automatically, and under `rspack serve` a new class in a view shows up without a reload.
+This installs `tailwindcss` and `@tailwindcss/webpack`, creates `app/javascript/application.css` with `@import "tailwindcss";`, imports it from your entry and adds `rspack_stylesheet_tag "application"` to the layout. Classes in your views, helpers and JavaScript are picked up automatically. Under `rspack serve`, editing a view reloads the page with the new classes already built, and CSS edits apply without a reload.
 
 Coming from `tailwindcss-rails` (`rails new --css tailwind`)? Run `bin/rails rspack:migrate` first, then `rspack:install:tailwind`. It moves `app/assets/tailwind/application.css` (with your `@theme`, `@plugin` and `@source` lines) to `app/javascript/application.css`, and removes the gem, the `css:` line in `Procfile.dev` and the old `tailwind.css` build.
 
@@ -281,6 +281,7 @@ The task exits with status 1 when there are errors, so it can run in CI.
 | `RSPACK_DEV_SERVER` | | `false` turns the dev server check off; the helpers always use `app/assets/builds` |
 | `RSPACK_DEVTOOL` | `cheap-module-source-map` in development, off in production | Source map [devtool](https://rspack.rs/config/devtool); `false` turns maps off |
 | `RSPACK_LAZY_COMPILATION` | on under `rspack serve` | `false` compiles every dynamic `import()` upfront |
+| `RSPACK_VIEW_RELOAD` | on under `rspack serve` | `false` stops reloading the page when `app/views`, `app/helpers` or `app/components` change |
 | `RSPACK_REACT_COMPILER` | off | `true` enables the React Compiler |
 | `SKIP_RSPACK_BUILD` | | Any value stops `rspack:build` from running before `assets:precompile` and test tasks |
 | `FORCE` | | `1` lets `rspack:migrate` run on a dirty git tree |
