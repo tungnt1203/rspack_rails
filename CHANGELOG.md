@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [0.14.1] - 2026-11-16
+
+- Fix: a root-relative `url()` in CSS, such as `url("/icon.png")` for a file in `public/` or `url("/logo.svg")` for one in `app/assets/images`, failed the build with `Module not found: Can't resolve '/icon.png'`. Rspack 2 resolves such paths from the root of the file system. They are now left for Rails: Propshaft fingerprints the ones it finds in `app/assets`, and the rest stay as written. Relative `url()`s are still bundled and fingerprinted by rspack
+
 ## [0.14.0] - 2026-11-16
 
 - rspack writes `app/assets/builds/.rspack-manifest.json` (each entry's scripts and stylesheets, runtime first), on every build and after each rebuild under `rspack serve`. `rspack_javascript_tag` and `rspack_stylesheet_tag` link what it lists instead of guessing file names from `app/javascript`, so the helpers no longer scan entry points or check for `runtime.js` on disk
