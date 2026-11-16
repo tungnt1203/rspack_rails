@@ -215,6 +215,9 @@ tags=$(bin/rails runner 'puts ApplicationController.render(inline: %(<%= rspack_
   { kill $serve_pid; echo "$tags"; exit 1; }
 [ "$(grep -o '/rspack/runtime.js' <<<"$tags" | wc -l | tr -d ' ')" = 1 ] || { kill $serve_pid; echo "runtime.js not linked once: $tags"; exit 1; }
 assert_match "$tags" 'src="/rspack/print.js"'
+dev_sri=$(bin/rails runner 'puts ApplicationController.renderer.new(https: true).render(inline: %(<%= rspack_javascript_tag "application", integrity: true %>))' 2>&1) ||
+  { kill $serve_pid; echo "$dev_sri"; exit 1; }
+grep -q 'integrity' <<<"$dev_sri" && { kill $serve_pid; echo "integrity under rspack serve: $dev_sri"; exit 1; }
 assert_file app/assets/builds/runtime.js
 for _ in $(seq 1 40); do grep -q 'type-check' tmp/rspack-serve.log && break; sleep 0.5; done
 grep -q 'type-check' tmp/rspack-serve.log || { kill $serve_pid; echo "no type checking under rspack serve"; exit 1; }
@@ -239,6 +242,8 @@ echo "$doctor"
 assert_match "$doctor" 'Entry points: application, admin, print'
 
 step "assets:precompile (production)"
+# Subresource Integrity: Propshaft only computes hashes with an algorithm set (Sprockets always does).
+echo 'Rails.application.config.assets.integrity_hash_algorithm = "sha384"' > config/initializers/subresource_integrity.rb
 export RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1
 # Drop the development build (and its source maps), as a fresh deploy would.
 bin/rails assets:clobber
@@ -275,6 +280,16 @@ ls public/assets | grep -q '\.map$' && { echo "source maps in public/assets"; ex
 ls -a public/assets | grep -q 'rspack-manifest' && { echo ".rspack-manifest.json in public/assets"; exit 1; }
 
 step "Helpers in production"
+# integrity: true hashes what the asset pipeline serves (CSS after Propshaft rewrites its url()s).
+sri=$(bin/rails runner 'puts ApplicationController.renderer.new(https: true).render(inline: %(<%= rspack_javascript_tag "application", integrity: true %><%= rspack_stylesheet_tag "application", integrity: true %>))')
+[ "$(grep -o 'integrity="sha[0-9]*-' <<<"$sri" | wc -l | tr -d ' ')" = 2 ] || { echo "expected 2 integrity attributes: $sri"; exit 1; }
+for tag in $(grep -oE '(src|href)="/assets/[^"]+" [^>]*integrity="sha[0-9]+-[^"]+"' <<<"$sri" | tr ' ' '|'); do
+  file=$(sed -E 's/^(src|href)="([^"]+)".*/\2/' <<<"$tag")
+  expected=$(sed -E 's/.*integrity="([^"]+)".*/\1/' <<<"$tag")
+  algorithm=${expected%%-*}
+  actual="$algorithm-$(openssl dgst "-$algorithm" -binary "public$file" | openssl base64 -A)"
+  [ "$actual" = "$expected" ] || { echo "integrity of $file is $expected, the file hashes to $actual"; exit 1; }
+done
 html=$(bin/rails runner \
   'puts ApplicationController.render(inline: %(<%= rspack_javascript_tag "application", "admin" %><%= rspack_stylesheet_tag "application", "print" %>))')
 assert_match "$html" 'src="/assets/application-[0-9a-f]+\.js"'

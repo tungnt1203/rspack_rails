@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-16
+
+- Subresource Integrity: `rspack_javascript_tag` and `rspack_stylesheet_tag` pass `integrity: true` to the asset pipeline, which hashes the files it serves (CSS after Propshaft's `url()` rewriting). Under `rspack serve` the option is dropped, as those files are not part of the pipeline. README: how to turn it on (`config.assets.integrity_hash_algorithm` for Propshaft), and why chunks loaded at runtime are not covered
+- CI checks that each `integrity` attribute matches the file served from `public/assets`, on Propshaft and Sprockets
+
 ## [0.15.0] - 2026-11-16
 
 - Installers pin Rspack's major version (`@rspack/core@^2`, also `@rspack/cli`, `@rspack/dev-server` and `@rspack/plugin-react-refresh`), so a new app does not pick up Rspack 3 on its own when it comes out. `config/rspack/rails.mjs` is written for Rspack 2 (top-level persistent `cache`, `lazyCompilation`)

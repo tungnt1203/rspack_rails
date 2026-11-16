@@ -8,8 +8,12 @@ module RspackRails
     # The entry's scripts as listed in .rspack-manifest.json (under `rspack
     # serve`, runtime.js first). A script already on the page, such as the
     # runtime shared by several entries, is linked once.
+    #
+    # Both tag helpers take the options of javascript_include_tag and
+    # stylesheet_link_tag, including `integrity: true` (see the README).
     def rspack_javascript_tag(*entries, **)
-      rspack_script_tags(entries.flat_map { |entry| RspackRails.manifest[entry].scripts }, { defer: true, ** })
+      scripts = entries.flat_map { |entry| RspackRails.manifest[entry].scripts }
+      rspack_script_tags(scripts, rspack_tag_options(defer: true, **))
     end
 
     # The CSS that rspack extracts from an entry's imports
@@ -18,9 +22,11 @@ module RspackRails
     # its script, which carries the hot update client.
     def rspack_stylesheet_tag(*entries, **options)
       entries = entries.map { |entry| RspackRails.manifest[entry] }
-      links = entries.flat_map(&:stylesheets).uniq.map { |file| stylesheet_link_tag(rspack_source(file), **options) }
-      hot = entries.select(&:stylesheet_only).flat_map(&:scripts)
-      safe_join([*links, rspack_script_tags(hot, { defer: true })].reject(&:empty?), "\n")
+      links = entries.flat_map(&:stylesheets).uniq.map do |file|
+        stylesheet_link_tag(rspack_source(file), **rspack_tag_options(**options))
+      end
+      hot = rspack_script_tags(entries.select(&:stylesheet_only).flat_map(&:scripts), rspack_tag_options(defer: true))
+      safe_join([*links, hot].reject(&:empty?), "\n")
     end
 
     # A mount point for app/javascript/components/<name>.{jsx,tsx}, rendered
@@ -41,6 +47,12 @@ module RspackRails
       tags = files.select { |file| @rspack_linked_scripts.add?(file) }
                   .map { |file| javascript_include_tag(rspack_source(file), **options) }
       safe_join(tags, "\n")
+    end
+
+    # The dev server rewrites its files on every change and is not part of the
+    # asset pipeline, which computes integrity hashes: no `integrity` there.
+    def rspack_tag_options(**options)
+      RspackRails.dev_server.running? ? options.except(:integrity, "integrity") : options
     end
 
     # From the dev server while it runs, from the asset pipeline otherwise.

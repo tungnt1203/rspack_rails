@@ -61,6 +61,11 @@ RSpec.describe RspackRails::Helper do
       )
     end
 
+    it "drops integrity: the dev server is not part of the asset pipeline" do
+      expect(view.rspack_javascript_tag("admin", integrity: true)).not_to include("integrity")
+      expect(view.rspack_stylesheet_tag("application", integrity: true)).not_to include("integrity")
+    end
+
     it "adds the script of a stylesheet-only entry for hot updates" do
       html = view.rspack_stylesheet_tag("application", "print", "admin")
       expect(html).to include('href="/rspack/print.bundle.css"')
@@ -82,6 +87,16 @@ RSpec.describe RspackRails::Helper do
       expect(html).to include("application.js")
       expect(html).to include('data-turbo-track="reload"')
       expect(view.rspack_stylesheet_tag("print")).not_to include("<script")
+    end
+
+    it "passes integrity on to the asset pipeline" do
+      write_manifest(application: { js: %w[application.js], css: %w[application.bundle.css] })
+      allow(view).to receive(:javascript_include_tag).and_call_original
+      allow(view).to receive(:stylesheet_link_tag).and_call_original
+      view.rspack_javascript_tag("application", integrity: true)
+      view.rspack_stylesheet_tag("application", integrity: true)
+      expect(view).to have_received(:javascript_include_tag).with("application.js", defer: true, integrity: true)
+      expect(view).to have_received(:stylesheet_link_tag).with("application.bundle.css", integrity: true)
     end
 
     it "links nothing for an entry without CSS" do

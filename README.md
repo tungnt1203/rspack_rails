@@ -252,6 +252,24 @@ A root-relative `url()` is left for Rails: Rspack neither bundles nor fingerprin
 - **Lazy compilation**: under `rspack serve`, dynamic `import()`s are compiled the first time the page asks for them, which keeps startup fast in large apps.
 - **Persistent cache**: kept in `node_modules/.cache/rspack`. Editing `rspack.config.mjs`, `config/rspack/rails.mjs`, `package.json`, the lockfile, `tsconfig.json` or `.browserslistrc` starts a fresh cache; delete the directory to clear it by hand.
 
+### Subresource Integrity
+
+Pass `integrity: true` to have the browser check each bundle against a hash, so a tampered file on a CDN does not run:
+
+```erb
+<%= rspack_javascript_tag "application", integrity: true %>
+<%= rspack_stylesheet_tag "application", integrity: true %>
+```
+
+```ruby
+# config/initializers/assets.rb (Propshaft computes no hashes until an algorithm is set; Sprockets always does)
+Rails.application.config.assets.integrity_hash_algorithm = "sha384"
+```
+
+The asset pipeline computes the hashes from the files it serves, so they hold after Propshaft rewrites `url()`s in the CSS. Like Rails' own helpers, the attribute is only added on HTTPS (and on localhost), and never for files from `rspack serve`.
+
+Only the files linked by the helpers are covered. Chunks that rspack loads at runtime (dynamic `import()`, Web Workers) get no hash: rspack's own `SubresourceIntegrityPlugin` hashes them at build time, before Propshaft rewrites CSS chunks, so the browser would block them.
+
 ### Deploying (Docker and Kamal)
 
 `assets:precompile` runs `rspack:build`, so the image needs Node.js at build time. Rails only adds it to the `Dockerfile` for apps created with a JavaScript bundler, so `rspack:install` adds it to the build stage:
