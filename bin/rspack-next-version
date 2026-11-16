@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+// Prints the most recently published version of an @rspack package from the
+// supported major on, prereleases included: what the next release will be
+// built on. The canary/beta/rc dist-tags can lag behind `latest`.
+//
+//   bin/rspack-next-version @rspack/core 2   # e.g. 2.3.2, or 3.0.0-beta.1 once it exists
+import { execFileSync } from "node:child_process";
+
+const [pkg, minMajor = "2"] = process.argv.slice(2);
+if (!pkg) {
+  console.error("usage: bin/rspack-next-version <package> [min major]");
+  process.exit(1);
+}
+const times = JSON.parse(execFileSync("npm", ["view", pkg, "time", "--json"], { encoding: "utf8" }));
+const [newest] = Object.entries(times)
+  .filter(([version]) => /^\d+\.\d+\.\d+/.test(version) && Number(version.split(".")[0]) >= Number(minMajor))
+  .sort(([, a], [, b]) => Date.parse(b) - Date.parse(a));
+if (!newest) {
+  console.error(`no ${pkg} release from major ${minMajor} on`);
+  process.exit(1);
+}
+console.log(newest[0]);

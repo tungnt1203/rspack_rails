@@ -6,6 +6,7 @@
 #   bin/integration            # uses the default `rails` on PATH
 #   bin/integration "~> 7.2.0" # installs/uses a matching Rails version
 #   RSPACK_VERSION=2.0 bin/integration  # pins @rspack/* to ~2.0.0 (the oldest supported)
+#   RSPACK_VERSION=3.0.0-beta.1 RSPACK_DEV_SERVER_VERSION=3.0.0-beta.0 bin/integration  # exact versions
 set -euo pipefail
 
 GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -37,10 +38,16 @@ assert_file config/rspack/rails.mjs
 node -p 'require("./package.json").devDependencies["@rspack/core"]' | grep -q '^\^2\.' ||
   { echo "@rspack/core is not pinned to ^2"; exit 1; }
 if [ -n "${RSPACK_VERSION:-}" ]; then
-  step "Pinning Rspack ~${RSPACK_VERSION}.0"
-  npm install --save-dev "@rspack/core@~${RSPACK_VERSION}.0" "@rspack/cli@~${RSPACK_VERSION}.0" "@rspack/dev-server@~${RSPACK_VERSION}.0"
-  node -p 'require("@rspack/core/package.json").version' | grep -q "^${RSPACK_VERSION}\." ||
-    { echo "@rspack/core is not ${RSPACK_VERSION}.x"; exit 1; }
+  # "2.0" means ~2.0.0; anything else (3.0.0-beta.1, beta) is passed to npm as is.
+  case "$RSPACK_VERSION" in
+    *.*.* | *[!0-9.]*) spec="$RSPACK_VERSION" ;;
+    *) spec="~${RSPACK_VERSION}.0" ;;
+  esac
+  step "Installing @rspack/core and @rspack/cli $spec, @rspack/dev-server ${RSPACK_DEV_SERVER_VERSION:-$spec}"
+  npm install --save-dev "@rspack/core@$spec" "@rspack/cli@$spec" "@rspack/dev-server@${RSPACK_DEV_SERVER_VERSION:-$spec}"
+  installed=$(node -p 'require("@rspack/core/package.json").version')
+  echo "Using @rspack/core $installed"
+  case "$spec" in "~"*) [[ "$installed" == "$RSPACK_VERSION".* ]] || { echo "@rspack/core is not ${RSPACK_VERSION}.x"; exit 1; } ;; esac
 fi
 grep -q 'config/rspack/rails.mjs' rspack.config.mjs || { echo "rspack.config.mjs does not build on the base"; exit 1; }
 

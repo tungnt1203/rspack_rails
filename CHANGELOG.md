@@ -4,6 +4,7 @@
 
 - Lazy compilation goes through Rails: under `rspack serve`, the client posts the modules to compile to `/rspack/_rspack/lazy/trigger` on the page's origin, and `RspackRails::DevServerProxy` forwards that POST (and only that one) to the dev server. It used to call `http://localhost:3036/` directly, a cross-origin request that only worked where the browser can reach that port. Only the HMR websocket still goes to the dev server directly
 - CI: the browser test clicks a button that runs a dynamic `import()` under `rspack serve` and checks it loads, with every lazy compilation request on the page's origin
+- CI: a weekly workflow (`Rspack next`) runs the integration suite against the most recently published `@rspack/core` and `@rspack/dev-server`, prereleases included (`bin/rspack-next-version`), so Rspack 3 betas are tested before apps get them
 
 ## [0.16.0] - 2026-11-16
 
