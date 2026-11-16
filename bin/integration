@@ -106,15 +106,21 @@ step "Adding an admin entry point"
 mkdir -p app/javascript/entrypoints
 cat > app/javascript/entrypoints/admin.ts <<'TS'
 import { suffix } from "@/lib/suffix" // a tsconfig "paths" alias
+import { subpath } from "#/lib/subpath" // package.json "imports", type-checked through tsconfig "paths"
 
 const area: string = "admin-entry"
 const settings: { level?: number } = JSON.parse("{}")
-console.log(area, suffix, settings?.level ?? 0)
+console.log(area, suffix, subpath, settings?.level ?? 0)
 TS
 printf '$ink: #123456;\n@media print { .no-print { display: none; color: $ink; } }\n' > app/javascript/entrypoints/print.scss
 mkdir -p app/javascript/lib
 echo 'export const suffix: string = "via-ts-alias"' > app/javascript/lib/suffix.ts
-ruby -rjson -e 'c = JSON.parse(File.read("tsconfig.json")); c["compilerOptions"]["paths"] = { "@/*" => ["./app/javascript/*"] }; File.write("tsconfig.json", JSON.pretty_generate(c))'
+echo 'export const subpath: string = "via-subpath-import"' > app/javascript/lib/subpath.ts
+echo 'export default "js-subpath-import"' > app/javascript/lib/plain.js
+echo 'import plain from "#/lib/plain"; window.plain = plain' >> app/javascript/application.js
+grep -q '"#/\*": "./app/javascript/\*"' package.json || { echo "package.json has no #/* imports"; exit 1; }
+grep -q '"#/\*"' tsconfig.json || { echo "tsconfig.json has no #/* paths"; exit 1; }
+ruby -rjson -e 'c = JSON.parse(File.read("tsconfig.json")); c["compilerOptions"]["paths"]["@/*"] = ["./app/javascript/*"]; File.write("tsconfig.json", JSON.pretty_generate(c))'
 
 step "rspack:install:sass"
 bin/rails rspack:install:sass
@@ -159,6 +165,8 @@ ruby -rjson -e 'e = JSON.parse(File.read("app/assets/builds/.rspack-manifest.jso
                                 e["application"]["js"] == ["application.js"]'
 [ -e app/assets/builds/print.js ] && { echo "stylesheet-only entry emitted print.js"; exit 1; }
 grep -q 'via-ts-alias' app/assets/builds/admin.js || { echo "tsconfig paths alias not resolved"; exit 1; }
+grep -q 'via-subpath-import' app/assets/builds/admin.js || { echo "#/ import not resolved in TypeScript"; exit 1; }
+grep -q 'js-subpath-import' app/assets/builds/application.js || { echo "#/ import not resolved in JavaScript"; exit 1; }
 grep -q 'Hello, ' app/assets/builds/application.js || { echo "Hello component missing"; exit 1; }
 grep -q 'badge:' app/assets/builds/application.js || { echo "nested component missing"; exit 1; }
 grep -q '.sassy .inner' app/assets/builds/application.bundle.css || { echo "Sass not compiled"; exit 1; }
