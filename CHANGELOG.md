@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-16
+
+- Docker and Kamal: `rspack:install` makes the `Dockerfile` install Node.js and node modules (frozen install from the lockfile) in the build stage and remove them after `assets:precompile`. Rails only does this for apps created with a JavaScript bundler, so a `--skip-javascript` or importmap app failed to build its image with `npm install failed`
+- Dev containers: `rspack:install` adds the Node.js feature to `.devcontainer/devcontainer.json` and forwards the dev server port for the HMR websocket
+- `rspack:install` makes `bin/setup` install node modules (dev containers run it on creation)
+- `rspack:doctor` checks the `Dockerfile` (error when it cannot run rspack) and the dev container
+- CI: `bin/integration-docker` builds and runs the image of a new app made with `rails new --devcontainer -m template.rb`
+- Existing apps: re-run `bin/rails rspack:install` to update the `Dockerfile`, `bin/setup` and dev container
+
 ## [0.11.0] - 2026-11-16
 
 - Under `rspack serve`, editing a file in `app/views`, `app/helpers` or `app/components` reloads the page. Views are rendered by Rails, so a hot update could not change them: a new Tailwind class in a view was built but only showed after a manual reload (the README claimed otherwise). `RSPACK_VIEW_RELOAD=false` turns it off. JavaScript and CSS changes are still hot-swapped

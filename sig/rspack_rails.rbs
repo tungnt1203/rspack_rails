@@ -36,6 +36,8 @@ module RspackRails
     def self.detect: (?untyped root) -> PackageManager
     def initialize: (untyped root) -> void
     def install_command: () -> String
+    def frozen_install_command: () -> String
+    def lockfile: () -> String
     def add_command: (*String packages) -> String
     def add_dev_command: (*String packages) -> String
     def run_command: (String script) -> String
@@ -60,6 +62,18 @@ module RspackRails
     def self.insert_in_head: (String path, String content, String code) -> String?
   end
 
+  module Containers
+    NODE_FEATURE: String
+    DEFAULT_NODE_VERSION: String
+    def self.local_node_version: () -> String
+    def self.dockerfile_ready?: (String content) -> bool
+    def self.add_node_to_dockerfile: (String content, PackageManager package_manager, ?node_version: String) -> String?
+    def self.devcontainer_ready?: (String content, Integer port) -> bool
+    def self.add_node_to_devcontainer: (String content, Integer port) -> String?
+    def self.setup_ready?: (String content) -> bool
+    def self.add_js_install_to_setup: (String content, PackageManager package_manager) -> String?
+  end
+
   module Helper
     def rspack_javascript_tag: (*String | Symbol entries, **untyped options) -> String
     def rspack_stylesheet_tag: (*String | Symbol entries, **untyped options) -> String
@@ -78,6 +92,7 @@ module RspackRails
     def add_to_layout: (String code, marker: String) -> void
     def add_stylesheet_tag: () -> void
     def remove_from_layouts: (String helper) -> void
+    def configure_containers: (PackageManager package_manager, port: Integer) -> void
   end
 
   class Doctor

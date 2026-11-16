@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# End-to-end check that a new app deploys with Docker (as Kamal does):
+# `rails new --devcontainer -m template.rb`, then `docker build` (which runs
+# assets:precompile, and so rspack) and a request to the running container.
+# Also checks the devcontainer and bin/setup edits.
+#
+#   bin/integration-docker
+#   bin/integration-docker "~> 8.1.0"
+set -euo pipefail
+
+GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REQUIREMENT="${1:-}"
+WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
+IMAGE="rspack-rails-docker-test"
+PORT="${PORT:-3180}"
+
+step() { printf '\n==> %s\n' "$*"; }
+fail() { echo "FAIL: $*"; exit 1; }
+
+rails_cmd=(rails)
+if [ -n "$REQUIREMENT" ]; then
+  gem list -i rails -v "$REQUIREMENT" >/dev/null || gem install rails -v "$REQUIREMENT" --no-document
+  version=$(ruby -e 'puts Gem::Specification.find_all_by_name("rails", ARGV[0]).map(&:version).max' "$REQUIREMENT")
+  rails_cmd=(rails "_${version}_")
+fi
+
+step "rails new --devcontainer -m template.rb with $("${rails_cmd[@]}" --version) in $WORK_DIR"
+cd "$WORK_DIR"
+RSPACK_FEATURES=stimulus,tailwind RSPACK_RAILS_PATH="$GEM_ROOT" "${rails_cmd[@]}" new app --quiet --skip-javascript \
+  --devcontainer --skip-test --skip-system-test --skip-active-record --skip-ci --skip-rubocop --skip-brakeman \
+  -m "$GEM_ROOT/template.rb"
+cd app
+
+step "Checking the Dockerfile, devcontainer and bin/setup"
+grep -q 'node-build' Dockerfile || fail "Dockerfile does not install Node.js"
+grep -q 'RUN npm ci' Dockerfile || fail "Dockerfile does not install node modules"
+grep -q 'RUN rm -rf node_modules' Dockerfile || fail "Dockerfile keeps node_modules"
+grep -q 'features/node' .devcontainer/devcontainer.json || fail "devcontainer has no Node.js feature"
+grep -Eq '"forwardPorts": \[[^]]*\b3036\]' .devcontainer/devcontainer.json || fail "devcontainer does not forward 3036"
+grep -q 'system!("npm install")' bin/setup || fail "bin/setup does not install node modules"
+doctor=$(bin/rails rspack:doctor || true)
+grep -q '✓ Dockerfile' <<<"$doctor" || fail "doctor: $doctor"
+grep -q '✓ Dev container' <<<"$doctor" || fail "doctor: $doctor"
+
+step "Using the released gem inside the image (a local path is outside the build context)"
+# The Dockerfile edits under test were made by the local checkout above; the
+# image only runs rspack:build, which every release has.
+sed -i.bak 's|^gem "rspack_rails", path: .*|gem "rspack_rails", ">= 0.11"|' Gemfile && rm Gemfile.bak
+# --update: the lockfile has this checkout's version, which may not be released yet.
+bundle lock --update rspack_rails --add-platform x86_64-linux aarch64-linux >/dev/null
+bundle install --quiet
+
+step "docker build"
+docker build -t "$IMAGE" .
+
+step "docker run"
+docker rm -f "$IMAGE" >/dev/null 2>&1 || true
+docker run -d --name "$IMAGE" -p "$PORT:80" -e RAILS_MASTER_KEY="$(cat config/master.key)" "$IMAGE" >/dev/null
+trap 'docker rm -f "$IMAGE" >/dev/null 2>&1 || true' EXIT
+for _ in $(seq 1 60); do curl -sf -o /dev/null "http://localhost:$PORT/up" && break; sleep 1; done
+curl -sf -o /dev/null "http://localhost:$PORT/up" || { docker logs "$IMAGE" | tail -20; fail "/up did not respond"; }
+asset=$(docker exec "$IMAGE" ls public/assets | grep -E '^application-[0-9a-f]+\.js$') || fail "application.js not precompiled"
+curl -sf "http://localhost:$PORT/assets/$asset" | grep -q 'controllers' || fail "/assets/$asset is not the rspack bundle"
+docker exec "$IMAGE" sh -c 'test ! -d node_modules' || fail "node_modules shipped in the image"
+
+step "OK"

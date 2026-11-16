@@ -75,6 +75,8 @@ unless File.exist?("bin/dev") && File.read("bin/dev").include?("Procfile.dev")
   chmod "bin/dev", 0o755, verbose: false
 end
 
+configure_containers pm, port: RspackRails.config.dev_server_port
+
 say "Installing @rspack/cli, @rspack/core and @rspack/dev-server"
 run pm.add_dev_command("@rspack/cli", "@rspack/core", "@rspack/dev-server"), abort_on_failure: true
 
