@@ -26,6 +26,10 @@ async function check(name, fn) {
 const browser = await chromium.launch();
 const page = await browser.newPage();
 const logs = [];
+const lazyRequests = [];
+page.on("request", (request) => {
+  if (request.url().includes("_rspack/lazy/trigger")) lazyRequests.push(request.url());
+});
 page.on("console", (message) => logs.push(`${message.type()}: ${message.text()}`));
 page.on("pageerror", (error) => logs.push(`pageerror: ${error.message}`));
 
@@ -59,6 +63,16 @@ await check("A new controller file connects without a reload", async () => {
 await check("CSS edit applies without a reload", async () => {
   edit("app/javascript/application.css", (source) => `${source}\n.probe { outline-color: rgb(1, 2, 3); }\n`);
   await waitFor(() => getComputedStyle(document.querySelector(".probe")).outlineColor === "rgb(1, 2, 3)");
+  await notReloaded();
+});
+
+await check("A dynamic import() is compiled on demand, through Rails", async () => {
+  await page.click("#load-lazy");
+  await waitFor(() => document.querySelector("#lazy").textContent === "lazy loaded");
+  const origin = new URL(url).origin;
+  if (lazyRequests.length === 0) throw new Error("no lazy compilation request");
+  const elsewhere = lazyRequests.filter((request) => !request.startsWith(`${origin}/rspack/`));
+  if (elsewhere.length > 0) throw new Error(`lazy compilation request off the page's origin: ${elsewhere[0]}`);
   await notReloaded();
 });
 

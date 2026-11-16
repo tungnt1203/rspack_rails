@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-16
+
+- Lazy compilation goes through Rails: under `rspack serve`, the client posts the modules to compile to `/rspack/_rspack/lazy/trigger` on the page's origin, and `RspackRails::DevServerProxy` forwards that POST (and only that one) to the dev server. It used to call `http://localhost:3036/` directly, a cross-origin request that only worked where the browser can reach that port. Only the HMR websocket still goes to the dev server directly
+- CI: the browser test clicks a button that runs a dynamic `import()` under `rspack serve` and checks it loads, with every lazy compilation request on the page's origin
+
 ## [0.16.0] - 2026-11-16
 
 - Subresource Integrity: `rspack_javascript_tag` and `rspack_stylesheet_tag` pass `integrity: true` to the asset pipeline, which hashes the files it serves (CSS after Propshaft's `url()` rewriting). Under `rspack serve` the option is dropped, as those files are not part of the pipeline. README: how to turn it on (`config.assets.integrity_hash_algorithm` for Propshaft), and why chunks loaded at runtime are not covered

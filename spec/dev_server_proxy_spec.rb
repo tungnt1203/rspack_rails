@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "socket"
+require "stringio"
 require "rspack_rails/dev_server_proxy"
 
 RSpec.describe RspackRails::DevServerProxy do
@@ -27,16 +28,20 @@ RSpec.describe RspackRails::DevServerProxy do
     end
   end
 
+  def env(path, method: "GET", query: "", body: nil, content_type: nil)
+    { "PATH_INFO" => path, "REQUEST_METHOD" => method, "QUERY_STRING" => query,
+      "rack.input" => body && StringIO.new(body), "CONTENT_TYPE" => content_type }.compact
+  end
+
+  # Request line, headers and the body (Content-Length bytes after them).
   def read_request(client)
     lines = []
     while (line = client.gets) && line != "\r\n"
       lines << line
     end
+    length = lines.find { |l| l.downcase.start_with?("content-length:") }.to_s[/\d+/].to_i
+    lines << client.read(length) if length.positive?
     lines
-  end
-
-  def env(path, method: "GET", query: "")
-    { "PATH_INFO" => path, "REQUEST_METHOD" => method, "QUERY_STRING" => query }
   end
 
   after { server.close unless server.closed? }
@@ -64,8 +69,22 @@ RSpec.describe RspackRails::DevServerProxy do
     expect(proxy.call(env("/assets/application.js")).last).to eq(["rails"])
   end
 
-  it "leaves non-GET requests to the app" do
+  it "forwards the lazy compilation client's POST with its body" do
+    thread = serve(body: "")
+    status, = proxy.call(env("/rspack/_rspack/lazy/trigger", method: "POST", body: "./app/javascript/lazy.js",
+                                                             content_type: "text/plain"))
+    thread.join
+
+    request = requests.pop
+    expect(status).to eq(200)
+    expect(request.first).to eq("POST /_rspack/lazy/trigger HTTP/1.1\r\n")
+    expect(request).to include("Content-Type: text/plain\r\n")
+    expect(request.last).to eq("./app/javascript/lazy.js")
+  end
+
+  it "leaves other POSTs and other methods to the app" do
     expect(proxy.call(env("/rspack/application.js", method: "POST")).last).to eq(["rails"])
+    expect(proxy.call(env("/rspack/_rspack/lazy/trigger", method: "PUT")).last).to eq(["rails"])
   end
 
   it "does nothing while the dev server is disabled" do
