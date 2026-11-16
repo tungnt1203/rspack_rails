@@ -63,7 +63,12 @@ cat > app/javascript/application.css <<'CSS'
 @font-face { font-family: Brand; src: url("./fonts/brand.woff2") format("woff2"); }
 body { color: rebeccapurple; font-family: Brand; background: url("./images/hero.png"); }
 .dot { background: url("./images/dot.svg"); }
+/* Left for Rails, not bundled: a file in public/ and one in app/assets/images. */
+.public-icon { background: url("/icon.png"); }
+.pipeline-logo { background: url("/logo.svg#mark"); }
 CSS
+mkdir -p app/assets/images
+printf '<svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg>' > app/assets/images/logo.svg
 echo 'import "./application.css"' >> app/javascript/application.js
 echo 'import heroUrl from "./images/hero.png"; window.heroUrl = heroUrl' >> app/javascript/application.js
 # A lazy chunk (*.digested.js) matches both rspack:clobber patterns.
@@ -135,6 +140,8 @@ assert_file app/assets/builds/admin.js
 assert_file app/assets/builds/application.js.map
 ls app/assets/builds | grep -Eq '^hero-[0-9a-f]+\.digested\.png$' || { echo "hero image not emitted"; exit 1; }
 grep -q 'data:image/svg' app/assets/builds/application.bundle.css || { echo "small image not inlined"; exit 1; }
+grep -q 'url("/icon.png")' app/assets/builds/application.bundle.css || { echo "url(\"/icon.png\") not kept as written"; exit 1; }
+grep -q 'url("/logo.svg#mark")' app/assets/builds/application.bundle.css || { echo "url(\"/logo.svg\") not kept"; exit 1; }
 [ -d node_modules/.cache/rspack ] || { echo "persistent cache missing"; exit 1; }
 assert_file app/assets/builds/print.bundle.css
 assert_file app/assets/builds/.rspack-manifest.json
@@ -227,7 +234,8 @@ bin/rails assets:clobber
 assert_match "$(ls app/assets/builds)" '^$'
 precompile=$(bin/rails assets:precompile 2>&1) || { echo "$precompile"; exit 1; }
 echo "$precompile"
-grep -q 'Unable to resolve' <<<"$precompile" && { echo "Propshaft could not resolve a url()"; exit 1; }
+# Propshaft looks root-relative url()s up in app/assets; /icon.png lives in public/ and stays as written.
+grep 'Unable to resolve' <<<"$precompile" | grep -vq "'/icon.png'" && { echo "Propshaft could not resolve a url()"; exit 1; }
 assets=$(ls public/assets)
 assert_match "$assets" '^application-[0-9a-f]+\.js$'
 assert_match "$assets" '^application\.bundle-[0-9a-f]+\.css$'
@@ -239,6 +247,12 @@ hero=$(ls public/assets | grep -E '^hero-[0-9a-f]+\.digested\.png$') || { echo "
 font=$(ls public/assets | grep -E '^brand-[0-9a-f]+\.digested\.woff2$') || { echo "font not in public/assets"; exit 1; }
 grep -q "/assets/$hero" public/assets/application.bundle-*.css || { echo "CSS does not point at $hero"; exit 1; }
 grep -q "/assets/$font" public/assets/application.bundle-*.css || { echo "CSS does not point at $font"; exit 1; }
+grep -Eq 'url\("?/icon\.png"?\)' public/assets/application.bundle-*.css || { echo "url(/icon.png) changed in production"; exit 1; }
+if grep -q '^    propshaft ' Gemfile.lock; then
+  grep -Eq '/assets/logo-[0-9a-f]+\.svg#mark' public/assets/application.bundle-*.css || { echo "Propshaft did not fingerprint url(/logo.svg)"; exit 1; }
+else
+  grep -Eq 'url\("?/logo\.svg#mark"?\)' public/assets/application.bundle-*.css || { echo "url(/logo.svg) changed in production"; exit 1; }
+fi
 grep -q "$hero" public/assets/application-*.js || { echo "JS image import missing"; exit 1; }
 grep -q '.sassy .inner{margin:13px}' public/assets/application.bundle-*.css || { echo "Sass missing in production"; exit 1; }
 grep -q 'tracking-widest' public/assets/application.bundle-*.css || { echo "tailwind utility missing in production"; exit 1; }

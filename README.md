@@ -239,6 +239,8 @@ body { background: url("./images/hero.png"); }
 
 Files under 8 KB are inlined as data URIs. Larger ones are written to `app/assets/builds` as `<name>-<hash>.digested.<ext>`, and Propshaft serves them without fingerprinting them a second time.
 
+A root-relative `url()` is left for Rails: Rspack neither bundles nor fingerprints it. Propshaft then looks it up in `app/assets`, so `url("/logo.svg")` becomes the fingerprinted `app/assets/images/logo.svg`. A file that only exists in `public/`, such as `url("/icon.png")`, stays as written (Propshaft logs "Unable to resolve" for it, which is harmless).
+
 ## Builds and production
 
 `rspack:build` runs automatically before `assets:precompile`, `test:prepare`, `spec:prepare` and `db:test:prepare` (set `SKIP_RSPACK_BUILD=1` to turn that off). It installs JavaScript dependencies first, then runs the `build` script with `NODE_ENV` set from `Rails.env`: `development` in development and test, `production` everywhere else.
