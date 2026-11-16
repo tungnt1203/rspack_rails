@@ -3,6 +3,8 @@
 require "json"
 require_relative "entrypoints"
 require_relative "layouts"
+require_relative "containers"
+require_relative "package_manager"
 
 module RspackRails
   # Shared steps for the Rails application templates in lib/install. Each
@@ -108,6 +110,32 @@ module RspackRails
       else
         gsub_file path, /#{Layouts::APP_STYLESHEETS.source}.*\n/, ""
       end
+    end
+
+    # Dockerfile (Kamal), .devcontainer and bin/setup, when the app has them.
+    def configure_containers(package_manager, port:)
+      edit_container_file("Dockerfile", "install Node.js and node modules in the build stage") do |content|
+        Containers.add_node_to_dockerfile(content, package_manager, node_version: Containers.local_node_version)
+      end
+      edit_container_file(".devcontainer/devcontainer.json",
+                          "add the #{Containers::NODE_FEATURE} feature and forward port #{port}") do |content|
+        Containers.add_node_to_devcontainer(content, port)
+      end
+      edit_container_file("bin/setup", "run `#{package_manager.install_command}`") do |content|
+        Containers.add_js_install_to_setup(content, package_manager)
+      end
+    end
+
+    def edit_container_file(path, change)
+      return unless File.exist?(path)
+
+      content = File.read(path)
+      updated = yield content
+      return say("Could not update #{path} automatically; #{change} by hand.", :yellow) unless updated
+      return if updated == content
+
+      say "Updating #{path}: #{change}"
+      File.write(path, updated)
     end
 
     # Removes lines that call `helper` (ERB, Slim or Haml) from every layout.

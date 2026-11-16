@@ -32,6 +32,14 @@ module RspackRails
       npm: "npm install --save-dev"
     }.freeze
 
+    # Installs exactly what the lockfile says (Docker builds, CI).
+    FROZEN_INSTALL = {
+      bun: "bun install --frozen-lockfile",
+      yarn: "yarn install --frozen-lockfile",
+      pnpm: "pnpm install --frozen-lockfile",
+      npm: "npm ci"
+    }.freeze
+
     attr_reader :root, :name
 
     def self.detect(root = Dir.pwd)
@@ -40,11 +48,22 @@ module RspackRails
 
     def initialize(root)
       @root = root.to_s
-      @name = LOCKFILES.find { |_, files| files.any? { |f| File.exist?(File.join(@root, f)) } }&.first || :npm
+      @name, @lockfile = LOCKFILES.lazy.flat_map { |name, files| files.map { |file| [name, file] } }
+                                  .find { |_, file| File.exist?(File.join(@root, file)) }
+      @name ||= :npm
     end
 
     def install_command
       INSTALL.fetch(name)
+    end
+
+    def frozen_install_command
+      FROZEN_INSTALL.fetch(name)
+    end
+
+    # The app's lockfile, or the usual name for this package manager.
+    def lockfile
+      @lockfile || LOCKFILES.fetch(name).first
     end
 
     def add_command(*packages)

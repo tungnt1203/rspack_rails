@@ -94,6 +94,27 @@ jobs:
       - name: Generate an app from template.rb, typecheck, doctor and precompile
         run: bin/integration-template ${{ matrix.mode }} "${{ matrix.rails }}"
 
+  docker:
+    runs-on: ubuntu-latest
+    name: Docker image of a new app (Rails ${{ matrix.rails }})
+    strategy:
+      fail-fast: false
+      matrix:
+        rails: ['~> 8.1.0']
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: rails new --devcontainer -m template.rb, docker build (assets:precompile runs rspack) and run
+        run: bin/integration-docker "${{ matrix.rails }}"
+
   typescript:
     runs-on: ubuntu-latest
     name: TypeScript entry + Slim layout (Rails ${{ matrix.rails }})

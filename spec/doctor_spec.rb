@@ -152,6 +152,25 @@ RSpec.describe RspackRails::Doctor do
     expect(doctor.checks.map(&:status).uniq).to eq([:ok])
   end
 
+  it "fails when the Dockerfile cannot run rspack" do
+    set_up_complete_app
+    write("Dockerfile", File.read(File.expand_path("fixtures/rails/Dockerfile", __dir__)))
+    dockerfile = check("Dockerfile")
+    expect(dockerfile.status).to eq(:error)
+    expect(dockerfile.hint).to include("npm ci")
+    write("Dockerfile", "FROM node\nRUN npm ci\n")
+    expect(check("Dockerfile").status).to eq(:ok)
+  end
+
+  it "warns when the dev container lacks Node.js or the dev server port" do
+    set_up_complete_app
+    write(".devcontainer/devcontainer.json", File.read(File.expand_path("fixtures/rails/devcontainer.json", __dir__)))
+    expect(check("Dev container").status).to eq(:warn)
+    write(".devcontainer/devcontainer.json", %({ "features": { "ghcr.io/devcontainers/features/node:1": {} },
+                                                 "forwardPorts": [3000, 3036] }))
+    expect(check("Dev container").status).to eq(:ok)
+  end
+
   it "warns when the dev server is not running" do
     set_up_complete_app
     allow(dev_server).to receive(:running?).and_return(false)

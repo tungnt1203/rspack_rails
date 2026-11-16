@@ -67,6 +67,8 @@ The installer:
 - adds `build`, `build:watch` and `dev` (`rspack serve`) scripts to `package.json`
 - adds `rspack_javascript_tag "application"` to your layout (ERB, Slim or Haml), and replaces Rails 8's `stylesheet_link_tag :app`, which would also link Rspack's bundles
 - adds a `js:` process running the dev server to `Procfile.dev` and sets up `bin/dev`
+- makes the `Dockerfile` install Node.js and your node modules, so Kamal deploys can precompile ([Deploying](#deploying-docker-and-kamal)), and `bin/setup` install node modules
+- in a dev container, adds Node.js and forwards the dev server port ([Dev containers](#dev-containers))
 - installs `@rspack/cli`, `@rspack/core` and `@rspack/dev-server`
 
 Then add what you need:
@@ -246,6 +248,22 @@ Files under 8 KB are inlined as data URIs. Larger ones are written to `app/asset
 - **Lazy compilation**: under `rspack serve`, dynamic `import()`s are compiled the first time the page asks for them, which keeps startup fast in large apps.
 - **Persistent cache**: kept in `node_modules/.cache/rspack`. Editing `rspack.config.mjs`, `package.json`, the lockfile, `tsconfig.json` or `.browserslistrc` starts a fresh cache; delete the directory to clear it by hand.
 
+### Deploying (Docker and Kamal)
+
+`assets:precompile` runs `rspack:build`, so the image needs Node.js at build time. Rails only adds it to the `Dockerfile` for apps created with a JavaScript bundler, so `rspack:install` adds it to the build stage:
+
+- Node.js (the version you run locally, or `NODE_VERSION`), installed the same way Rails does for esbuild apps
+- `COPY package.json package-lock.json` and `npm ci` (or your package manager's frozen install) before the app is copied, so the layer is cached
+- `RUN rm -rf node_modules` after precompiling, so the final image ships the built assets and no Node.js or node modules
+
+`rspack:doctor` reports a `Dockerfile` that cannot run rspack. CI builds and runs the image of a new app.
+
+### Dev containers
+
+In an app made with `rails new --devcontainer`, `rspack:install` adds the `ghcr.io/devcontainers/features/node` feature to `.devcontainer/devcontainer.json` and forwards port 3036 next to 3000: pages come through Rails, but the browser opens the HMR websocket to the dev server directly. `bin/setup`, which the container runs on creation, installs node modules. Rebuild the container after installing.
+
+GitHub Codespaces serves each port on its own URL, while the HMR websocket points at `localhost:3036`, so expect hot updates not to connect there (untested).
+
 ### Bundle analysis
 
 ```bash
@@ -283,6 +301,7 @@ The task exits with status 1 when there are errors, so it can run in CI.
 | `RSPACK_LAZY_COMPILATION` | on under `rspack serve` | `false` compiles every dynamic `import()` upfront |
 | `RSPACK_VIEW_RELOAD` | on under `rspack serve` | `false` stops reloading the page when `app/views`, `app/helpers` or `app/components` change |
 | `RSPACK_REACT_COMPILER` | off | `true` enables the React Compiler |
+| `NODE_VERSION` | the local `node --version` | Node.js version `rspack:install` writes into the `Dockerfile` |
 | `SKIP_RSPACK_BUILD` | | Any value stops `rspack:build` from running before `assets:precompile` and test tasks |
 | `FORCE` | | `1` lets `rspack:migrate` run on a dirty git tree |
 
@@ -345,6 +364,7 @@ bin/integration-migrate importmap     # rails new + rspack:migrate (or: jsbundli
 bin/integration-typescript            # application.ts entry + Slim layout through every installer
 bin/integration-hmr                   # rails server + rspack serve, Chromium checks edits hot-reload
 bin/integration-template skip-js      # rails new -m template.rb (or: importmap)
+bin/integration-docker                # rails new --devcontainer -m template.rb, then docker build and run
 ```
 
 ## License

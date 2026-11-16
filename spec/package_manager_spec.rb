@@ -23,6 +23,13 @@ RSpec.describe RspackRails::PackageManager do
     end
   end
 
+  it "installs from the lockfile and knows its name" do
+    expect(detect_with.frozen_install_command).to eq("npm ci")
+    expect(detect_with.lockfile).to eq("package-lock.json")
+    expect(detect_with("bun.lockb").lockfile).to eq("bun.lockb")
+    expect(detect_with("pnpm-lock.yaml").frozen_install_command).to eq("pnpm install --frozen-lockfile")
+  end
+
   it "builds commands for the detected manager" do
     pm = detect_with("yarn.lock")
     expect(pm.install_command).to eq("yarn install")
