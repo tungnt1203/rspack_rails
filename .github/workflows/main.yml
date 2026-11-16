@@ -51,6 +51,27 @@ jobs:
       - name: Generate a Rails app and run every installer, build and precompile
         run: bin/integration "${{ matrix.rails }}"
 
+  hmr:
+    runs-on: ubuntu-latest
+    name: HMR in a browser (Rails ${{ matrix.rails }})
+    strategy:
+      fail-fast: false
+      matrix:
+        rails: ['~> 7.2.0', '~> 8.1.0']
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Edit a controller, add one, edit CSS and a view under rspack serve; Chromium checks nothing reloads
+        run: bin/integration-hmr "${{ matrix.rails }}"
+
   typescript:
     runs-on: ubuntu-latest
     name: TypeScript entry + Slim layout (Rails ${{ matrix.rails }})

@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- CI: `bin/integration-hmr` runs `rails server` and `rspack serve` and drives Chromium with Playwright: editing a Stimulus controller keeps its state, a new controller connects, and CSS and Tailwind changes apply, all without a page reload. It fails on 0.10.0, which had the stale-cache HMR bug
+
 ## [0.10.2] - 2026-11-13
 
 - Fix: `rspack:install` and `rspack:doctor` treated `stylesheet_link_tag :app` inside an ERB comment as a real tag, and the installer rewrote the comment. Only output tags (`<%=` in ERB, `=` in Slim/Haml) count now

@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# End-to-end check of hot module replacement in a real browser. Generates a
+# Rails app with Stimulus and Tailwind (no React), builds it once (as
+# rspack:build does before tests), then runs `rails server` and `rspack serve`
+# and drives Chromium with Playwright (spec/integration/hmr_check.mjs): edits
+# to a controller, a new controller, CSS and a view must apply without a reload.
+#
+#   bin/integration-hmr
+#   bin/integration-hmr "~> 8.1.0"
+set -euo pipefail
+
+GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REQUIREMENT="${1:-}"
+WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
+PLAYWRIGHT_VERSION="1.65.0"
+
+step() { printf '\n==> %s\n' "$*"; }
+
+rails_cmd=(rails)
+if [ -n "$REQUIREMENT" ]; then
+  gem list -i rails -v "$REQUIREMENT" >/dev/null || gem install rails -v "$REQUIREMENT" --no-document
+  version=$(ruby -e 'puts Gem::Specification.find_all_by_name("rails", ARGV[0]).map(&:version).max' "$REQUIREMENT")
+  rails_cmd=(rails "_${version}_")
+fi
+
+step "Generating app with $("${rails_cmd[@]}" --version) in $WORK_DIR"
+cd "$WORK_DIR"
+"${rails_cmd[@]}" new app --quiet --skip-javascript --skip-bundle --skip-git --skip-test --skip-system-test \
+  --skip-active-record --skip-docker --skip-ci --skip-rubocop --skip-brakeman
+cd app
+echo "gem \"rspack_rails\", path: \"$GEM_ROOT\"" >> Gemfile
+bundle install --quiet
+
+step "Installing rspack, Stimulus and Tailwind"
+bin/rails rspack:install
+bin/rails rspack:install:stimulus
+bin/rails rspack:install:tailwind
+
+step "A page with a counter"
+cat > config/routes.rb <<'RUBY'
+Rails.application.routes.draw do
+  root "pages#home"
+end
+RUBY
+printf 'class PagesController < ApplicationController\n  def home; end\nend\n' > app/controllers/pages_controller.rb
+mkdir -p app/views/pages
+cat > app/views/pages/home.html.erb <<'ERB'
+<div data-controller="counter">
+  <button id="increment" data-action="counter#increment">+1</button>
+  <span id="count" data-counter-target="output"></span>
+</div>
+<p id="greeting" data-controller="greeting">not connected</p>
+<p class="probe">probe</p>
+ERB
+cat > app/javascript/controllers/counter_controller.js <<'JS'
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static targets = ["output"]
+  static values = { count: Number }
+
+  increment() {
+    this.countValue++
+  }
+
+  countValueChanged() {
+    this.outputTarget.textContent = `${this.countValue} ${"click"}${this.countValue === 1 ? "" : "s"}`
+  }
+}
+JS
+
+step "rspack:build first (fills the persistent cache, as before tests or precompile)"
+bin/rails rspack:build
+
+step "Installing Playwright"
+npm install --silent --no-save "playwright@$PLAYWRIGHT_VERSION"
+if [ -n "${CI:-}" ]; then
+  npx playwright install --with-deps chromium
+else
+  npx playwright install chromium
+fi
+
+step "Starting rails server and rspack serve"
+bin/rails server -p 3000 > tmp/rails-server.log 2>&1 &
+rails_pid=$!
+node_modules/.bin/rspack serve > tmp/rspack-serve.log 2>&1 &
+serve_pid=$!
+cleanup() { kill "$rails_pid" "$serve_pid" 2>/dev/null || true; wait "$rails_pid" "$serve_pid" 2>/dev/null || true; }
+trap cleanup EXIT
+for _ in $(seq 1 120); do
+  curl -sf -o /dev/null http://localhost:3036/application.js && curl -sf -o /dev/null http://localhost:3000/ && break
+  sleep 0.5
+done
+
+step "Hot updates in Chromium"
+if ! node "$GEM_ROOT/spec/integration/hmr_check.mjs" "$PWD" "http://localhost:3000/"; then
+  echo "--- rspack serve ---"; tail -20 tmp/rspack-serve.log
+  exit 1
+fi
+
+step "OK"
