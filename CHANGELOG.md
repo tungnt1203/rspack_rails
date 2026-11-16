@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-16
+
+- Installers pin Rspack's major version (`@rspack/core@^2`, also `@rspack/cli`, `@rspack/dev-server` and `@rspack/plugin-react-refresh`), so a new app does not pick up Rspack 3 on its own when it comes out. `config/rspack/rails.mjs` is written for Rspack 2 (top-level persistent `cache`, `lazyCompilation`)
+- Fix: on Rspack 2.0, every TypeScript and JSX file failed with `unknown field 'reactCompiler'`: the option, added in Rspack 2.1, was always passed. It is now passed only with `RSPACK_REACT_COMPILER=true`, which needs Rspack 2.1+
+- Fix: on Rspack 2.0, a stylesheet-only entry (`app/javascript/entrypoints/print.css`) also built an empty `print.js`, which the manifest listed and `rspack_stylesheet_tag` linked. Builds now drop it; under `rspack serve` it stays, as it carries hot updates
+- `rspack:doctor` fails on Rspack 1 and warns about a newer major than the one rspack_rails is tested with
+- CI also runs the integration suite against Rspack 2.0, the oldest version the `^2` range allows
+- README: Rspack 2 in the requirements; troubleshooting for imports of names a module does not export, an error since Rspack 2
+
 ## [0.14.1] - 2026-11-16
 
 - Fix: a root-relative `url()` in CSS, such as `url("/icon.png")` for a file in `public/` or `url("/logo.svg")` for one in `app/assets/images`, failed the build with `Module not found: Can't resolve '/icon.png'`. Rspack 2 resolves such paths from the root of the file system. They are now left for Rails: Propshaft fingerprints the ones it finds in `app/assets`, and the rest stay as written. Relative `url()`s are still bundled and fingerprinted by rspack

@@ -34,7 +34,7 @@ end
 say "Installing react and react-dom"
 run pm.add_command("react", "react-dom"), abort_on_failure: true
 
-dev_packages = %w[@rspack/plugin-react-refresh react-refresh]
+dev_packages = [RspackRails::RspackVersion.pin("@rspack/plugin-react-refresh"), "react-refresh"]
 dev_packages += %w[@types/react @types/react-dom] if typescript
 say "Installing #{dev_packages.join(", ")}"
 run pm.add_dev_command(*dev_packages), abort_on_failure: true

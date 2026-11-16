@@ -34,6 +34,7 @@ rspack_rails follows the `jsbundling-rails` model: Rspack writes bundles to `app
 ## Requirements
 
 - Ruby 3.2+ and Rails 7.2+ (CI runs real apps on Rails 7.2 with Sprockets and 8.1 with Propshaft)
+- Rspack 2 (installed for you; `rspack:doctor` checks it). CI runs the oldest (2.0) and the latest 2.x
 - Node.js 20.19+ or 22.12+ (whatever the installed `@rspack/core` asks for; `rspack:doctor` checks it)
 - bun, yarn, pnpm or npm, detected from the lockfile
 
@@ -213,7 +214,7 @@ Components are found by path (`admin/Chart` is `app/javascript/components/admin/
 
 With TypeScript set up, the installer also sets `"jsx": "react-jsx"` in `tsconfig.json` and adds `@types/react`.
 
-To use the [React Compiler](https://react.dev/learn/react-compiler), which memoizes components automatically, set `RSPACK_REACT_COMPILER=true`. It runs in Rspack's built-in SWC, with no Babel. Set it for every build, including `assets:precompile` on deploy, so development and production behave the same.
+To use the [React Compiler](https://react.dev/learn/react-compiler), which memoizes components automatically, set `RSPACK_REACT_COMPILER=true` (needs Rspack 2.1 or later). It runs in Rspack's built-in SWC, with no Babel. Set it for every build, including `assets:precompile` on deploy, so development and production behave the same.
 
 ### TypeScript
 
@@ -372,6 +373,8 @@ bin/rails rspack:doctor
 **From a version before 0.13.0**, `rspack.config.mjs` held the whole config. Run `bin/rails rspack:install` once and answer "y" to replace it (answer "d" first to see your own changes), then move those changes into the `railsConfig` callback. `rspack:doctor` warns until you do. From then on, upgrades need no merging.
 
 ## Troubleshooting
+
+**`export 'foo' (imported as 'foo') was not found` fails the build.** Since Rspack 2, importing a name that a module does not export is an error, not a warning. It often shows up after migrating from importmap, where the browser only failed when the code ran. Fix the import, or turn it back into a warning in `rspack.config.mjs`: `config.module.parser = { ...config.module.parser, javascript: { exportsPresence: "warn" } }`.
 
 **Pages load old code after I stop the dev server.** `app/assets/builds` still holds the dev server's output, which loads code-split chunks from it. Run `bin/rails rspack:build` (it also runs before tests and `assets:precompile`).
 

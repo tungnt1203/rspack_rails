@@ -8,6 +8,7 @@ require_relative "entrypoints"
 require_relative "layouts"
 require_relative "containers"
 require_relative "rspack_config"
+require_relative "rspack_version"
 
 module RspackRails
   # Inspects a Rails app's rspack setup and reports what is missing.
@@ -70,13 +71,25 @@ module RspackRails
     end
 
     def package_check(name)
-      package = installed_package(name)
       label = "@rspack/#{name}"
-      if package
-        Check.new(:ok, label, package["version"])
+      package = installed_package(name)
+      return package_version_check(label, package["version"]) if package
+
+      Check.new(name == :"dev-server" ? :warn : :error, label, "not installed",
+                "Run `#{package_manager.add_dev_command(RspackVersion.pin(label))}`")
+    end
+
+    # config/rspack/rails.mjs is written for one Rspack major version.
+    def package_version_check(label, version)
+      major = RspackVersion::MAJOR
+      case RspackVersion.compare(version)
+      when :supported then Check.new(:ok, label, version)
+      when :older
+        Check.new(:error, label, "#{version}, but rspack_rails needs Rspack #{major}",
+                  "Run `#{package_manager.add_dev_command(RspackVersion.pin(label))}`")
       else
-        Check.new(name == :"dev-server" ? :warn : :error, label, "not installed",
-                  "Run `#{package_manager.add_dev_command(label)}`")
+        Check.new(:warn, label, "#{version}; rspack_rails is tested with Rspack #{major}",
+                  "Run `#{package_manager.add_dev_command(RspackVersion.pin(label))}` if the build fails")
       end
     end
 

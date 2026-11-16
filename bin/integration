@@ -5,6 +5,7 @@
 #
 #   bin/integration            # uses the default `rails` on PATH
 #   bin/integration "~> 7.2.0" # installs/uses a matching Rails version
+#   RSPACK_VERSION=2.0 bin/integration  # pins @rspack/* to ~2.0.0 (the oldest supported)
 set -euo pipefail
 
 GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -33,6 +34,14 @@ bundle install --quiet
 step "rspack:install"
 bin/rails rspack:install
 assert_file config/rspack/rails.mjs
+node -p 'require("./package.json").devDependencies["@rspack/core"]' | grep -q '^\^2\.' ||
+  { echo "@rspack/core is not pinned to ^2"; exit 1; }
+if [ -n "${RSPACK_VERSION:-}" ]; then
+  step "Pinning Rspack ~${RSPACK_VERSION}.0"
+  npm install --save-dev "@rspack/core@~${RSPACK_VERSION}.0" "@rspack/cli@~${RSPACK_VERSION}.0" "@rspack/dev-server@~${RSPACK_VERSION}.0"
+  node -p 'require("@rspack/core/package.json").version' | grep -q "^${RSPACK_VERSION}\." ||
+    { echo "@rspack/core is not ${RSPACK_VERSION}.x"; exit 1; }
+fi
 grep -q 'config/rspack/rails.mjs' rspack.config.mjs || { echo "rspack.config.mjs does not build on the base"; exit 1; }
 
 step "Customizing rspack.config.mjs"
@@ -140,8 +149,8 @@ assert_file app/assets/builds/admin.js
 assert_file app/assets/builds/application.js.map
 ls app/assets/builds | grep -Eq '^hero-[0-9a-f]+\.digested\.png$' || { echo "hero image not emitted"; exit 1; }
 grep -q 'data:image/svg' app/assets/builds/application.bundle.css || { echo "small image not inlined"; exit 1; }
-grep -q 'url("/icon.png")' app/assets/builds/application.bundle.css || { echo "url(\"/icon.png\") not kept as written"; exit 1; }
-grep -q 'url("/logo.svg#mark")' app/assets/builds/application.bundle.css || { echo "url(\"/logo.svg\") not kept"; exit 1; }
+grep -Eq 'url\("?/icon\.png"?\)' app/assets/builds/application.bundle.css || { echo "url(\"/icon.png\") not kept as written"; exit 1; }
+grep -Eq 'url\("?/logo\.svg#mark"?\)' app/assets/builds/application.bundle.css || { echo "url(\"/logo.svg\") not kept"; exit 1; }
 [ -d node_modules/.cache/rspack ] || { echo "persistent cache missing"; exit 1; }
 assert_file app/assets/builds/print.bundle.css
 assert_file app/assets/builds/.rspack-manifest.json
@@ -178,8 +187,10 @@ echo "chrome 70" > .browserslistrc
 NODE_ENV=production node_modules/.bin/rspack build > /dev/null
 grep -q '??' app/assets/builds/admin.js && { echo ".browserslistrc not applied"; exit 1; }
 rm .browserslistrc
-RSPACK_REACT_COMPILER=true node_modules/.bin/rspack build --node-env development > /dev/null
-grep -q 'react/compiler-runtime' app/assets/builds/application.js || { echo "React Compiler not applied"; exit 1; }
+if [ "${RSPACK_VERSION:-}" != "2.0" ]; then # the React Compiler needs Rspack 2.1+
+  RSPACK_REACT_COMPILER=true node_modules/.bin/rspack build --node-env development > /dev/null
+  grep -q 'react/compiler-runtime' app/assets/builds/application.js || { echo "React Compiler not applied"; exit 1; }
+fi
 bin/rails rspack:build
 
 step "rspack serve (lazy compilation reaches the dev server)"
