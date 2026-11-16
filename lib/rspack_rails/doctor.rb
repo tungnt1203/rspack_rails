@@ -20,6 +20,16 @@ module RspackRails
       procfile_check dockerfile_check devcontainer_check stimulus_check dev_server_check
     ].freeze
 
+    # config/rspack/rails.mjs, by RspackConfig.state.
+    BASE_STATES = {
+      missing: [:error, "imports %s, which is missing", "Run `bin/rails rspack:sync`"],
+      edited: [:warn, "%s has hand edits, which the next rspack:build replaces",
+               "Move them into the railsConfig callback in rspack.config.mjs"],
+      outdated: [:warn, "%s is not the one from rspack_rails #{VERSION}",
+                 "Run `bin/rails rspack:sync` (rspack:build does it too)"],
+      current: [:ok, "uses %s from rspack_rails #{VERSION}", nil]
+    }.freeze
+
     def initialize(root, config: RspackRails.config, dev_server: RspackRails.dev_server, node_version: nil)
       @root = Pathname(root)
       @config = config
@@ -117,17 +127,8 @@ module RspackRails
     end
 
     def managed_config_check
-      base = RspackConfig::BASE
-      unless exist?(base)
-        return Check.new(:error, "rspack.config.mjs", "imports #{base}, which is missing",
-                         "Run `bin/rails rspack:sync`")
-      end
-      unless RspackConfig.current?(@root)
-        return Check.new(:warn, "rspack.config.mjs", "#{base} is not the one from rspack_rails #{VERSION}",
-                         "Run `bin/rails rspack:sync` (rspack:build does it too)")
-      end
-
-      Check.new(:ok, "rspack.config.mjs", "uses #{base} from rspack_rails #{VERSION}")
+      status, detail, hint = BASE_STATES.fetch(RspackConfig.state(@root))
+      Check.new(status, "rspack.config.mjs", format(detail, RspackConfig::BASE), hint)
     end
 
     def scripts_check

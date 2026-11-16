@@ -33,7 +33,9 @@ module RspackRails
     end
 
     def sync_rspack_config
-      say "Writing #{RspackConfig::BASE} for rspack_rails #{VERSION}" if RspackConfig.sync(destination_root)
+      result = RspackConfig.sync(destination_root)
+      say "Writing #{RspackConfig::BASE} for rspack_rails #{VERSION}" if result.written
+      say RspackConfig.edits_message(result.backup), :yellow if result.backup
     end
   end
 end

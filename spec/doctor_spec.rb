@@ -62,6 +62,13 @@ RSpec.describe RspackRails::Doctor do
     expect(check("rspack.config.mjs").hint).to include("rspack:sync")
   end
 
+  it "warns about hand edits to config/rspack/rails.mjs" do
+    set_up_complete_app
+    write("config/rspack/rails.mjs", RspackRails::RspackConfig.base_content.sub("cheap-module-source-map", "eval"))
+    expect(check("rspack.config.mjs").status).to eq(:warn)
+    expect(check("rspack.config.mjs").detail).to include("hand edits")
+  end
+
   it "fails when config/rspack/rails.mjs is missing" do
     set_up_complete_app
     @root.join("config/rspack/rails.mjs").delete

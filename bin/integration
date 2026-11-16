@@ -184,7 +184,12 @@ find app/assets/builds -name '*hot-update*' | grep -q . && { echo "hot-update fi
 grep -q 'custom-dev' app/assets/builds/application.js || { echo "railsConfig callback not applied"; exit 1; }
 
 step "Upgrading: the base is rewritten, the app's config is kept"
-sed -i.bak 's/^export const VERSION = .*/export const VERSION = "0.0.1";/' config/rspack/rails.mjs && rm config/rspack/rails.mjs.bak
+# As an older rspack_rails wrote it: another version, with a matching checksum.
+bin/rails runner '
+  require "rspack_rails/rspack_config"
+  path = RspackRails::RspackConfig::BASE
+  content = File.read(path).sub(/^export const VERSION = .*$/, %(export const VERSION = "0.0.1";))
+  File.write(path, content.sub(/Checksum: \S+/, "Checksum: #{RspackRails::RspackConfig.checksum(content)}"))'
 stale=$(node_modules/.bin/rspack build --node-env development 2>&1)
 assert_match "$stale" 'config/rspack/rails.mjs is from rspack_rails 0.0.1'
 doctor=$(bin/rails rspack:doctor || true)
@@ -194,6 +199,15 @@ assert_match "$synced" 'Updated config/rspack/rails.mjs'
 grep -q 'VERSION = "0.0.1"' config/rspack/rails.mjs && { echo "base still stale"; exit 1; }
 bin/rails rspack:install < /dev/null # would prompt (and fail without a tty) if it touched rspack.config.mjs
 cmp -s rspack.config.mjs tmp/custom-rspack.config.mjs || { echo "rspack:install changed the app's rspack.config.mjs"; exit 1; }
+
+step "Hand edits to config/rspack/rails.mjs are saved, then replaced"
+echo '// a hand edit' >> config/rspack/rails.mjs
+doctor=$(bin/rails rspack:doctor || true)
+assert_match "$doctor" 'has hand edits'
+replaced=$(bin/rails rspack:build 2>&1)
+assert_match "$replaced" 'had hand edits, which rspack_rails replaced \(saved to tmp/rspack_rails/rails-[0-9]+\.mjs\)'
+grep -q '// a hand edit' tmp/rspack_rails/rails-*.mjs || { echo "hand edit not saved"; exit 1; }
+grep -q '// a hand edit' config/rspack/rails.mjs && { echo "hand edit not replaced"; exit 1; }
 
 step "Browser targets and React Compiler"
 # Default target (Baseline widely available) keeps ?? ; a .browserslistrc for old browsers lowers it.

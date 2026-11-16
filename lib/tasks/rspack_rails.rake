@@ -51,7 +51,9 @@ namespace :rspack do
   desc "Update config/rspack/rails.mjs to this version of rspack_rails (rspack:build does it too)"
   task :sync do
     if RspackRails::RspackConfig.managed?(Rails.root)
-      puts "Updated #{RspackRails::RspackConfig::BASE}" if RspackRails::RspackConfig.sync(Rails.root)
+      result = RspackRails::RspackConfig.sync(Rails.root)
+      puts "Updated #{RspackRails::RspackConfig::BASE}" if result.written
+      warn RspackRails::RspackConfig.edits_message(result.backup) if result.backup
     else
       warn "rspack.config.mjs does not build on #{RspackRails::RspackConfig::BASE}. Re-run " \
            "`bin/rails rspack:install` and accept the new rspack.config.mjs to have rspack_rails keep it up to date."
