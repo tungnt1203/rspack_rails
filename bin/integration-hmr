@@ -54,7 +54,12 @@ cat > app/views/pages/home.html.erb <<'ERB'
 </div>
 <p id="greeting" data-controller="greeting">not connected</p>
 <p class="probe">probe</p>
+<button id="load-lazy" onclick="loadLazy()">load</button>
+<p id="lazy"></p>
 ERB
+# A dynamic import(): under rspack serve it is compiled when the page first asks for it.
+echo 'export const message = "lazy loaded"' > app/javascript/lazy.js
+echo 'window.loadLazy = () => import("./lazy").then((m) => { document.querySelector("#lazy").textContent = m.message })' >> app/javascript/application.js
 cat > app/javascript/controllers/counter_controller.js <<'JS'
 import { Controller } from "@hotwired/stimulus"
 

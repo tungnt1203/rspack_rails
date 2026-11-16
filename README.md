@@ -116,7 +116,7 @@ browser  ───────────────────▶  Rails :30
 ```
 
 - **Manifest**: every build, and `rspack serve` after each rebuild, writes `app/assets/builds/.rspack-manifest.json` with the scripts and stylesheets of each entry. The view helpers link exactly those files, so an entry without CSS gets no stylesheet link and the dev server's shared `runtime.js` is linked once per page. It is a dotfile, so it never reaches `public/assets`.
-- **Dev server running** (`bin/dev`): the view helpers point at `/rspack/<entry>.js`. Rails proxies those requests to `rspack serve`, so scripts, chunks, Web Workers and images are same-origin with the page. Only the HMR websocket goes to `localhost:3036` directly. JavaScript and CSS changes are hot-swapped; views are rendered by Rails, so editing a file in `app/views`, `app/helpers` or `app/components` reloads the page.
+- **Dev server running** (`bin/dev`): the view helpers point at `/rspack/<entry>.js`. Rails proxies those requests to `rspack serve`, so scripts, chunks, Web Workers, images and lazy compilation requests are same-origin with the page. Only the HMR websocket goes to `localhost:3036` directly. JavaScript and CSS changes are hot-swapped; views are rendered by Rails, so editing a file in `app/views`, `app/helpers` or `app/components` reloads the page.
 - **Dev server not running**: the helpers fall back to `javascript_include_tag` / `stylesheet_link_tag`, and Propshaft serves the last build from `app/assets/builds`.
 - **Production**: always the asset pipeline. `rspack:build` runs before `assets:precompile`.
 
@@ -249,7 +249,7 @@ A root-relative `url()` is left for Rails: Rspack neither bundles nor fingerprin
 - **Production mode**: when `RAILS_ENV` or `NODE_ENV` is `production`, the generated config minifies. Lazy-loaded chunks are named `*.digested.js`, so Propshaft serves them without fingerprinting them a second time.
 - **Browser targets**: JavaScript and CSS are compiled for the browsers in your [browserslist](https://github.com/browserslist/browserslist) config (`.browserslistrc`, or `"browserslist"` in `package.json`). Without one, the target is Baseline "widely available", which matches Rails 8's `allow_browser versions: :modern`.
 - **Source maps**: on in development (`cheap-module-source-map`), off in production, so your source never lands in `public/assets`. `RSPACK_DEVTOOL` picks another [devtool](https://rspack.rs/config/devtool), e.g. `hidden-source-map` to upload maps to an error tracker.
-- **Lazy compilation**: under `rspack serve`, dynamic `import()`s are compiled the first time the page asks for them, which keeps startup fast in large apps.
+- **Lazy compilation**: under `rspack serve`, dynamic `import()`s are compiled the first time the page asks for them, which keeps startup fast in large apps. The request goes to `/rspack/_rspack/lazy/trigger` on the page's own origin, which Rails proxies to the dev server.
 - **Persistent cache**: kept in `node_modules/.cache/rspack`. Editing `rspack.config.mjs`, `config/rspack/rails.mjs`, `package.json`, the lockfile, `tsconfig.json` or `.browserslistrc` starts a fresh cache; delete the directory to clear it by hand.
 
 ### Subresource Integrity
