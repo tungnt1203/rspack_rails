@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-17
+
+- README: a "Stability" section says what 1.0 keeps stable (the Ruby API in `sig/rspack_rails.rbs`, `railsConfig`, rake tasks, environment variables, build output names, supported versions) and what may change in any release
+- `RspackRails.deprecator` is internal and no longer listed in `sig/rspack_rails.rbs`
+- Coming in 1.0: `SKIP_RSPACK_BUILD`, `FORCE`, `config.dev_server_host=` and `config.dev_server_port=` are removed. So is upgrading straight from before 0.18: the loaders copied by 0.17.0 and earlier and a standalone `rspack.config.mjs` from before 0.13.0 are no longer recognized. Upgrade to 0.19 first, run `bin/rails rspack:doctor`, and fix what it warns about
+
 ## [0.18.2] - 2026-11-17
 
 - `rspack:doctor` says "use" for several layouts (`application.html.erb, admin.html.erb use rspack_javascript_tag`)

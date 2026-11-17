@@ -30,7 +30,7 @@ module RspackRails
       @manifest ||= Manifest.new(defined?(::Rails.root) && ::Rails.root ? ::Rails.root : Dir.pwd)
     end
 
-    # Registered with Rails.application.deprecators, so the app's
+    # Internal. Registered with Rails.application.deprecators, so the app's
     # config.active_support.deprecation applies once the app is initialized.
     # Before that (rake tasks that do not load :environment), warnings go to stderr.
     def deprecator
