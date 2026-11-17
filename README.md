@@ -385,7 +385,7 @@ RspackRails.configure do |config|
 end
 ```
 
-`config.dev_server_host=` and `config.dev_server_port=` are deprecated and go away in 1.0. `rspack serve` never read them, so Rails looked for the dev server where none listened. Use `RSPACK_DEV_SERVER_HOST` and `RSPACK_DEV_SERVER_PORT`, which Rails and rspack both read. Deprecations go through `Rails.application.deprecators`, so `config.active_support.deprecation` decides whether they warn, log or raise.
+`config.dev_server_host=` and `config.dev_server_port=` are deprecated and go away in 1.0. `rspack serve` never read them, so Rails looked for the dev server where none listened. Use `RSPACK_DEV_SERVER_HOST` and `RSPACK_DEV_SERVER_PORT`, which Rails and rspack both read. Deprecations go through `Rails.application.deprecators`, so `config.active_support.deprecation` decides whether they warn, log or raise (`FORCE` for `rspack:migrate` is the exception: that task does not boot the app, so its warning always goes to stderr).
 
 ## Tasks
 

@@ -31,7 +31,8 @@ module RspackRails
     end
 
     # Registered with Rails.application.deprecators, so the app's
-    # config.active_support.deprecation applies.
+    # config.active_support.deprecation applies once the app is initialized.
+    # Before that (rake tasks that do not load :environment), warnings go to stderr.
     def deprecator
       @deprecator ||= ActiveSupport::Deprecation.new("1.0", "rspack_rails")
     end

@@ -51,15 +51,18 @@ namespace :rspack do
   desc "Update config/rspack/rails.mjs (and the Stimulus and React loaders) to this version of rspack_rails " \
        "(rspack:build does it too)"
   task :sync do
-    if RspackRails::RspackConfig.managed?(Rails.root)
-      RspackRails::ManagedFile::ALL.each do |file|
-        result = file.sync(Rails.root)
-        puts "Updated #{result.path}" if result.written
-        warn file.edits_message(result.backup) if result.backup
-      end
-    else
+    # The loaders do not depend on rspack.config.mjs: they are synced even when
+    # it predates config/rspack/rails.mjs.
+    files = RspackRails::ManagedFile::ALL
+    unless RspackRails::RspackConfig.managed?(Rails.root)
+      files -= [RspackRails::ManagedFile::BASE]
       warn "rspack.config.mjs does not build on #{RspackRails::RspackConfig::BASE}. Re-run " \
            "`bin/rails rspack:install` and accept the new rspack.config.mjs to have rspack_rails keep it up to date."
+    end
+    files.each do |file|
+      result = file.sync(Rails.root)
+      puts "Updated #{result.path}" if result.written
+      warn file.edits_message(result.backup) if result.backup
     end
   end
 
@@ -100,7 +103,13 @@ namespace :rspack do
   end
 end
 
-unless RspackRails.env_var("RSPACK_SKIP_BUILD", "SKIP_RSPACK_BUILD")
+# Tasks are loaded before the app is initialized, when its deprecation settings
+# do not apply yet: warn about the old name once they do.
+if ENV.key?("SKIP_RSPACK_BUILD") && !ENV.key?("RSPACK_SKIP_BUILD")
+  ActiveSupport.on_load(:after_initialize) { RspackRails.env_var("RSPACK_SKIP_BUILD", "SKIP_RSPACK_BUILD") }
+end
+
+unless ENV.key?("RSPACK_SKIP_BUILD") || ENV.key?("SKIP_RSPACK_BUILD")
   %w[assets:precompile test:prepare spec:prepare db:test:prepare].each do |name|
     Rake::Task[name].enhance(["rspack:build"]) if Rake::Task.task_defined?(name)
   end
