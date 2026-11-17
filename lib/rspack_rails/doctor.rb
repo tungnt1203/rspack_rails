@@ -117,19 +117,7 @@ module RspackRails
 
       return managed_config_check if RspackConfig.managed?(@root)
 
-      # Generated before 0.7.1: rspack serve hands out http://localhost:3036/ URLs.
-      unless read("rspack.config.mjs").include?('"/rspack/"')
-        return Check.new(:warn, "rspack.config.mjs", "loads chunks and workers from the dev server's origin",
-                         "Re-run `bin/rails rspack:install` and accept the new rspack.config.mjs " \
-                         "(Web Workers fail under rspack serve otherwise)")
-      end
-
-      standalone_config_check
-    end
-
-    # Generated before 0.13.0: the whole config, merged by hand on every upgrade.
-    def standalone_config_check
-      Check.new(:warn, "rspack.config.mjs", "standalone; upgrades of rspack_rails do not update it",
+      Check.new(:error, "rspack.config.mjs", "does not build on #{RspackConfig::BASE}",
                 "Re-run `bin/rails rspack:install`, accept the new rspack.config.mjs and move your changes " \
                 "into its railsConfig callback")
     end

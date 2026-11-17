@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [1.0.0.rc1] - 2026-11-17
+
+The first release candidate for 1.0. From 1.0, the parts listed under "Stability" in the README change only in a major release. Upgrading from before 0.18.0: go through 0.19 first and fix what `rspack:doctor` reports.
+
+- Removed, deprecated in 0.18.0: `SKIP_RSPACK_BUILD` (use `RSPACK_SKIP_BUILD`), `FORCE` for `rspack:migrate` (use `RSPACK_FORCE`), and `RspackRails.config.dev_server_host=` and `dev_server_port=` (use `RSPACK_DEV_SERVER_HOST` and `RSPACK_DEV_SERVER_PORT`). The old variables are ignored; the setters raise `NoMethodError`
+- A managed file without a checksum line (`config/rspack/rails.mjs` before 0.17.0, the Stimulus and React loaders before 0.18.0) counts as edited: it is saved to `tmp/rspack_rails/` before it is replaced. 0.18 and 0.19 recognized the released copies and replaced them without a backup
+- `rspack.config.mjs` that does not build on `config/rspack/rails.mjs` (from before 0.13.0) is an error in `rspack:doctor`, and `rspack:install:react`, `:sass` and `:tailwind` refuse to run on it. They used to accept an older config that mentioned the feature's plugin. `rspack:install` still offers to replace it
+- `template.rb` no longer passes `FORCE=1`
+
 ## [0.19.0] - 2026-11-17
 
 - README: a "Stability" section says what 1.0 keeps stable (the Ruby API in `sig/rspack_rails.rbs`, `railsConfig`, rake tasks, environment variables, build output names, supported versions) and what may change in any release

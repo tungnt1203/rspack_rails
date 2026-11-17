@@ -10,7 +10,7 @@ pm = RspackRails::PackageManager.detect(Rails.root)
 stylesheet = "app/javascript/application.css"
 tailwind_rails_source = "app/assets/tailwind/application.css"
 
-require_config! "@tailwindcss/webpack", "Tailwind"
+require_config! "Tailwind"
 entry = main_entry!
 tailwind_rails = gem_in_gemfile?("tailwindcss-rails")
 

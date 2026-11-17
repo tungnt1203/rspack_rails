@@ -7,8 +7,8 @@ module RspackRails
   # RspackRails::Installer, so they run inside a Rails generator with Thor actions.
   module ConfigInstaller
     # Writes config/rspack/rails.mjs and, unless the app already has one built
-    # on it, rspack.config.mjs. A standalone rspack.config.mjs from before
-    # 0.13.0 is replaced after asking (Thor shows a diff on "d").
+    # on it, rspack.config.mjs. Any other rspack.config.mjs is replaced after
+    # asking (Thor shows a diff on "d").
     def install_rspack_config
       sync_rspack_config
       return if RspackConfig.managed?(destination_root)
@@ -20,15 +20,13 @@ module RspackRails
       create_file RspackConfig::APP, File.read(File.expand_path("../install/rspack.config.mjs", __dir__))
     end
 
-    # Exits unless the app's rspack config supports the feature being
-    # installed. A config built on config/rspack/rails.mjs always does once
-    # that file is current; an older standalone one must mention `marker`.
-    def require_config!(marker, feature)
+    # Exits unless rspack.config.mjs builds on config/rspack/rails.mjs, which
+    # supports every feature once it is current.
+    def require_config!(feature)
       return sync_rspack_config if RspackConfig.managed?(destination_root)
-      return if rspack_app.read(RspackConfig::APP).to_s.include?(marker)
 
-      say "rspack.config.mjs predates #{feature} support. Re-run `bin/rails rspack:install` and accept the new " \
-          "rspack.config.mjs, then run this task again.", :red
+      say "rspack.config.mjs does not build on #{RspackConfig::BASE}, which #{feature} needs. Re-run " \
+          "`bin/rails rspack:install` and accept the new rspack.config.mjs, then run this task again.", :red
       exit 1
     end
 

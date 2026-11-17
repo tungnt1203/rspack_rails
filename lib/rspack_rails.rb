@@ -34,15 +34,7 @@ module RspackRails
     # config.active_support.deprecation applies once the app is initialized.
     # Before that (rake tasks that do not load :environment), warnings go to stderr.
     def deprecator
-      @deprecator ||= ActiveSupport::Deprecation.new("1.0", "rspack_rails")
-    end
-
-    # ENV[name], or ENV[old] (the variable's name before 1.0) with a deprecation warning.
-    def env_var(name, old, env = ENV)
-      return env[name] if env.key?(name) || !env.key?(old)
-
-      deprecator.warn("#{old} is deprecated and will be removed in rspack_rails 1.0. Set #{name} instead.")
-      env[old]
+      @deprecator ||= ActiveSupport::Deprecation.new("2.0", "rspack_rails")
     end
   end
 end

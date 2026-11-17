@@ -53,8 +53,7 @@ features = FEATURES.keys & (features | preset)
 after_bundle do
   if File.exist?("config/importmap.rb") || File.read("Gemfile").include?("jsbundling-rails")
     # rspack:migrate refuses to run on a dirty git tree; a new app is all uncommitted.
-    # This file is read from main, the gem from rubygems.org: FORCE for releases before 0.18.0.
-    run "RSPACK_TEMPLATE=1 RSPACK_FORCE=1 FORCE=1 bin/rails rspack:migrate", abort_on_failure: true
+    run "RSPACK_TEMPLATE=1 RSPACK_FORCE=1 bin/rails rspack:migrate", abort_on_failure: true
   else
     # RSPACK_TEMPLATE: the installer's "Run bin/dev" waits for the closing message below.
     run "RSPACK_TEMPLATE=1 bin/rails rspack:install", abort_on_failure: true

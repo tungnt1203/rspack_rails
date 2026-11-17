@@ -171,7 +171,7 @@ This installs `@hotwired/stimulus` and adds `app/javascript/controllers/autoload
 
 `autoload.js` belongs to rspack_rails, like `config/rspack/rails.mjs`: `rspack:sync` and `rspack:build` rewrite it when the gem changes, and save any hand edits to `tmp/rspack_rails/` first. To register controllers your own way, copy it to a file of your own, import that instead and delete `autoload.js`.
 
-Upgrading from 0.17.0 or earlier, which copied `autoload.js` and `mount.js` once and left them alone: if you edited either one, move your changes to a file of your own before you upgrade. The first `rspack:build` replaces an edited copy, and when that happens in `assets:precompile` on a build server, the backup lands in that server's `tmp/`.
+A copy without a checksum line, as 0.17.0 and earlier wrote it, counts as edited: it is saved too before it is replaced.
 
 If your entry imported `./controllers` (the stimulus-rails index), the installer switches it to `./controllers/autoload`. stimulus-rails may still rewrite `controllers/index.js` when you run `bin/rails generate stimulus`, but nothing imports that file any more.
 
@@ -375,8 +375,8 @@ Upgrading the gem never touches `rspack.config.mjs`, so your changes stay put. W
 | `RSPACK_VIEW_RELOAD` | on under `rspack serve` | `false` stops reloading the page when `app/views`, `app/helpers` or `app/components` change |
 | `RSPACK_REACT_COMPILER` | off | `true` enables the React Compiler |
 | `NODE_VERSION` | the local `node --version` | Node.js version `rspack:install` writes into the `Dockerfile` |
-| `RSPACK_SKIP_BUILD` | | Any value stops `rspack:build` from running before `assets:precompile` and test tasks (was `SKIP_RSPACK_BUILD`, which works until 1.0) |
-| `RSPACK_FORCE` | | `1` lets `rspack:migrate` run on a dirty git tree (was `FORCE`, which works until 1.0) |
+| `RSPACK_SKIP_BUILD` | | Any value stops `rspack:build` from running before `assets:precompile` and test tasks |
+| `RSPACK_FORCE` | | `1` lets `rspack:migrate` run on a dirty git tree |
 
 To decide in Ruby whether pages use the dev server, use an initializer:
 
@@ -387,7 +387,7 @@ RspackRails.configure do |config|
 end
 ```
 
-`config.dev_server_host=` and `config.dev_server_port=` are deprecated and go away in 1.0. `rspack serve` never read them, so Rails looked for the dev server where none listened. Use `RSPACK_DEV_SERVER_HOST` and `RSPACK_DEV_SERVER_PORT`, which Rails and rspack both read. Deprecations go through `Rails.application.deprecators`, so `config.active_support.deprecation` decides whether they warn, log or raise (`FORCE` for `rspack:migrate` is the exception: that task does not boot the app, so its warning always goes to stderr).
+The dev server's host and port come only from `RSPACK_DEV_SERVER_HOST` and `RSPACK_DEV_SERVER_PORT`, which Rails and `rspack serve` both read, so the two never disagree. Deprecations go through `Rails.application.deprecators`, so `config.active_support.deprecation` decides whether they warn, log or raise.
 
 ## Tasks
 
@@ -416,7 +416,7 @@ bin/rails rspack:doctor
 
 `config/rspack/rails.mjs` follows the gem, as do `app/javascript/controllers/autoload.js` and `app/javascript/components/mount.js` once their installers have run. Your `rspack.config.mjs` is left alone. Commit them all. Some releases also change other files (`Dockerfile`, `bin/setup`); the [CHANGELOG](CHANGELOG.md) says when to re-run `bin/rails rspack:install`. Re-running it is safe: it leaves your config, entry, layout and `Procfile.dev` alone when they are already set up.
 
-**From a version before 0.13.0**, `rspack.config.mjs` held the whole config. Run `bin/rails rspack:install` once and answer "y" to replace it (answer "d" first to see your own changes), then move those changes into the `railsConfig` callback. `rspack:doctor` warns until you do. From then on, upgrades need no merging.
+**From a version before 0.18.0**, upgrade to 0.19 first and fix what `rspack:doctor` reports there; 1.0 no longer knows the older files. Before 0.13.0, `rspack.config.mjs` held the whole config: run `bin/rails rspack:install` once and answer "y" to replace it (answer "d" first to see your own changes), then move those changes into the `railsConfig` callback.
 
 ## Stability
 

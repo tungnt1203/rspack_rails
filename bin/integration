@@ -264,14 +264,14 @@ grep -q '// a hand edit' tmp/rspack_rails/rails-*.mjs || { echo "hand edit not s
 grep -q '// a hand edit' config/rspack/rails.mjs && { echo "hand edit not replaced"; exit 1; }
 
 step "The Stimulus and React loaders are kept up to date too"
-# As 0.17.0 and earlier copied them: no checksum, so only their content says they are unedited.
+# As 0.17.0 and earlier copied them: no checksum, so it is saved like a hand edit.
 cp "$GEM_ROOT/spec/fixtures/managed/autoload-0.17.0.js" app/javascript/controllers/autoload.js
 echo '// a hand edit' >> app/javascript/components/mount.js
 doctor=$(bin/rails rspack:doctor || true)
-assert_match "$doctor" 'Stimulus loader: app/javascript/controllers/autoload.js is not the one from rspack_rails'
+assert_match "$doctor" 'Stimulus loader: app/javascript/controllers/autoload.js has hand edits'
 assert_match "$doctor" 'React loader: app/javascript/components/mount.js has hand edits'
 synced=$(bin/rails rspack:sync 2>&1)
-assert_match "$synced" 'Updated app/javascript/controllers/autoload.js'
+assert_match "$synced" 'autoload.js had hand edits, which rspack_rails replaced \(saved to tmp/rspack_rails/autoload-[0-9]+\.js\)'
 assert_match "$synced" 'mount.js had hand edits, which rspack_rails replaced \(saved to tmp/rspack_rails/mount-[0-9]+\.js\)'
 grep -q 'Checksum: ' app/javascript/controllers/autoload.js || { echo "autoload.js not rewritten"; exit 1; }
 grep -q '// a hand edit' app/javascript/components/mount.js && { echo "mount.js hand edit not replaced"; exit 1; }
