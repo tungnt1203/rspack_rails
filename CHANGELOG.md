@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [0.18.1] - 2026-11-17
+
+- Each build deletes what earlier builds left in `app/assets/builds`: old chunks and a development build's source maps. Propshaft copied all of it to `public/assets`, so precompiling on a machine that had run development builds deployed the source maps too (Docker and Kamal builds were not affected: `.dockerignore` leaves `app/assets/builds` out). Only Rspack's own files are deleted, by the rule `rspack:clobber` uses, so other tools' output stays. A broken symlink in `app/assets/builds` makes the build fail: delete it
+
 ## [0.18.0] - 2026-11-17
 
 - Upgrading: if you edited `app/javascript/controllers/autoload.js` or `app/javascript/components/mount.js`, move your changes to a file of your own first. The first `rspack:build` (also run by `assets:precompile`) replaces an edited copy, and on a build server its backup in `tmp/rspack_rails/` is lost with the server
