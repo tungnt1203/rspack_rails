@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-17
+
+- Upgrading: if you edited `app/javascript/controllers/autoload.js` or `app/javascript/components/mount.js`, move your changes to a file of your own first. The first `rspack:build` (also run by `assets:precompile`) replaces an edited copy, and on a build server its backup in `tmp/rspack_rails/` is lost with the server
+- Files rspack_rails keeps up to date no longer count as hand-edited when Git checks them out with CRLF line endings (`core.autocrlf` on Windows). They used to be backed up and rewritten after every checkout
 - CI runs the integration suite with Yarn 1 and bun (`PACKAGE_MANAGER=yarn bin/integration`, or `bun`), on Rails 8.1. The installer detects the package manager from the lockfile, so the script creates one before `rspack:install`
 
 - `RSPACK_DEV_SERVER_PUBLIC_URL`: where the browser opens the HMR websocket, for a dev server it cannot reach at `RSPACK_DEV_SERVER_HOST:PORT` (GitHub Codespaces, a remote dev container, a TLS proxy). `https://` becomes `wss://`, and `/ws` is added when the URL has no path. Hot updates used to fail to connect there, as the websocket always pointed at `ws://localhost:3036/ws`
