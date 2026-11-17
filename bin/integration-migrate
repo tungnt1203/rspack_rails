@@ -50,6 +50,8 @@ fi
 if [ "$MODE" = importmap ] || [ "$MODE" = tailwind ]; then
   # A second layout and a second stylesheet of the app's own, as a real app has.
   cp app/views/layouts/application.html.erb app/views/layouts/admin.html.erb
+  # Rails 8 links stylesheets with `:app`; Rails 7.2 (Sprockets) names "application".
+  grep -q 'stylesheet_link_tag :app' app/views/layouts/admin.html.erb && app_stylesheets=1 || app_stylesheets=
   mkdir -p app/assets/stylesheets
   printf '.driver-popover { color: #123456; }\n' > app/assets/stylesheets/driver.css
 fi
@@ -81,8 +83,10 @@ grep -q 'rspack_javascript_tag "application"' app/views/layouts/application.html
 if [ "$MODE" = importmap ] || [ "$MODE" = tailwind ]; then
   grep -q 'rspack_javascript_tag "application"' app/views/layouts/admin.html.erb || fail "admin layout lost its script"
   ! grep -q 'stylesheet_link_tag :app' app/views/layouts/admin.html.erb || fail "stylesheet_link_tag :app left"
-  grep -q 'stylesheet_link_tag "application", "driver"' app/views/layouts/admin.html.erb ||
-    fail "the app's own stylesheets are not linked by name"
+  if [ -n "$app_stylesheets" ]; then
+    grep -q 'stylesheet_link_tag "application", "driver"' app/views/layouts/admin.html.erb ||
+      fail "the app's own stylesheets are not linked by name"
+  fi
 fi
 grep -q 'controllers/autoload' app/javascript/application.js || fail "autoload import missing"
 grep -q '^js: .* dev$' Procfile.dev || fail "Procfile.dev does not run the dev server"
