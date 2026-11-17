@@ -25,7 +25,19 @@ if File.exist?(tailwind_rails_source)
     create_file stylesheet, source
   end
   remove_file tailwind_rails_source
-  remove_dir "app/assets/tailwind" if Dir.empty?("app/assets/tailwind")
+  # What application.css imports (@import "./fonts.css") moves with it, to the
+  # same relative place; left in app/assets, `stylesheet_link_tag :app` would link it.
+  Dir.glob("**/*.css", base: "app/assets/tailwind").sort.each do |name|
+    target = "app/javascript/#{name}"
+    if File.exist?(target)
+      say "app/assets/tailwind/#{name} stays: #{target} exists. Move it and fix its @import by hand.", :yellow
+      next
+    end
+    say "Moving app/assets/tailwind/#{name} to #{target}"
+    create_file target, File.read("app/assets/tailwind/#{name}")
+    remove_file "app/assets/tailwind/#{name}"
+  end
+  remove_dir "app/assets/tailwind" if Dir.glob("app/assets/tailwind/**/*").none? { |path| File.file?(path) }
 elsif !File.exist?(stylesheet)
   create_file stylesheet, %(@import "tailwindcss";\n)
 elsif !File.read(stylesheet).match?(/@import\s+["']tailwindcss["']/)

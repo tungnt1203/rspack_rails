@@ -4,6 +4,7 @@ require "json"
 require_relative "app"
 require_relative "containers"
 require_relative "config_installer"
+require_relative "layout_installer"
 require_relative "rspack_version"
 
 module RspackRails
@@ -12,6 +13,7 @@ module RspackRails
   # so these methods can use Thor actions (say, gsub_file, insert_into_file).
   module Installer
     include ConfigInstaller
+    include LayoutInstaller
 
     TEMPLATES = File.expand_path("../install", __dir__)
 
@@ -56,61 +58,6 @@ module RspackRails
       rspack_app.path("package.json").write("#{JSON.pretty_generate(package)}\n")
     end
 
-    # app/views/layouts/application.html.{erb,slim,haml}, or nil.
-    def layout
-      Layouts.main(destination_root)
-    end
-
-    # Adds `code` (a helper call) to the end of <head> in the application
-    # layout, unless the layout already mentions `marker`.
-    def add_to_layout(code, marker:)
-      path = layout
-      return say("Add this to your layout: <%= #{code} %>", :yellow) unless path
-
-      content = rspack_app.read(path)
-      return if content.include?(marker)
-
-      updated = Layouts.insert_in_head(path, content, code)
-      return say("Add this to the <head> of #{path}: #{Layouts.tag(path, code)}", :yellow) unless updated
-
-      say "Adding #{marker} to #{path}"
-      rspack_app.path(path).write(updated)
-    end
-
-    def add_stylesheet_tag
-      add_to_layout(%(rspack_stylesheet_tag "application", "data-turbo-track": "reload"),
-                    marker: "rspack_stylesheet_tag")
-    end
-
-    # `stylesheet_link_tag :app` also links rspack's bundles, each a second
-    # time and without the options rspack_stylesheet_tag gives them (a print
-    # entry would apply on screen). When the app's own CSS is just
-    # app/assets/stylesheets/application.css, link that file instead.
-    def replace_app_stylesheets_tag
-      app = rspack_app
-      layouts = app.layouts.select { |path| app.read(path).match?(Layouts::APP_STYLESHEETS) }
-      return if layouts.empty?
-
-      own = Dir.glob("app/assets/stylesheets/**/*.css", base: app.root).sort
-      unless own.empty? || own == ["app/assets/stylesheets/application.css"]
-        return say "#{layouts.join(", ")} uses `stylesheet_link_tag :app`, which also links rspack's " \
-                   "*.bundle.css files. List your own stylesheets instead, e.g. stylesheet_link_tag " \
-                   "\"application\".", :yellow
-      end
-
-      layouts.each { |path| link_own_stylesheet(path, own.any?) }
-    end
-
-    def link_own_stylesheet(path, application_css)
-      say "Replacing `stylesheet_link_tag :app` in #{path}: it would also link rspack's bundles"
-      gsub_file path, %r{^[ \t]*<%# Includes all stylesheet files in app/assets/stylesheets %>\n}, ""
-      if application_css
-        gsub_file path, Layouts::APP_STYLESHEETS, '\1"application"'
-      else
-        gsub_file path, /#{Layouts::APP_STYLESHEETS.source}.*\n/, ""
-      end
-    end
-
     # Dockerfile (Kamal), .devcontainer and bin/setup, when the app has them.
     def configure_containers(package_manager, port:)
       edit_container_file("Dockerfile", "install Node.js and node modules in the build stage") do |content|
@@ -135,13 +82,6 @@ module RspackRails
 
       say "Updating #{path}: #{change}"
       rspack_app.path(path).write(updated)
-    end
-
-    # Removes lines that call `helper` (ERB, Slim or Haml) from every layout.
-    def remove_from_layouts(helper)
-      Layouts.all(destination_root).each do |path|
-        gsub_file path, /^[ \t]*(?:<%=|=)[ \t]*#{helper}(?!\w).*\n/, ""
-      end
     end
   end
 end

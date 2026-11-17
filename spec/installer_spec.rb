@@ -147,10 +147,13 @@ RSpec.describe RspackRails::Installer do
       expect(@root.join(slim).read).to eq(%(head\n  = stylesheet_link_tag "application"\n))
     end
 
-    it "leaves the layout alone when the app has several stylesheets" do
+    it "lists the app's own stylesheets by name, in the order :app linked them" do
       write("app/assets/stylesheets/application.css")
-      write("app/assets/stylesheets/admin.css")
-      expect { host.replace_app_stylesheets_tag }.not_to(change { @root.join(layout).read })
+      write("app/assets/stylesheets/driver.css")
+      write("app/assets/stylesheets/admin/print.css")
+      host.replace_app_stylesheets_tag
+      expect(@root.join(layout).read)
+        .to include(%(<%= stylesheet_link_tag "admin/print", "application", "driver", "data-turbo-track": "reload" %>))
     end
   end
 
@@ -160,6 +163,58 @@ RSpec.describe RspackRails::Installer do
     host.remove_from_layouts("javascript_importmap_tags")
     expect(@root.join("app/views/layouts/application.html.erb").read).to eq("<head>\n</head>\n")
     expect(@root.join("app/views/layouts/admin.html.haml").read).to eq("%head\n  = csrf_meta_tags\n")
+  end
+
+  describe "#replace_in_layouts" do
+    let(:tag) { %(rspack_javascript_tag "application") }
+
+    it "puts the tag where each layout and layout partial had the helper" do
+      write("app/views/layouts/application.html.erb", "<head>\n    <%= javascript_importmap_tags %>\n</head>\n")
+      write("app/views/layouts/admin.html.haml", "%head\n  = javascript_importmap_tags\n  = csrf_meta_tags\n")
+      write("app/views/layouts/_head.html.erb", "<%= javascript_importmap_tags %>\n")
+      host.replace_in_layouts("javascript_importmap_tags", tag)
+      expect(@root.join("app/views/layouts/application.html.erb").read).to eq("<head>\n    <%= #{tag} %>\n</head>\n")
+      expect(@root.join("app/views/layouts/admin.html.haml").read).to eq("%head\n  = #{tag}\n  = csrf_meta_tags\n")
+      expect(@root.join("app/views/layouts/_head.html.erb").read).to eq("<%= #{tag} %>\n")
+    end
+
+    it "removes a call with arguments, which may load another entry" do
+      write("app/views/layouts/admin.html.erb", %(<head>\n  <%= javascript_importmap_tags "admin" %>\n</head>\n))
+      host.replace_in_layouts("javascript_importmap_tags", tag)
+      expect(@root.join("app/views/layouts/admin.html.erb").read).to eq("<head>\n</head>\n")
+    end
+  end
+
+  describe "#add_stylesheet_tag" do
+    let(:script) { %(<%= rspack_javascript_tag "application", "data-turbo-track": "reload" %>) }
+    let(:stylesheet) { %(<%= rspack_stylesheet_tag "application", "data-turbo-track": "reload" %>) }
+
+    it "links the CSS next to every layout's application script" do
+      write("app/views/layouts/application.html.erb", "<head>\n    #{script}\n</head>\n")
+      write("app/views/layouts/admin.html.erb", "<head>\n  #{script}\n</head>\n")
+      write("app/views/layouts/mailer.html.erb", "<head>\n</head>\n")
+      host.add_stylesheet_tag
+      expect(@root.join("app/views/layouts/application.html.erb").read)
+        .to eq("<head>\n    #{script}\n    #{stylesheet}\n</head>\n")
+      expect(@root.join("app/views/layouts/admin.html.erb").read)
+        .to eq("<head>\n  #{script}\n  #{stylesheet}\n</head>\n")
+      expect(@root.join("app/views/layouts/mailer.html.erb").read).to eq("<head>\n</head>\n")
+    end
+
+    it "adds nothing to the layout when the <head> partial it renders has both tags" do
+      write("app/views/layouts/application.html.erb", %(<head>\n  <%= render "layouts/head" %>\n</head>\n))
+      write("app/views/layouts/_head.html.erb", "#{script}\n")
+      host.add_stylesheet_tag
+      expect(@root.join("app/views/layouts/_head.html.erb").read).to eq("#{script}\n#{stylesheet}\n")
+      expect(@root.join("app/views/layouts/application.html.erb").read).not_to include("rspack_stylesheet_tag")
+    end
+  end
+
+  it "does not add a tag to the layout when a layout partial it renders has it" do
+    write("app/views/layouts/application.html.erb", %(<head>\n  <%= render "layouts/head" %>\n</head>\n))
+    write("app/views/layouts/_head.html.erb", %(<%= rspack_javascript_tag "application" %>\n))
+    host.add_to_layout(%(rspack_javascript_tag "application"), marker: "rspack_javascript_tag")
+    expect(@root.join("app/views/layouts/application.html.erb").read).not_to include("rspack_javascript_tag")
   end
 
   describe ".run" do
