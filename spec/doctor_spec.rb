@@ -155,6 +155,13 @@ RSpec.describe RspackRails::Doctor do
     expect(check("Layout").detail).to eq("admin.html.erb uses rspack_javascript_tag")
   end
 
+  it "names every layout with the tag, with a plural verb" do
+    set_up_complete_app
+    write("app/views/layouts/application.html.erb", '<%= rspack_javascript_tag "application" %>')
+    write("app/views/layouts/admin.html.erb", '<%= rspack_javascript_tag "admin" %>')
+    expect(check("Layout").detail).to eq("application.html.erb, admin.html.erb use rspack_javascript_tag")
+  end
+
   it "suggests the tag in the layout's syntax" do
     write("app/views/layouts/application.html.haml", "%head\n")
     expect(check("Layout").hint).to start_with('Add = rspack_javascript_tag "application" to')

@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+- `rspack:doctor` says "use" for several layouts (`application.html.erb, admin.html.erb use rspack_javascript_tag`)
+- `template.rb` prints one closing message. `rspack:install` and `rspack:migrate` used to print theirs ("Run bin/dev", "Review the changes") in the middle, before the extras were installed. `rspack:migrate` run by itself no longer prints the installer's message either
+
 ## [0.18.1] - 2026-11-17
 
 - Each build deletes what earlier builds left in `app/assets/builds`: old chunks and a development build's source maps. Propshaft copied all of it to `public/assets`, so precompiling on a machine that had run development builds deployed the source maps too (Docker and Kamal builds were not affected: `.dockerignore` leaves `app/assets/builds` out). Only Rspack's own files are deleted, by the rule `rspack:clobber` uses, so other tools' output stays. A broken symlink in `app/assets/builds` makes the build fail: delete it

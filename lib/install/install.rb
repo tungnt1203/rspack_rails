@@ -83,4 +83,7 @@ say "Installing @rspack/cli, @rspack/core and @rspack/dev-server (Rspack #{Rspac
 rspack_packages = %w[@rspack/cli @rspack/core @rspack/dev-server].map { |name| RspackRails::RspackVersion.pin(name) }
 run pm.add_dev_command(*rspack_packages), abort_on_failure: true
 
-say "rspack_rails installed. Run bin/dev to start developing.", :green
+# rspack:migrate and template.rb (RSPACK_TEMPLATE) have more steps after this one.
+unless @rspack_migrating || ENV["RSPACK_TEMPLATE"]
+  say "rspack_rails installed. Run bin/dev to start developing.", :green
+end

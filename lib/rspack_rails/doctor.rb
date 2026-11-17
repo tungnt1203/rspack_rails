@@ -174,7 +174,7 @@ module RspackRails
                          "Remove it if rspack replaces importmap, or the app may load JavaScript twice")
       end
       rspack = layouts_including("rspack_javascript_tag")
-      return Check.new(:ok, "Layout", "#{names(rspack)} uses rspack_javascript_tag") if rspack.any?
+      return Check.new(:ok, "Layout", "#{names(rspack)} #{verb(rspack, "uses")} rspack_javascript_tag") if rspack.any?
 
       missing_layout_tag_check
     end
@@ -189,7 +189,9 @@ module RspackRails
       return unless exist?("app/assets/builds/application.bundle.css")
 
       linked = layouts_including("rspack_stylesheet_tag")
-      return Check.new(:ok, "Stylesheet", "#{names(linked)} uses rspack_stylesheet_tag") if linked.any?
+      if linked.any?
+        return Check.new(:ok, "Stylesheet", "#{names(linked)} #{verb(linked, "uses")} rspack_stylesheet_tag")
+      end
 
       Check.new(:warn, "Stylesheet", "application.bundle.css is built but not linked",
                 %(Add <%= rspack_stylesheet_tag "application" %> to your layout))
@@ -310,6 +312,11 @@ module RspackRails
     # "application.html.erb, admin.html.slim"
     def names(paths)
       paths.map { |path| File.basename(path) }.join(", ")
+    end
+
+    # "uses" for one layout, "use" for several.
+    def verb(paths, singular)
+      paths.one? ? singular : singular.delete_suffix("s")
     end
 
     def entrypoints

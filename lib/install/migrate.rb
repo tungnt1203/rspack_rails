@@ -51,6 +51,7 @@ when :jsbundling
   remove_gem "jsbundling-rails"
 end
 
+@rspack_migrating = true
 apply "#{__dir__}/install.rb"
 
 if migration.source == :importmap && packages.any?
@@ -95,4 +96,6 @@ if leftovers.any?
   leftovers.each { |line| say "  #{line}", :yellow }
 end
 
-say "Migration finished. Review the changes with `git diff`, then run `bin/rails rspack:doctor`.", :green
+unless ENV["RSPACK_TEMPLATE"] # template.rb has more steps, and its own closing message
+  say "Migration finished. Review the changes with `git diff`, then run `bin/rails rspack:doctor`.", :green
+end
