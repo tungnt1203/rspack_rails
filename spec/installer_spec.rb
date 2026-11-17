@@ -49,21 +49,16 @@ RSpec.describe RspackRails::Installer do
   end
 
   describe "#require_config!" do
-    it "passes when rspack.config.mjs mentions the marker" do
-      write("rspack.config.mjs", "sass-loader")
-      expect { host.require_config!("sass-loader", "Sass") }.not_to raise_error
-    end
-
     it "passes and updates config/rspack/rails.mjs when rspack.config.mjs builds on it" do
       write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
       write("config/rspack/rails.mjs", "// old")
-      expect { host.require_config!("sass-loader", "Sass") }.not_to raise_error
+      expect { host.require_config!("Sass") }.not_to raise_error
       expect(@root.join("config/rspack/rails.mjs").read).to eq(RspackRails::RspackConfig.base_content)
     end
 
-    it "exits when rspack.config.mjs predates the feature" do
-      write("rspack.config.mjs", "")
-      expect { host.require_config!("sass-loader", "Sass") }.to raise_error(SystemExit)
+    it "exits when rspack.config.mjs does not build on config/rspack/rails.mjs, even if it has the feature" do
+      write("rspack.config.mjs", "sass-loader")
+      expect { host.require_config!("Sass") }.to raise_error(SystemExit)
     end
   end
 

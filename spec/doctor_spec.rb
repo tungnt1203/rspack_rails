@@ -57,7 +57,7 @@ RSpec.describe RspackRails::Doctor do
 
   it "warns about an outdated config/rspack/rails.mjs" do
     set_up_complete_app
-    write("config/rspack/rails.mjs", "// from an older rspack_rails")
+    write("config/rspack/rails.mjs", older_managed)
     expect(check("rspack.config.mjs").status).to eq(:warn)
     expect(check("rspack.config.mjs").hint).to include("rspack:sync")
   end
@@ -76,18 +76,11 @@ RSpec.describe RspackRails::Doctor do
     expect(check("rspack.config.mjs").hint).to include("rspack:sync")
   end
 
-  it "warns about a standalone config from before 0.13.0" do
+  it "fails on a config that does not build on config/rspack/rails.mjs, from before 0.13.0" do
     set_up_complete_app
     write("rspack.config.mjs", 'publicPath: isDevServer ? "/rspack/" : "auto",')
-    expect(check("rspack.config.mjs").status).to eq(:warn)
-    expect(check("rspack.config.mjs").hint).to include("railsConfig")
-  end
-
-  it "warns about a config from before the dev server proxy" do
-    set_up_complete_app
-    write("rspack.config.mjs", "publicPath: isDevServer ? `http://${host}:${port}/` : \"auto\",")
-    expect(check("rspack.config.mjs").status).to eq(:warn)
-    expect(check("rspack.config.mjs").hint).to include("rspack:install")
+    expect(check("rspack.config.mjs").status).to eq(:error)
+    expect(check("rspack.config.mjs").hint).to include("rspack:install", "railsConfig")
   end
 
   it "fails on Rspack 1, which config/rspack/rails.mjs does not support" do

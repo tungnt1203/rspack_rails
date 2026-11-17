@@ -27,13 +27,12 @@ module RspackRails
     end
 
     # Whether config/rspack/rails.mjs was changed by hand since rspack_rails
-    # wrote it. Files from before 0.17.0 carry no checksum and count as unedited.
+    # wrote it (ManagedFile#edited?).
     def edited?(root)
       ManagedFile::BASE.edited?(root)
     end
 
-    # Whether rspack.config.mjs builds on config/rspack/rails.mjs. Configs
-    # generated before 0.13.0 hold the whole config themselves.
+    # Whether rspack.config.mjs builds on config/rspack/rails.mjs.
     def managed?(root)
       app = Pathname(root).join(APP)
       app.file? && app.read.include?(BASE)

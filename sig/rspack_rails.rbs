@@ -18,10 +18,6 @@ module RspackRails
     def initialize: (?Hash[String, String] env) -> void
     def dev_server_enabled: () -> bool
     def dev_server_url: () -> String
-
-    # Deprecated, removed in 1.0: set RSPACK_DEV_SERVER_HOST / RSPACK_DEV_SERVER_PORT.
-    def dev_server_host=: (String host) -> String
-    def dev_server_port=: (Integer port) -> Integer
   end
 
   class DevServer

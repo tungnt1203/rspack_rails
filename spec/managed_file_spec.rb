@@ -41,14 +41,20 @@ RSpec.describe RspackRails::ManagedFile do
     expect(described_class.sync_all(@root)).to eq([])
   end
 
-  it "replaces a loader copied by an earlier version, which has no checksum, without a backup" do
+  it "replaces a loader from another version without a backup" do
+    write(react.path, older_managed(react))
+    expect(react.state(@root)).to eq(:outdated)
+
+    result = react.sync(@root)
+    expect(result.written).to be(true)
+    expect(result.backup).to be_nil
+  end
+
+  it "saves a loader without a checksum, as 0.17.0 and earlier copied it, before replacing it" do
     { stimulus => "autoload-0.17.0.js", react => "mount-0.17.0.js" }.each do |file, fixture|
       write(file.path, File.read(File.expand_path("fixtures/managed/#{fixture}", __dir__)))
-      expect(file.state(@root)).to eq(:outdated)
-
-      result = file.sync(@root)
-      expect(result.written).to be(true)
-      expect(result.backup).to be_nil
+      expect(file.state(@root)).to eq(:edited)
+      expect(file.sync(@root).backup.to_s).to start_with("tmp/rspack_rails/")
     end
   end
 
@@ -75,8 +81,7 @@ RSpec.describe RspackRails::ManagedFile do
     expect(stimulus.state(@root)).to eq(:current)
     expect(stimulus.sync(@root).written).to be(false)
 
-    fixture = File.read(File.expand_path("fixtures/managed/mount-0.17.0.js", __dir__))
-    write(react.path, fixture.gsub("\n", "\r\n"))
+    write(react.path, older_managed(react).gsub("\n", "\r\n"))
     expect(react.state(@root)).to eq(:outdated)
   end
 end

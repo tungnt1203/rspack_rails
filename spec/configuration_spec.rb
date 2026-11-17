@@ -23,13 +23,11 @@ RSpec.describe RspackRails::Configuration do
     expect(described_class.new({}).dev_server_enabled).to be(false)
   end
 
-  it "deprecates setting the host or port, which rspack serve does not read" do
-    config = described_class.new({})
-    expect { config.dev_server_port = 4000 }
-      .to output(/dev_server_port= is deprecated.*RSPACK_DEV_SERVER_PORT/).to_stderr
-    expect { config.dev_server_host = "0.0.0.0" }
-      .to output(/dev_server_host= is deprecated.*RSPACK_DEV_SERVER_HOST/).to_stderr
+  it "takes the host and port only from the environment, as rspack serve does" do
+    config = described_class.new({ "RSPACK_DEV_SERVER_HOST" => "0.0.0.0", "RSPACK_DEV_SERVER_PORT" => "4000" })
     expect(config.dev_server_url).to eq("http://0.0.0.0:4000")
+    expect(config).not_to respond_to(:dev_server_host=)
+    expect(config).not_to respond_to(:dev_server_port=)
   end
 
   it "prefers an explicit setting over the environment" do

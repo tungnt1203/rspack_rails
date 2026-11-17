@@ -26,7 +26,7 @@ namespace :rspack do
   task :migrate do
     dirty = system("git", "rev-parse", "--is-inside-work-tree", out: File::NULL, err: File::NULL) &&
             !`git status --porcelain`.strip.empty?
-    if dirty && RspackRails.env_var("RSPACK_FORCE", "FORCE").to_s.empty?
+    if dirty && ENV["RSPACK_FORCE"].to_s.empty?
       raise RspackRails::Error,
             "rspack:migrate removes and rewrites files. Commit or stash your changes first, or run with RSPACK_FORCE=1."
     end
@@ -80,10 +80,10 @@ namespace :rspack do
   task analyze: %i[sync dependencies] do
     app = RspackRails::App.new(Rails.root)
     pm = app.package_manager
-    unless RspackRails::RspackConfig.managed?(Rails.root) ||
-           app.read(RspackRails::RspackConfig::APP).to_s.include?("RsdoctorRspackPlugin")
+    unless RspackRails::RspackConfig.managed?(Rails.root)
       raise RspackRails::Error,
-            "rspack.config.mjs predates rspack:analyze. Re-run `bin/rails rspack:install` and accept the new config."
+            "rspack.config.mjs does not build on #{RspackRails::RspackConfig::BASE}. Re-run " \
+            "`bin/rails rspack:install` and accept the new config."
     end
 
     unless app.dependency?("@rsdoctor/rspack-plugin")
@@ -103,13 +103,7 @@ namespace :rspack do
   end
 end
 
-# Tasks are loaded before the app is initialized, when its deprecation settings
-# do not apply yet: warn about the old name once they do.
-if ENV.key?("SKIP_RSPACK_BUILD") && !ENV.key?("RSPACK_SKIP_BUILD")
-  ActiveSupport.on_load(:after_initialize) { RspackRails.env_var("RSPACK_SKIP_BUILD", "SKIP_RSPACK_BUILD") }
-end
-
-unless ENV.key?("RSPACK_SKIP_BUILD") || ENV.key?("SKIP_RSPACK_BUILD")
+unless ENV.key?("RSPACK_SKIP_BUILD")
   %w[assets:precompile test:prepare spec:prepare db:test:prepare].each do |name|
     Rake::Task[name].enhance(["rspack:build"]) if Rake::Task.task_defined?(name)
   end

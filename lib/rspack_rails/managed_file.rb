@@ -24,31 +24,20 @@ module RspackRails
 
     attr_reader :path
 
-    # previous: SHA-256 digests of versions written before files carried a
-    # checksum. An unstamped file with another content counts as edited; with
-    # previous: nil, every unstamped file is taken as unedited.
     # required: written even when the app does not have it yet.
-    def initialize(path, template:, required: false, previous: nil, customize: nil)
+    def initialize(path, template:, required: false, customize: nil)
       @path = path
       @template = template
       @required = required
-      @previous = previous
       @customize = customize
     end
-
-    # The loaders as copied by rspack_rails 0.17.0 and earlier, before they carried a checksum.
-    STIMULUS_RELEASED = %w[
-      c46e4a676c772730502c560b12fce4ad5220fde4ac03d2d4984347cc4aa307c0
-      8b7a4807bd4f493a5833a15c19d78342201495e4ec9055bdfba80234245de136
-    ].freeze
-    REACT_RELEASED = %w[134b974ae5ac156f58f4f641272fa6f2ca74b51c75e30703f1495852b5b11616].freeze
 
     BASE = new("config/rspack/rails.mjs", template: File.join(INSTALL, "rails.mjs"), required: true,
                                           customize: "in the railsConfig callback of rspack.config.mjs")
     STIMULUS = new("app/javascript/controllers/autoload.js",
-                   template: File.join(INSTALL, "stimulus/autoload.js"), previous: STIMULUS_RELEASED)
+                   template: File.join(INSTALL, "stimulus/autoload.js"))
     REACT = new("app/javascript/components/mount.js",
-                template: File.join(INSTALL, "react/mount.js"), previous: REACT_RELEASED)
+                template: File.join(INSTALL, "react/mount.js"))
     ALL = [BASE, STIMULUS, REACT].freeze
 
     # Syncs every managed file the app has (and config/rspack/rails.mjs).
@@ -80,16 +69,15 @@ module RspackRails
       exist?(root) && read(root) == content
     end
 
-    # Whether the file was changed by hand since rspack_rails wrote it.
+    # Whether the file was changed by hand since rspack_rails wrote it. A file
+    # without a checksum (from before 0.18, or written by hand) counts as
+    # edited, so it is saved before it is replaced.
     def edited?(root)
       return false unless exist?(root)
 
       existing = read(root)
       stored = existing[CHECKSUM_LINE, 1]
-      return stored != self.class.checksum(existing) if stored
-      return false if @previous.nil?
-
-      !@previous.include?(Digest::SHA256.hexdigest(existing))
+      stored.nil? || stored != self.class.checksum(existing)
     end
 
     # :missing, :edited (by hand), :outdated (another version) or :current.

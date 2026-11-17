@@ -8,7 +8,7 @@ extend RspackRails::Installer
 pm = RspackRails::PackageManager.detect(Rails.root)
 typescript = File.exist?("tsconfig.json")
 
-require_config! "ReactRefreshRspackPlugin", "React"
+require_config! "React"
 entry = main_entry!
 
 say "Adding React component autoloading"

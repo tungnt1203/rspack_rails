@@ -9,7 +9,7 @@ extend RspackRails::Installer
 pm = RspackRails::PackageManager.detect(Rails.root)
 dartsass_source = "app/assets/stylesheets/application.scss"
 
-require_config! "sass-loader", "Sass"
+require_config! "Sass"
 entry = main_entry!
 dartsass = gem_in_gemfile?("dartsass-rails")
 
