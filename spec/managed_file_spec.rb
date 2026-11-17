@@ -69,4 +69,14 @@ RSpec.describe RspackRails::ManagedFile do
     write(stimulus.path, stimulus.content.sub('.replace(/_/g, "-")', '.replace(/_/g, "_")'))
     expect(stimulus.edited?(@root)).to be(true)
   end
+
+  it "does not count CRLF line endings, as Git checks files out on Windows, as a change" do
+    write(stimulus.path, stimulus.content.gsub("\n", "\r\n"))
+    expect(stimulus.state(@root)).to eq(:current)
+    expect(stimulus.sync(@root).written).to be(false)
+
+    fixture = File.read(File.expand_path("fixtures/managed/mount-0.17.0.js", __dir__))
+    write(react.path, fixture.gsub("\n", "\r\n"))
+    expect(react.state(@root)).to eq(:outdated)
+  end
 end

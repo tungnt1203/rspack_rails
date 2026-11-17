@@ -57,7 +57,13 @@ module RspackRails
     end
 
     def self.checksum(content)
-      Digest::SHA256.hexdigest(content.sub(CHECKSUM_LINE, "// Checksum: #{CHECKSUM_PLACEHOLDER}"))[0, 16]
+      Digest::SHA256.hexdigest(normalize(content).sub(CHECKSUM_LINE, "// Checksum: #{CHECKSUM_PLACEHOLDER}"))[0, 16]
+    end
+
+    # Line endings do not count: Git checks files out with CRLF on Windows
+    # (core.autocrlf), which is not a hand edit.
+    def self.normalize(content)
+      content.gsub("\r\n", "\n")
     end
 
     # The file for this version of the gem, carrying a checksum of its own content.
@@ -71,14 +77,14 @@ module RspackRails
     end
 
     def current?(root)
-      exist?(root) && Pathname(root).join(path).read == content
+      exist?(root) && read(root) == content
     end
 
     # Whether the file was changed by hand since rspack_rails wrote it.
     def edited?(root)
       return false unless exist?(root)
 
-      existing = Pathname(root).join(path).read
+      existing = read(root)
       stored = existing[CHECKSUM_LINE, 1]
       return stored != self.class.checksum(existing) if stored
       return false if @previous.nil?
@@ -114,6 +120,10 @@ module RspackRails
     end
 
     private
+
+    def read(root)
+      self.class.normalize(Pathname(root).join(path).read)
+    end
 
     def due?(root, create)
       return !current?(root) if exist?(root)

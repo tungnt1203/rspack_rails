@@ -171,6 +171,8 @@ This installs `@hotwired/stimulus` and adds `app/javascript/controllers/autoload
 
 `autoload.js` belongs to rspack_rails, like `config/rspack/rails.mjs`: `rspack:sync` and `rspack:build` rewrite it when the gem changes, and save any hand edits to `tmp/rspack_rails/` first. To register controllers your own way, copy it to a file of your own, import that instead and delete `autoload.js`.
 
+Upgrading from 0.17.0 or earlier, which copied `autoload.js` and `mount.js` once and left them alone: if you edited either one, move your changes to a file of your own before you upgrade. The first `rspack:build` replaces an edited copy, and when that happens in `assets:precompile` on a build server, the backup lands in that server's `tmp/`.
+
 If your entry imported `./controllers` (the stimulus-rails index), the installer switches it to `./controllers/autoload`. stimulus-rails may still rewrite `controllers/index.js` when you run `bin/rails generate stimulus`, but nothing imports that file any more.
 
 ### CSS
