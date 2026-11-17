@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.18.2] - 2026-11-17
+
 - `rspack:doctor` says "use" for several layouts (`application.html.erb, admin.html.erb use rspack_javascript_tag`)
 - `template.rb` prints one closing message. `rspack:install` and `rspack:migrate` used to print theirs ("Run bin/dev", "Review the changes") in the middle, before the extras were installed. `rspack:migrate` run by itself no longer prints the installer's message either
 
