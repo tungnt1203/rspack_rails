@@ -1,6 +1,6 @@
-# The public API of rspack_rails. Other constants under RspackRails (the
-# installers, the doctor, the migration) are internal and may change in any
-# release.
+# The public API of rspack_rails, stable from 1.0 (README "Stability").
+# Other constants and methods under RspackRails (the installers, the doctor,
+# the migration, the deprecator) are internal and may change in any release.
 module RspackRails
   VERSION: String
 
@@ -10,7 +10,6 @@ module RspackRails
   def self.config: () -> Configuration
   def self.configure: () { (Configuration) -> void } -> void
   def self.dev_server: () -> DevServer
-  def self.deprecator: () -> ActiveSupport::Deprecation
 
   class Configuration
     attr_reader dev_server_host: String

@@ -418,6 +418,18 @@ bin/rails rspack:doctor
 
 **From a version before 0.13.0**, `rspack.config.mjs` held the whole config. Run `bin/rails rspack:install` once and answer "y" to replace it (answer "d" first to see your own changes), then move those changes into the `railsConfig` callback. `rspack:doctor` warns until you do. From then on, upgrades need no merging.
 
+## Stability
+
+From 1.0, rspack_rails follows [semantic versioning](https://semver.org) for the parts below. They change only in a major release, after at least one minor release that deprecates the old way with a warning.
+
+- **Ruby API**: what [`sig/rspack_rails.rbs`](sig/rspack_rails.rbs) lists: `RspackRails.config` and `configure`, `RspackRails.dev_server`, `DevServerProxy`, `RspackRails::Error`, and the view helpers `rspack_javascript_tag`, `rspack_stylesheet_tag` and `react_component`.
+- **Rspack config**: `railsConfig` and the second argument of its callback ([Customizing the rspack config](#customizing-the-rspack-config)).
+- **Rake tasks** and **environment variables**: the ones in the [Tasks](#tasks) and [Environment variables](#environment-variables) tables, with what they do.
+- **Build output names** in `app/assets/builds`: `<entry>.js`, `<entry>.bundle.css` and the fingerprinted `*.digested.*`, and that a build deletes only Rspack's own files there.
+- **Supported versions**: Ruby, Rails and Node.js as in [Requirements](#requirements). Dropping one is a major release.
+
+Everything else may change in any release: the installers and what they generate, `rspack:doctor`'s checks and wording, and `config/rspack/rails.mjs` beyond `railsConfig`. New features and new deprecations come in minor releases, fixes in patch releases.
+
 ## Troubleshooting
 
 **`export 'foo' (imported as 'foo') was not found` fails the build.** Since Rspack 2, importing a name that a module does not export is an error, not a warning. It often shows up after migrating from importmap, where the browser only failed when the code ran. Fix the import, or turn it back into a warning in `rspack.config.mjs`: `config.module.parser = { ...config.module.parser, javascript: { exportsPresence: "warn" } }`.
