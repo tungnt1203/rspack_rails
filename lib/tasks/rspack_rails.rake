@@ -22,13 +22,13 @@ namespace :rspack do
     end
   end
 
-  desc "Migrate from importmap-rails or jsbundling-rails to rspack (FORCE=1 to skip the clean git check)"
+  desc "Migrate from importmap-rails or jsbundling-rails to rspack (RSPACK_FORCE=1 to skip the clean git check)"
   task :migrate do
     dirty = system("git", "rev-parse", "--is-inside-work-tree", out: File::NULL, err: File::NULL) &&
             !`git status --porcelain`.strip.empty?
-    if dirty && ENV["FORCE"].to_s.empty?
+    if dirty && RspackRails.env_var("RSPACK_FORCE", "FORCE").to_s.empty?
       raise RspackRails::Error,
-            "rspack:migrate removes and rewrites files. Commit or stash your changes first, or run with FORCE=1."
+            "rspack:migrate removes and rewrites files. Commit or stash your changes first, or run with RSPACK_FORCE=1."
     end
 
     RspackRails::Installer.run("migrate", task: "rspack:migrate")
@@ -48,15 +48,21 @@ namespace :rspack do
     system(command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
   end
 
-  desc "Update config/rspack/rails.mjs to this version of rspack_rails (rspack:build does it too)"
+  desc "Update config/rspack/rails.mjs (and the Stimulus and React loaders) to this version of rspack_rails " \
+       "(rspack:build does it too)"
   task :sync do
-    if RspackRails::RspackConfig.managed?(Rails.root)
-      result = RspackRails::RspackConfig.sync(Rails.root)
-      puts "Updated #{RspackRails::RspackConfig::BASE}" if result.written
-      warn RspackRails::RspackConfig.edits_message(result.backup) if result.backup
-    else
+    # The loaders do not depend on rspack.config.mjs: they are synced even when
+    # it predates config/rspack/rails.mjs.
+    files = RspackRails::ManagedFile::ALL
+    unless RspackRails::RspackConfig.managed?(Rails.root)
+      files -= [RspackRails::ManagedFile::BASE]
       warn "rspack.config.mjs does not build on #{RspackRails::RspackConfig::BASE}. Re-run " \
            "`bin/rails rspack:install` and accept the new rspack.config.mjs to have rspack_rails keep it up to date."
+    end
+    files.each do |file|
+      result = file.sync(Rails.root)
+      puts "Updated #{result.path}" if result.written
+      warn file.edits_message(result.backup) if result.backup
     end
   end
 
@@ -97,7 +103,13 @@ namespace :rspack do
   end
 end
 
-unless ENV["SKIP_RSPACK_BUILD"]
+# Tasks are loaded before the app is initialized, when its deprecation settings
+# do not apply yet: warn about the old name once they do.
+if ENV.key?("SKIP_RSPACK_BUILD") && !ENV.key?("RSPACK_SKIP_BUILD")
+  ActiveSupport.on_load(:after_initialize) { RspackRails.env_var("RSPACK_SKIP_BUILD", "SKIP_RSPACK_BUILD") }
+end
+
+unless ENV.key?("RSPACK_SKIP_BUILD") || ENV.key?("SKIP_RSPACK_BUILD")
   %w[assets:precompile test:prepare spec:prepare db:test:prepare].each do |name|
     Rake::Task[name].enhance(["rspack:build"]) if Rake::Task.task_defined?(name)
   end

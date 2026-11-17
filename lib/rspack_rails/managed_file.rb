@@ -1,0 +1,132 @@
+# frozen_string_literal: true
+
+require "digest"
+require "fileutils"
+require "pathname"
+require_relative "version"
+
+module RspackRails
+  # A file rspack_rails writes into an app and rewrites for each version of
+  # the gem: config/rspack/rails.mjs, and the Stimulus and React loaders once
+  # their installers have run. Each carries a checksum of its own content, so
+  # a hand edit can be told from a file written by another version; hand
+  # edits are saved to tmp/rspack_rails/ before the file is replaced.
+  class ManagedFile
+    VERSION_PLACEHOLDER = "__RSPACK_RAILS_VERSION__"
+    CHECKSUM_PLACEHOLDER = "__RSPACK_RAILS_CHECKSUM__"
+    CHECKSUM_LINE = %r{^// Checksum: (\S+)}
+    BACKUP_DIR = "tmp/rspack_rails"
+    INSTALL = File.expand_path("../install", __dir__)
+
+    # written: whether sync rewrote the file. backup: where the hand edits it
+    # replaced were saved, or nil.
+    SyncResult = Data.define(:path, :written, :backup)
+
+    attr_reader :path
+
+    # previous: SHA-256 digests of versions written before files carried a
+    # checksum. An unstamped file with another content counts as edited; with
+    # previous: nil, every unstamped file is taken as unedited.
+    # required: written even when the app does not have it yet.
+    def initialize(path, template:, required: false, previous: nil, customize: nil)
+      @path = path
+      @template = template
+      @required = required
+      @previous = previous
+      @customize = customize
+    end
+
+    # The loaders as copied by rspack_rails 0.17.0 and earlier, before they carried a checksum.
+    STIMULUS_RELEASED = %w[
+      c46e4a676c772730502c560b12fce4ad5220fde4ac03d2d4984347cc4aa307c0
+      8b7a4807bd4f493a5833a15c19d78342201495e4ec9055bdfba80234245de136
+    ].freeze
+    REACT_RELEASED = %w[134b974ae5ac156f58f4f641272fa6f2ca74b51c75e30703f1495852b5b11616].freeze
+
+    BASE = new("config/rspack/rails.mjs", template: File.join(INSTALL, "rails.mjs"), required: true,
+                                          customize: "in the railsConfig callback of rspack.config.mjs")
+    STIMULUS = new("app/javascript/controllers/autoload.js",
+                   template: File.join(INSTALL, "stimulus/autoload.js"), previous: STIMULUS_RELEASED)
+    REACT = new("app/javascript/components/mount.js",
+                template: File.join(INSTALL, "react/mount.js"), previous: REACT_RELEASED)
+    ALL = [BASE, STIMULUS, REACT].freeze
+
+    # Syncs every managed file the app has (and config/rspack/rails.mjs).
+    def self.sync_all(root)
+      ALL.map { |file| file.sync(root) }.select(&:written)
+    end
+
+    def self.checksum(content)
+      Digest::SHA256.hexdigest(content.sub(CHECKSUM_LINE, "// Checksum: #{CHECKSUM_PLACEHOLDER}"))[0, 16]
+    end
+
+    # The file for this version of the gem, carrying a checksum of its own content.
+    def content
+      content = File.read(@template).gsub(VERSION_PLACEHOLDER, VERSION)
+      content.sub(CHECKSUM_PLACEHOLDER, self.class.checksum(content))
+    end
+
+    def exist?(root)
+      Pathname(root).join(path).file?
+    end
+
+    def current?(root)
+      exist?(root) && Pathname(root).join(path).read == content
+    end
+
+    # Whether the file was changed by hand since rspack_rails wrote it.
+    def edited?(root)
+      return false unless exist?(root)
+
+      existing = Pathname(root).join(path).read
+      stored = existing[CHECKSUM_LINE, 1]
+      return stored != self.class.checksum(existing) if stored
+      return false if @previous.nil?
+
+      !@previous.include?(Digest::SHA256.hexdigest(existing))
+    end
+
+    # :missing, :edited (by hand), :outdated (another version) or :current.
+    def state(root)
+      return :missing unless exist?(root)
+      return :edited if edited?(root)
+
+      current?(root) ? :current : :outdated
+    end
+
+    # Writes the file when it is from another version or edited by hand, and
+    # when it is missing if it is required or `create` is set (its installer
+    # is running). Hand edits are copied to tmp/rspack_rails/ first.
+    def sync(root, create: false)
+      return SyncResult.new(path: path, written: false, backup: nil) unless due?(root, create)
+
+      backup = back_up(root) if edited?(root)
+      file = Pathname(root).join(path)
+      file.dirname.mkpath
+      file.write(content)
+      SyncResult.new(path: path, written: true, backup: backup)
+    end
+
+    def edits_message(backup)
+      how = @customize || "in a file of your own: copy #{path} to it, import that instead and delete #{path}"
+      "#{path} had hand edits, which rspack_rails replaced (saved to #{backup}). Make changes #{how}; " \
+        "rspack_rails rewrites #{path} on upgrades."
+    end
+
+    private
+
+    def due?(root, create)
+      return !current?(root) if exist?(root)
+
+      @required || create
+    end
+
+    def back_up(root)
+      name = "#{File.basename(path, ".*")}-#{Time.now.strftime("%Y%m%d%H%M%S")}#{File.extname(path)}"
+      backup = Pathname(root).join(BACKUP_DIR, name)
+      backup.dirname.mkpath
+      FileUtils.cp(Pathname(root).join(path), backup)
+      backup.relative_path_from(Pathname(root))
+    end
+  end
+end

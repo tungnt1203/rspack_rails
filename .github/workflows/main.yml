@@ -58,6 +58,33 @@ jobs:
         env:
           RSPACK_VERSION: ${{ matrix.rspack }}
 
+  # Yarn 1 and bun, on one Rails version: the other jobs cover npm.
+  package_managers:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.manager }} (Rails 8.1)
+    strategy:
+      fail-fast: false
+      matrix:
+        manager: [yarn, bun]
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Set up bun
+        if: matrix.manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+      - name: Generate a Rails app and run every installer, build and precompile
+        run: bin/integration "~> 8.1.0"
+        env:
+          PACKAGE_MANAGER: ${{ matrix.manager }}
+
   hmr:
     runs-on: ubuntu-latest
     name: HMR in a browser (Rails ${{ matrix.rails }})

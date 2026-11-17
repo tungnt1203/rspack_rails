@@ -85,7 +85,7 @@ bin/rails rspack:install:sass         # Sass
 ## Migrating from importmap or jsbundling
 
 ```bash
-git commit -am "Before rspack"     # rspack:migrate refuses to run on a dirty tree (FORCE=1 to override)
+git commit -am "Before rspack"     # rspack:migrate refuses to run on a dirty tree (RSPACK_FORCE=1 to override)
 bin/rails rspack:migrate
 git diff                           # review
 bin/dev
@@ -116,7 +116,7 @@ browser  ───────────────────▶  Rails :30
 ```
 
 - **Manifest**: every build, and `rspack serve` after each rebuild, writes `app/assets/builds/.rspack-manifest.json` with the scripts and stylesheets of each entry. The view helpers link exactly those files, so an entry without CSS gets no stylesheet link and the dev server's shared `runtime.js` is linked once per page. It is a dotfile, so it never reaches `public/assets`.
-- **Dev server running** (`bin/dev`): the view helpers point at `/rspack/<entry>.js`. Rails proxies those requests to `rspack serve`, so scripts, chunks, Web Workers, images and lazy compilation requests are same-origin with the page. Only the HMR websocket goes to `localhost:3036` directly. JavaScript and CSS changes are hot-swapped; views are rendered by Rails, so editing a file in `app/views`, `app/helpers` or `app/components` reloads the page.
+- **Dev server running** (`bin/dev`): the view helpers point at `/rspack/<entry>.js`. Rails proxies those requests to `rspack serve`, so scripts, chunks, Web Workers, images and lazy compilation requests are same-origin with the page. Only the HMR websocket goes to the dev server directly (`localhost:3036`, or `RSPACK_DEV_SERVER_PUBLIC_URL`). JavaScript and CSS changes are hot-swapped; views are rendered by Rails, so editing a file in `app/views`, `app/helpers` or `app/components` reloads the page.
 - **Dev server not running**: the helpers fall back to `javascript_include_tag` / `stylesheet_link_tag`, and Propshaft serves the last build from `app/assets/builds`.
 - **Production**: always the asset pipeline. `rspack:build` runs before `assets:precompile`.
 
@@ -168,6 +168,8 @@ bin/rails rspack:install:stimulus
 ```
 
 This installs `@hotwired/stimulus` and adds `app/javascript/controllers/autoload.js`, imported from your entry. Every `*_controller.js` (or `.ts`) under `app/javascript/controllers` is registered automatically, with the usual naming (`admin/user_card_controller.js` becomes `admin--user-card`). Under `rspack serve`, editing or adding a controller hot-swaps it in the open page, so form input and other page state survive.
+
+`autoload.js` belongs to rspack_rails, like `config/rspack/rails.mjs`: `rspack:sync` and `rspack:build` rewrite it when the gem changes, and save any hand edits to `tmp/rspack_rails/` first. To register controllers your own way, copy it to a file of your own, import that instead and delete `autoload.js`.
 
 If your entry imported `./controllers` (the stimulus-rails index), the installer switches it to `./controllers/autoload`. stimulus-rails may still rewrite `controllers/index.js` when you run `bin/rails generate stimulus`, but nothing imports that file any more.
 
@@ -221,7 +223,7 @@ This installs `react`, `react-dom` and React Fast Refresh, and adds `app/javascr
 <%= react_component "admin/Chart", { points: @points }, html: { class: "chart" } %>
 ```
 
-Components are found by path (`admin/Chart` is `app/javascript/components/admin/Chart.jsx` or `.tsx`) with no registration step. They mount when their element enters the page and unmount when it leaves, so Turbo Drive, frames and streams work. Props are passed as JSON. Under `rspack serve`, edits apply through Fast Refresh and components keep their state.
+Components are found by path (`admin/Chart` is `app/javascript/components/admin/Chart.jsx` or `.tsx`) with no registration step. They mount when their element enters the page and unmount when it leaves, so Turbo Drive, frames and streams work. Props are passed as JSON. The loader, `app/javascript/components/mount.js`, is kept up to date by rspack_rails the same way as the [Stimulus autoloader](#stimulus). Under `rspack serve`, edits apply through Fast Refresh and components keep their state.
 
 With TypeScript set up, the installer also sets `"jsx": "react-jsx"` in `tsconfig.json` and adds `@types/react`.
 
@@ -255,7 +257,7 @@ A root-relative `url()` is left for Rails: Rspack neither bundles nor fingerprin
 
 ## Builds and production
 
-`rspack:build` runs automatically before `assets:precompile`, `test:prepare`, `spec:prepare` and `db:test:prepare` (set `SKIP_RSPACK_BUILD=1` to turn that off). It installs JavaScript dependencies first, then runs the `build` script with `NODE_ENV` set from `Rails.env`: `development` in development and test, `production` everywhere else.
+`rspack:build` runs automatically before `assets:precompile`, `test:prepare`, `spec:prepare` and `db:test:prepare` (set `RSPACK_SKIP_BUILD=1` to turn that off). It installs JavaScript dependencies first, then runs the `build` script with `NODE_ENV` set from `Rails.env`: `development` in development and test, `production` everywhere else.
 
 - **Production mode**: when `RAILS_ENV` or `NODE_ENV` is `production`, the generated config minifies. Lazy-loaded chunks are named `*.digested.js`, so Propshaft serves them without fingerprinting them a second time.
 - **Browser targets**: JavaScript and CSS are compiled for the browsers in your [browserslist](https://github.com/browserslist/browserslist) config (`.browserslistrc`, or `"browserslist"` in `package.json`). Without one, the target is Baseline "widely available", which matches Rails 8's `allow_browser versions: :modern`.
@@ -295,7 +297,16 @@ Only the files linked by the helpers are covered. Chunks that rspack loads at ru
 
 In an app made with `rails new --devcontainer`, `rspack:install` adds the `ghcr.io/devcontainers/features/node` feature to `.devcontainer/devcontainer.json` and forwards port 3036 next to 3000: pages come through Rails, but the browser opens the HMR websocket to the dev server directly. `bin/setup`, which the container runs on creation, installs node modules. Rebuild the container after installing.
 
-GitHub Codespaces serves each port on its own URL, while the HMR websocket points at `localhost:3036`, so expect hot updates not to connect there (untested).
+When the browser cannot reach the dev server at `localhost:3036`, tell it where to open the HMR websocket with `RSPACK_DEV_SERVER_PUBLIC_URL`, the dev server's URL as the browser sees it. `https://` becomes `wss://`, and `/ws` is added when the URL has no path. GitHub Codespaces, for one, serves each port on its own URL:
+
+```bash
+# Make port 3036 visible to the browser in Codespaces first
+export RSPACK_DEV_SERVER_HOST=0.0.0.0
+export RSPACK_DEV_SERVER_PUBLIC_URL="https://$CODESPACE_NAME-3036.$GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"
+bin/dev
+```
+
+The same goes for a dev server behind a TLS proxy. Only the websocket uses this URL; scripts and chunks still come through Rails. CI checks that the browser connects to the public URL while the dev server listens on `0.0.0.0`; Codespaces itself is not tested.
 
 ### Bundle analysis
 
@@ -343,6 +354,8 @@ export default railsConfig((config, { root, isDevServer, isProduction }) => {
 });
 ```
 
+What stays stable across releases is `railsConfig` and the second argument of its callback, `{ root, isDevServer, isProduction, analyze }`. The rest of the base config can change in any release: rule order, the plugin list, other exports of `config/rspack/rails.mjs`. So find a rule by what it matches (`config.module.rules.find((rule) => String(rule.test).includes("scss"))`), not by its index.
+
 Upgrading the gem never touches `rspack.config.mjs`, so your changes stay put. When rspack runs on its own (`bin/dev`, `npm run build`) with a `config/rspack/rails.mjs` from another version than `Gemfile.lock`, it prints a warning that tells you to run `rspack:sync`.
 
 ### Environment variables
@@ -353,24 +366,26 @@ Upgrading the gem never touches `rspack.config.mjs`, so your changes stay put. W
 |---|---|---|
 | `RSPACK_DEV_SERVER_HOST` | `localhost` | Dev server host |
 | `RSPACK_DEV_SERVER_PORT` | `3036` | Dev server port |
+| `RSPACK_DEV_SERVER_PUBLIC_URL` | `http://<host>:<port>` | Where the browser opens the HMR websocket, for forwarded ports and TLS proxies ([Dev containers](#dev-containers)) |
 | `RSPACK_DEV_SERVER` | | `false` turns the dev server check off; the helpers always use `app/assets/builds` |
 | `RSPACK_DEVTOOL` | `cheap-module-source-map` in development, off in production | Source map [devtool](https://rspack.rs/config/devtool); `false` turns maps off |
 | `RSPACK_LAZY_COMPILATION` | on under `rspack serve` | `false` compiles every dynamic `import()` upfront |
 | `RSPACK_VIEW_RELOAD` | on under `rspack serve` | `false` stops reloading the page when `app/views`, `app/helpers` or `app/components` change |
 | `RSPACK_REACT_COMPILER` | off | `true` enables the React Compiler |
 | `NODE_VERSION` | the local `node --version` | Node.js version `rspack:install` writes into the `Dockerfile` |
-| `SKIP_RSPACK_BUILD` | | Any value stops `rspack:build` from running before `assets:precompile` and test tasks |
-| `FORCE` | | `1` lets `rspack:migrate` run on a dirty git tree |
+| `RSPACK_SKIP_BUILD` | | Any value stops `rspack:build` from running before `assets:precompile` and test tasks (was `SKIP_RSPACK_BUILD`, which works until 1.0) |
+| `RSPACK_FORCE` | | `1` lets `rspack:migrate` run on a dirty git tree (was `FORCE`, which works until 1.0) |
 
-Rails-side settings can also go in an initializer. This does not change `rspack.config.mjs`, so prefer env vars for host and port:
+To decide in Ruby whether pages use the dev server, use an initializer:
 
 ```ruby
 # config/initializers/rspack_rails.rb
 RspackRails.configure do |config|
-  config.dev_server_port = 4000
-  config.dev_server_enabled = false
+  config.dev_server_enabled = false # pages always use app/assets/builds
 end
 ```
+
+`config.dev_server_host=` and `config.dev_server_port=` are deprecated and go away in 1.0. `rspack serve` never read them, so Rails looked for the dev server where none listened. Use `RSPACK_DEV_SERVER_HOST` and `RSPACK_DEV_SERVER_PORT`, which Rails and rspack both read. Deprecations go through `Rails.application.deprecators`, so `config.active_support.deprecation` decides whether they warn, log or raise (`FORCE` for `rspack:migrate` is the exception: that task does not boot the app, so its warning always goes to stderr).
 
 ## Tasks
 
@@ -384,7 +399,7 @@ end
 | `bin/rails rspack:install:sass` | Sets up Sass, migrating from dartsass-rails |
 | `bin/rails rspack:migrate` | Moves an importmap or jsbundling app to Rspack |
 | `bin/rails rspack:build` | Updates `config/rspack/rails.mjs`, installs JavaScript dependencies, then runs `build` |
-| `bin/rails rspack:sync` | Updates `config/rspack/rails.mjs` to this version of rspack_rails |
+| `bin/rails rspack:sync` | Updates `config/rspack/rails.mjs`, and the Stimulus and React loaders if installed, to this version of rspack_rails |
 | `bin/rails rspack:clobber` | Removes Rspack output from `app/assets/builds`, leaving other tools' files alone (also runs with `assets:clobber`) |
 | `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, `Procfile.dev` and the dev server |
 | `bin/rails rspack:analyze` | Writes an Rsdoctor bundle report to `tmp/rsdoctor/rsdoctor-report.html` |
@@ -397,7 +412,7 @@ bin/rails rspack:sync      # or let the next rspack:build do it
 bin/rails rspack:doctor
 ```
 
-`config/rspack/rails.mjs` follows the gem; your `rspack.config.mjs` is left alone. Commit both. Some releases also change other files (`Dockerfile`, `bin/setup`); the [CHANGELOG](CHANGELOG.md) says when to re-run `bin/rails rspack:install`. Re-running it is safe: it leaves your config, entry, layout and `Procfile.dev` alone when they are already set up.
+`config/rspack/rails.mjs` follows the gem, as do `app/javascript/controllers/autoload.js` and `app/javascript/components/mount.js` once their installers have run. Your `rspack.config.mjs` is left alone. Commit them all. Some releases also change other files (`Dockerfile`, `bin/setup`); the [CHANGELOG](CHANGELOG.md) says when to re-run `bin/rails rspack:install`. Re-running it is safe: it leaves your config, entry, layout and `Procfile.dev` alone when they are already set up.
 
 **From a version before 0.13.0**, `rspack.config.mjs` held the whole config. Run `bin/rails rspack:install` once and answer "y" to replace it (answer "d" first to see your own changes), then move those changes into the `railsConfig` callback. `rspack:doctor` warns until you do. From then on, upgrades need no merging.
 
@@ -421,6 +436,7 @@ bin/setup
 bundle exec rake                      # specs + rubocop
 bin/integration                       # new Rails app + every installer, build, doctor and precompile
 bin/integration "~> 7.2.0"            # against a specific Rails version
+PACKAGE_MANAGER=yarn bin/integration  # or bun; Yarn is Yarn 1. Default: npm
 bin/integration-migrate importmap     # rails new + rspack:migrate (or: jsbundling, tailwind, sass)
 bin/integration-typescript            # application.ts entry + Slim layout through every installer
 bin/integration-hmr                   # rails server + rspack serve, Chromium checks edits hot-reload

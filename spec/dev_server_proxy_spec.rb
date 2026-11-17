@@ -9,11 +9,8 @@ RSpec.describe RspackRails::DevServerProxy do
   let(:requests) { Queue.new }
   let(:server) { TCPServer.new("127.0.0.1", 0) }
   let(:config) do
-    RspackRails::Configuration.new({}).tap do |c|
-      c.dev_server_host = "127.0.0.1"
-      c.dev_server_port = server.addr[1]
-      c.dev_server_enabled = true
-    end
+    env = { "RSPACK_DEV_SERVER_HOST" => "127.0.0.1", "RSPACK_DEV_SERVER_PORT" => server.addr[1].to_s }
+    RspackRails::Configuration.new(env).tap { |c| c.dev_server_enabled = true }
   end
   let(:proxy) { described_class.new(app, config: config) }
 

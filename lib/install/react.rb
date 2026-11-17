@@ -12,7 +12,7 @@ require_config! "ReactRefreshRspackPlugin", "React"
 entry = main_entry!
 
 say "Adding React component autoloading"
-copy_file "#{__dir__}/react/mount.js", "app/javascript/components/mount.js", force: true
+install_managed_file RspackRails::ManagedFile::REACT
 if Dir.glob("app/javascript/components/**/*.{jsx,tsx}").empty?
   hello = typescript ? "Hello.tsx" : "Hello.jsx"
   copy_file "#{__dir__}/react/#{hello}", "app/javascript/components/#{hello}"

@@ -30,6 +30,8 @@ const lazyRequests = [];
 page.on("request", (request) => {
   if (request.url().includes("_rspack/lazy/trigger")) lazyRequests.push(request.url());
 });
+const webSockets = [];
+page.on("websocket", (socket) => webSockets.push(socket.url()));
 page.on("console", (message) => logs.push(`${message.type()}: ${message.text()}`));
 page.on("pageerror", (error) => logs.push(`pageerror: ${error.message}`));
 
@@ -41,6 +43,16 @@ const notReloaded = async () => {
   if (!(await page.evaluate(() => window.__noReload === true))) throw new Error("the page reloaded");
 };
 const waitFor = (fn, arg) => page.waitForFunction(fn, arg, { timeout: 20_000 });
+
+await check("The HMR websocket connects to RSPACK_DEV_SERVER_PUBLIC_URL", async () => {
+  const publicUrl = process.env.RSPACK_DEV_SERVER_PUBLIC_URL;
+  if (!publicUrl) return;
+  const expected = `${publicUrl.replace(/^http/, "ws")}/ws`;
+  for (let i = 0; i < 50 && !webSockets.includes(expected); i++) await page.waitForTimeout(100);
+  if (!webSockets.includes(expected)) {
+    throw new Error(`expected a websocket to ${expected}, got ${webSockets.join(", ") || "none"}`);
+  }
+});
 
 await check("Stimulus controller edit is hot-swapped and keeps its state", async () => {
   for (let i = 0; i < 3; i++) await page.click("#increment");

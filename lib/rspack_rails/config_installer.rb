@@ -32,10 +32,22 @@ module RspackRails
       exit 1
     end
 
+    # config/rspack/rails.mjs and the other files rspack_rails keeps up to date.
     def sync_rspack_config
-      result = RspackConfig.sync(destination_root)
-      say "Writing #{RspackConfig::BASE} for rspack_rails #{VERSION}" if result.written
-      say RspackConfig.edits_message(result.backup), :yellow if result.backup
+      ManagedFile.sync_all(destination_root).each { |result| report_sync(result) }
+    end
+
+    # Writes a managed file (ManagedFile::STIMULUS, ::REACT) for its installer.
+    def install_managed_file(file)
+      report_sync(file.sync(destination_root, create: true))
+    end
+
+    def report_sync(result)
+      return unless result.written
+
+      say "Writing #{result.path} for rspack_rails #{VERSION}"
+      file = ManagedFile::ALL.find { |managed| managed.path == result.path }
+      say file.edits_message(result.backup), :yellow if result.backup
     end
   end
 end

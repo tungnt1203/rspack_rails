@@ -14,7 +14,8 @@ module RspackRails
     SYMBOLS = { ok: "✓", warn: "!", error: "✗" }.freeze
     CHECKS = %i[
       config_check scripts_check entry_check build_check layout_check stylesheet_check app_stylesheets_check
-      procfile_check dockerfile_check devcontainer_check stimulus_check dev_server_check
+      procfile_check dockerfile_check devcontainer_check stimulus_check stimulus_loader_check react_loader_check
+      dev_server_check
     ].freeze
 
     # config/rspack/rails.mjs, by RspackConfig.state.
@@ -25,6 +26,15 @@ module RspackRails
       outdated: [:warn, "%s is not the one from rspack_rails #{VERSION}",
                  "Run `bin/rails rspack:sync` (rspack:build does it too)"],
       current: [:ok, "uses %s from rspack_rails #{VERSION}", nil]
+    }.freeze
+
+    # The Stimulus and React loaders, by ManagedFile#state.
+    LOADER_STATES = {
+      edited: [:warn, "%s has hand edits, which the next rspack:build replaces",
+               "Copy it to a file of your own, import that instead and delete %s"],
+      outdated: [:warn, "%s is not the one from rspack_rails #{VERSION}",
+                 "Run `bin/rails rspack:sync` (rspack:build does it too)"],
+      current: [:ok, "%s from rspack_rails #{VERSION}", nil]
     }.freeze
 
     def initialize(root, config: RspackRails.config, dev_server: RspackRails.dev_server, node_version: nil)
@@ -242,6 +252,22 @@ module RspackRails
         Check.new(:error, "Stimulus", "@hotwired/stimulus is not installed",
                   "Run `#{package_manager.add_command("@hotwired/stimulus")}`")
       end
+    end
+
+    def stimulus_loader_check
+      loader_check(ManagedFile::STIMULUS, "Stimulus loader")
+    end
+
+    def react_loader_check
+      loader_check(ManagedFile::REACT, "React loader")
+    end
+
+    def loader_check(file, name)
+      state = file.state(@root)
+      return if state == :missing
+
+      status, detail, hint = LOADER_STATES.fetch(state)
+      Check.new(status, name, format(detail, file.path), hint&.gsub("%s", file.path))
     end
 
     def dev_server_check

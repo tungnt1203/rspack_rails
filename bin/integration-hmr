@@ -16,6 +16,10 @@ PLAYWRIGHT_VERSION="1.65.0"
 # Not 3000/3036, so a dev server already running on this machine does not clash.
 RAILS_PORT="${RAILS_PORT:-3100}"
 export RSPACK_DEV_SERVER_PORT="${RSPACK_DEV_SERVER_PORT:-3136}"
+# As in a container: the dev server listens on every interface, and the browser
+# reaches its HMR websocket at another address, given by the public URL.
+export RSPACK_DEV_SERVER_HOST=0.0.0.0
+export RSPACK_DEV_SERVER_PUBLIC_URL="http://127.0.0.1:$RSPACK_DEV_SERVER_PORT"
 
 step() { printf '\n==> %s\n' "$*"; }
 
