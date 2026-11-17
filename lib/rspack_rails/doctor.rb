@@ -192,7 +192,8 @@ module RspackRails
       linking = layouts.select { |path| read(path).match?(Layouts::APP_STYLESHEETS) }
       return if linking.empty?
 
-      Check.new(:warn, "Stylesheet", "#{names(linking)} links rspack's bundles again through stylesheet_link_tag :app",
+      Check.new(:warn, "Stylesheet", "#{names(linking)} #{verb(linking, "links")} rspack's bundles again through " \
+                                     "stylesheet_link_tag :app",
                 %(Use stylesheet_link_tag "application" (or list your own stylesheets); ) +
                 "a print or admin bundle otherwise applies on every page")
     end

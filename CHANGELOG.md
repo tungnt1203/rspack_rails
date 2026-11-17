@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+## [1.0.0.rc2] - 2026-11-17
+
+Found by migrating a real two-layout importmap + tailwindcss-rails app with rc1.
+
+- `rspack:migrate` puts `rspack_javascript_tag "application"` where each layout or layout partial called `javascript_importmap_tags`. It used to remove the call from every layout and add the new tag only to the application layout, so an admin layout lost its JavaScript without a word. A call with arguments is removed with a note
+- `rspack_stylesheet_tag "application"` goes next to every `rspack_javascript_tag "application"`, in each layout or `<head>` partial, not only in the application layout. A tag in a layout partial the layout renders (`render "layouts/head"`) counts as the layout's own, so it is not added twice
+- `rspack:install:tailwind` moves the other CSS files in `app/assets/tailwind/` along with `application.css`, so its `@import "./fonts.css"` still resolves. The build used to fail with "Can't resolve"
+- `stylesheet_link_tag :app` becomes the app's own stylesheets by name, in the order `:app` linked them (`stylesheet_link_tag "application", "driver"`), when the app has more than `application.css`. It used to stay, with a warning, linking rspack's bundles a second time
+- `rspack:doctor` says "use" and "link" for several layouts in its stylesheet check too
+
 ## [1.0.0.rc1] - 2026-11-17
 
 The first release candidate for 1.0. From 1.0, the parts listed under "Stability" in the README change only in a major release. Upgrading from before 0.18.0: go through 0.19 first and fix what `rspack:doctor` reports.

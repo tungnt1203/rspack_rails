@@ -31,6 +31,37 @@ module RspackRails
       path.end_with?(".erb")
     end
 
+    # The layout's content followed by that of the layout partials it renders
+    # (`render "layouts/head"` reads app/views/layouts/_head.html.erb), so a
+    # tag in a shared <head> partial counts as the layout's own.
+    def content_with_partials(root, path, depth: 2)
+      file = Pathname(root).join(path)
+      return "" unless file.file?
+
+      content = file.read
+      return content if depth.zero?
+
+      partials = content.scan(%r{render[ (]+(?:partial:\s*)?["']layouts/([\w/]+)["']}).flatten.uniq
+      partials.reduce(content) do |all, name|
+        partial = partial_path(root, name)
+        partial ? "#{all}\n#{content_with_partials(root, partial, depth: depth - 1)}" : all
+      end
+    end
+
+    # "site/header" -> app/views/layouts/site/_header.html.erb (or .slim, .haml), or nil.
+    def partial_path(root, name)
+      dir, base = File.split(name)
+      prefix = dir == "." ? DIR : "#{DIR}/#{dir}"
+      EXTENSIONS.map { |ext| "#{prefix}/_#{base}.html.#{ext}" }.find { |path| Pathname(root).join(path).file? }
+    end
+
+    # The names `stylesheet_link_tag` takes for the app's own stylesheets
+    # (app/assets/stylesheets/admin/print.css -> "admin/print"), in the order
+    # `stylesheet_link_tag :app` links them.
+    def own_stylesheet_names(paths)
+      paths.sort.map { |path| path.delete_prefix("app/assets/stylesheets/").delete_suffix(".css") }
+    end
+
     # `rspack_javascript_tag "application"` as an output line in the layout's syntax.
     def tag(path, code)
       erb?(path) ? "<%= #{code} %>" : "= #{code}"

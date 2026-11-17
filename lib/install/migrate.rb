@@ -24,7 +24,8 @@ when :importmap
   packages = migration.npm_install_args
   vendored = migration.vendored_files
 
-  remove_from_layouts "javascript_importmap_tags"
+  # In place, in every layout and layout partial that had it (an admin layout too).
+  replace_in_layouts "javascript_importmap_tags", %(rspack_javascript_tag "application", "data-turbo-track": "reload")
   if File.exist?("app/assets/config/manifest.js")
     gsub_file "app/assets/config/manifest.js", %r{^//= link_tree \.\./\.\./javascript .js\n}, ""
     gsub_file "app/assets/config/manifest.js", %r{^//= link_tree \.\./\.\./\.\./vendor/javascript .js\n}, ""

@@ -47,6 +47,18 @@ if [ "$MODE" = jsbundling ] && [ ! -f yarn.lock ]; then
   npm install --silent @hotwired/turbo-rails @hotwired/stimulus
 fi
 
+if [ "$MODE" = importmap ] || [ "$MODE" = tailwind ]; then
+  # A second layout and a second stylesheet of the app's own, as a real app has.
+  cp app/views/layouts/application.html.erb app/views/layouts/admin.html.erb
+  mkdir -p app/assets/stylesheets
+  printf '.driver-popover { color: #123456; }\n' > app/assets/stylesheets/driver.css
+fi
+if [ "$MODE" = tailwind ]; then
+  # A file application.css imports, which moves with it.
+  printf '.font-check { letter-spacing: 0.123em; }\n' > app/assets/tailwind/fonts.css
+  ruby -i -pe 'sub(/^@import "tailwindcss";$/) { "#{$&}\n@import \"./fonts.css\";" }' app/assets/tailwind/application.css
+fi
+
 echo "gem \"rspack_rails\", path: \"$GEM_ROOT\"" >> Gemfile
 bundle install --quiet
 printf '/log/*\n/tmp/*\n/storage/*\n/public/assets\n/node_modules\n/app/assets/builds/*\n!/app/assets/builds/.keep\n.bundle\n' > .gitignore
@@ -66,6 +78,12 @@ else
   ! grep -q '"esbuild"' package.json || fail "esbuild still in package.json"
 fi
 grep -q 'rspack_javascript_tag "application"' app/views/layouts/application.html.erb || fail "layout tag missing"
+if [ "$MODE" = importmap ] || [ "$MODE" = tailwind ]; then
+  grep -q 'rspack_javascript_tag "application"' app/views/layouts/admin.html.erb || fail "admin layout lost its script"
+  ! grep -q 'stylesheet_link_tag :app' app/views/layouts/admin.html.erb || fail "stylesheet_link_tag :app left"
+  grep -q 'stylesheet_link_tag "application", "driver"' app/views/layouts/admin.html.erb ||
+    fail "the app's own stylesheets are not linked by name"
+fi
 grep -q 'controllers/autoload' app/javascript/application.js || fail "autoload import missing"
 grep -q '^js: .* dev$' Procfile.dev || fail "Procfile.dev does not run the dev server"
 
@@ -92,6 +110,9 @@ if [ "$MODE" = tailwind ]; then
   ! grep -q '^css:' Procfile.dev || fail "Procfile.dev still runs tailwindcss:watch"
   grep -q '@import "tailwindcss"' app/javascript/application.css || fail "tailwind import not moved"
   grep -q 'rspack_stylesheet_tag "application"' app/views/layouts/application.html.erb || fail "stylesheet tag missing"
+  grep -q 'rspack_stylesheet_tag "application"' app/views/layouts/admin.html.erb || fail "admin stylesheet tag missing"
+  [ -f app/javascript/fonts.css ] || fail "fonts.css did not move with application.css"
+  assert_no_file app/assets/tailwind
 fi
 
 step "rspack:build"
@@ -126,6 +147,7 @@ fi
 if [ "$MODE" = tailwind ]; then
   # The generated layout uses `container mx-auto mt-28 px-5 flex`.
   grep -q 'mx-auto' public/assets/application.bundle-*.css || fail "tailwind utilities missing"
+  grep -q 'letter-spacing:.123em' public/assets/application.bundle-*.css || fail "fonts.css not in the bundle"
   ls public/assets | grep -q '^tailwind' && fail "tailwindcss-rails output still in public/assets"
 fi
 
