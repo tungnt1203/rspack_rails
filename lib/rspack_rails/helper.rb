@@ -10,7 +10,7 @@ module RspackRails
     # runtime shared by several entries, is linked once.
     #
     # Both tag helpers take the options of javascript_include_tag and
-    # stylesheet_link_tag, including `integrity: true` (see the README).
+    # stylesheet_link_tag, including `integrity: true` (see docs/production.md).
     def rspack_javascript_tag(*entries, **)
       scripts = entries.flat_map { |entry| RspackRails.manifest[entry].scripts }
       rspack_script_tags(scripts, rspack_tag_options(defer: true, **))

@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+- README: a shorter front page (quick start, what you get, how it works). The full guide moves to `docs/` (usage, production, configuration, migrating, upgrading, troubleshooting)
+- CONTRIBUTING.md: setting up, a map of the code, and which integration script to run for which change
+
 ## [1.0.0.rc2] - 2026-11-17
 
 Found by migrating a real two-layout importmap + tailwindcss-rails app with rc1.
