@@ -345,9 +345,13 @@ step "assets:precompile (production)"
 # Subresource Integrity: Propshaft only computes hashes with an algorithm set (Sprockets always does).
 echo 'Rails.application.config.assets.integrity_hash_algorithm = "sha384"' > config/initializers/subresource_integrity.rb
 export RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1
-# Drop the development build (and its source maps), as a fresh deploy would.
-bin/rails assets:clobber
-assert_match "$(ls app/assets/builds)" '^$'
+# Built where development builds ran before: each build deletes what earlier
+# ones left (their source maps, old chunks, also in subdirectories), and keeps
+# the output of other tools.
+mkdir -p app/assets/builds/old
+echo 'stale' > app/assets/builds/old/chart-0000.digested.js
+echo 'stale' > app/assets/builds/lazy-0000.digested.js
+echo '.other-tool {}' > app/assets/builds/other-tool.css
 precompile=$(bin/rails assets:precompile 2>&1) || { echo "$precompile"; exit 1; }
 echo "$precompile"
 # Propshaft looks root-relative url()s up in app/assets; /icon.png lives in public/ and stays as written.
@@ -378,6 +382,10 @@ grep -lq 'postMessage' public/assets/*.digested.js || { echo "worker chunk missi
 grep -lq 'lazy-chunk' public/assets/*.digested.js || { echo "lazy chunk missing"; exit 1; }
 ls public/assets | grep -q '\.map$' && { echo "source maps in public/assets"; exit 1; }
 ls -a public/assets | grep -q 'rspack-manifest' && { echo ".rspack-manifest.json in public/assets"; exit 1; }
+builds=$(cd app/assets/builds && find . -type f | sort)
+grep -Eq '\.map$|0000\.digested|runtime\.js' <<<"$builds" && { echo "earlier builds left in app/assets/builds:"; echo "$builds"; exit 1; }
+grep -q '^\./other-tool\.css$' <<<"$builds" || { echo "another tool's output was deleted"; exit 1; }
+ls public/assets | grep -q '0000' && { echo "stale chunks in public/assets"; exit 1; }
 
 step "Helpers in production"
 # integrity: true hashes what the asset pipeline serves (CSS after Propshaft rewrites its url()s).
@@ -402,5 +410,9 @@ none=$(bin/rails runner 'puts ApplicationController.render(inline: %(<%= rspack_
 [ -z "$none" ] || { echo "linked CSS for an entry without any: $none"; exit 1; }
 react=$(bin/rails runner 'puts ApplicationController.render(inline: %(<%= react_component "admin/Badge", label: "x" %>))')
 assert_match "$react" 'data-react-component="admin/Badge"'
+
+step "assets:clobber"
+bin/rails assets:clobber
+assert_match "$(ls -A app/assets/builds | tr '\n' ' ')" '^\.keep other-tool\.css $'
 
 step "OK"
