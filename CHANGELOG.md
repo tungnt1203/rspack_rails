@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-19
+
+The first stable release. Nothing changed in the gem since 1.0.0.rc2; the parts listed under "Stability" in the README now change only in a major release. Upgrading from before 0.18.0: go through 0.19 first and fix what `rspack:doctor` reports.
+
 - README: a shorter front page (quick start, what you get, how it works). The full guide moves to `docs/` (usage, production, configuration, migrating, upgrading, troubleshooting)
 - CONTRIBUTING.md: setting up, a map of the code, and which integration script to run for which change
 
