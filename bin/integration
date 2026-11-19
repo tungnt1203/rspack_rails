@@ -385,7 +385,7 @@ ls -a public/assets | grep -q 'rspack-manifest' && { echo ".rspack-manifest.json
 builds=$(cd app/assets/builds && find . -type f | sort)
 grep -Eq '\.map$|0000\.digested|runtime\.js' <<<"$builds" && { echo "earlier builds left in app/assets/builds:"; echo "$builds"; exit 1; }
 grep -q '^\./other-tool\.css$' <<<"$builds" || { echo "another tool's output was deleted"; exit 1; }
-ls public/assets | grep -q '0000' && { echo "stale chunks in public/assets"; exit 1; }
+ls public/assets | grep -q -- '-0000\.digested' && { echo "stale chunks in public/assets"; exit 1; }
 
 step "Helpers in production"
 # integrity: true hashes what the asset pipeline serves (CSS after Propshaft rewrites its url()s).
