@@ -3,6 +3,8 @@
 ## [1.0.2] - 2026-11-19
 
 - The view helpers keep the last complete `.rspack-manifest.json` when they read it while rspack is rewriting it, and read it again on the next call. They used to fall back to the conventional file names until the next rebuild, which under `rspack serve` left `runtime.js` out and broke hot updates on that page
+- A build with a shared runtime (`config.optimization.runtimeChunk` set in `rspack.config.mjs`) no longer deletes `runtime.js` along with the empty script of a stylesheet-only entry (`app/javascript/entrypoints/print.css`). The manifest still listed it, so pages linked a missing file
+- Usage guide: a build makes each entry self-contained, so two entries on one page each run their own copy of the modules they share. How to share one runtime in builds too
 - `rspack_stylesheet_tag` passes its `nonce` to the hot update script it adds for a stylesheet-only entry under `rspack serve`, so a Content Security Policy no longer blocks it
 
 ## [1.0.1] - 2026-11-19
