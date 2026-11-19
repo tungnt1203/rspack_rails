@@ -1,0 +1,15 @@
+name: Feature request
+description: Something rspack_rails could do that it does not do yet
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The problem in your app, not the solution. What do you do today instead?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like rspack_rails to do

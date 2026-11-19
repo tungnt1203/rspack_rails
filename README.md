@@ -90,6 +90,8 @@ Put two helpers in your layout:
 | [Upgrading](docs/upgrading.md) | Updating the gem, and what stays stable from 1.0 |
 | [Troubleshooting](docs/troubleshooting.md) | Common errors and what to do about them |
 
+How fast is it? [Rails + Rspack: esbuild speed, webpack features, one command](https://dev.to/tungnt1203/rails-rspack-esbuild-speed-webpack-features-one-command-4652) compares Rspack with esbuild and webpack; [`benchmark/`](benchmark) has the script to run it yourself.
+
 [rspack_rails-demo](https://github.com/tungnt1203/rspack_rails-demo) is a Rails 8 app with TypeScript Stimulus controllers, Tailwind CSS, code splitting and a second entry point. Its git history has one commit per installer, so you can see exactly what each one changes.
 
 ## Requirements

@@ -74,6 +74,7 @@ template.rb                  The `rails new -m` template
 spec/                        RSpec unit specs, one file per class
   fixtures/doctor/           The doctor's full report for a few apps (UPDATE_GOLDEN=1 rewrites them)
 bin/integration*             End-to-end checks against freshly generated Rails apps
+benchmark/                   Build times of Rspack, esbuild and webpack on a generated app (not shipped in the gem)
 docs/                        The user guides linked from the README
 site/                        The project website, deployed to GitHub Pages
 ```
