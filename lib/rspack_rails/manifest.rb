@@ -22,8 +22,9 @@ module RspackRails
     def initialize(root)
       @root = Pathname(root)
       @path = @root.join(PATH)
-      @mtime = nil
-      @entries = {}
+      # [mtime, entries], replaced as one object: a Puma thread never pairs a
+      # new mtime with the previous entries.
+      @cache = [nil, {}].freeze
     end
 
     # The entry's files, or the conventional names when rspack has not built
@@ -39,12 +40,18 @@ module RspackRails
     private
 
     # Re-read whenever rspack rewrites the file (each rebuild under `rspack serve`).
+    # rspack does not write it atomically: a read in the middle of a write keeps
+    # the last complete manifest and tries again on the next call.
     def entries
+      cached_mtime, cached = @cache
       mtime = @path.file? ? @path.mtime : nil
-      return @entries if mtime == @mtime
+      return cached if mtime == cached_mtime
 
-      @mtime = mtime
-      @entries = mtime ? parse(@path.read) : {}
+      entries = mtime ? parse(@path.read) : {}
+      return cached unless entries
+
+      @cache = [mtime, entries].freeze
+      entries
     end
 
     def parse(json)
@@ -53,7 +60,7 @@ module RspackRails
                   stylesheet_only: files.fetch("stylesheetOnly", false))
       end
     rescue JSON::ParserError
-      {}
+      nil
     end
   end
 end

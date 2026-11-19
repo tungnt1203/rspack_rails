@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-19
+
+- The view helpers keep the last complete `.rspack-manifest.json` when they read it while rspack is rewriting it, and read it again on the next call. They used to fall back to the conventional file names until the next rebuild, which under `rspack serve` left `runtime.js` out and broke hot updates on that page
+- `rspack_stylesheet_tag` passes its `nonce` to the hot update script it adds for a stylesheet-only entry under `rspack serve`, so a Content Security Policy no longer blocks it
+
 ## [1.0.1] - 2026-11-19
 
 - The view helpers read the manifest of the current `Rails.root`. A process that switches apps (tests, an engine's dummy app) kept reading the first app's `.rspack-manifest.json`

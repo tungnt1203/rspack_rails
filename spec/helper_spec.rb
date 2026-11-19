@@ -55,6 +55,12 @@ RSpec.describe RspackRails::Helper do
       expect(view.rspack_javascript_tag("admin")).not_to include("runtime.js")
     end
 
+    it "gives a stylesheet-only entry's hot update script the stylesheet's nonce" do
+      html = view.rspack_stylesheet_tag("print", nonce: "r4nd0m")
+      expect(html).to include('href="/rspack/print.bundle.css" nonce="r4nd0m"')
+      expect(html).to match(%r{<script src="/rspack/print\.js"[^>]* nonce="r4nd0m"})
+    end
+
     it "links stylesheets from the dev server" do
       expect(view.rspack_stylesheet_tag("application")).to eq(
         '<link rel="stylesheet" href="/rspack/application.bundle.css" />'
