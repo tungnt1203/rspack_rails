@@ -1,4 +1,4 @@
-# The public API of rspack_rails, stable from 1.0 (README "Stability").
+# The public API of rspack_rails, stable from 1.0 (docs/upgrading.md, "Stability").
 # Other constants and methods under RspackRails (the installers, the doctor,
 # the migration, the deprecator) are internal and may change in any release.
 module RspackRails

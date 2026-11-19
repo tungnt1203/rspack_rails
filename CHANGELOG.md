@@ -2,7 +2,7 @@
 
 ## [1.0.0] - 2026-11-19
 
-The first stable release. Nothing changed in the gem since 1.0.0.rc2; the parts listed under "Stability" in the README now change only in a major release. Upgrading from before 0.18.0: go through 0.19 first and fix what `rspack:doctor` reports.
+The first stable release. Nothing changed in the gem since 1.0.0.rc2; the parts listed under [Stability](docs/upgrading.md#stability) now change only in a major release. Upgrading from before 0.18.0: go through 0.19 first and fix what `rspack:doctor` reports.
 
 - README: a shorter front page (quick start, what you get, how it works). The full guide moves to `docs/` (usage, production, configuration, migrating, upgrading, troubleshooting)
 - CONTRIBUTING.md: setting up, a map of the code, and which integration script to run for which change
@@ -19,7 +19,7 @@ Found by migrating a real two-layout importmap + tailwindcss-rails app with rc1.
 
 ## [1.0.0.rc1] - 2026-11-17
 
-The first release candidate for 1.0. From 1.0, the parts listed under "Stability" in the README change only in a major release. Upgrading from before 0.18.0: go through 0.19 first and fix what `rspack:doctor` reports.
+The first release candidate for 1.0. From 1.0, the parts listed under [Stability](docs/upgrading.md#stability) change only in a major release. Upgrading from before 0.18.0: go through 0.19 first and fix what `rspack:doctor` reports.
 
 - Removed, deprecated in 0.18.0: `SKIP_RSPACK_BUILD` (use `RSPACK_SKIP_BUILD`), `FORCE` for `rspack:migrate` (use `RSPACK_FORCE`), and `RspackRails.config.dev_server_host=` and `dev_server_port=` (use `RSPACK_DEV_SERVER_HOST` and `RSPACK_DEV_SERVER_PORT`). The old variables are ignored; the setters raise `NoMethodError`
 - A managed file without a checksum line (`config/rspack/rails.mjs` before 0.17.0, the Stimulus and React loaders before 0.18.0) counts as edited: it is saved to `tmp/rspack_rails/` before it is replaced. 0.18 and 0.19 recognized the released copies and replaced them without a backup
