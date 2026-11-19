@@ -11,7 +11,6 @@
     → Run `bin/rails rspack:install`
 ✗ Entry points: none found
     → Create app/javascript/application.js or a file in app/javascript/entrypoints/
-✓ Build output: app/assets/builds has 
 ! Layout: no layout found in app/views/layouts
 ! Procfile.dev: no js process
     → Run `bin/rails rspack:install`

@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- `rspack:doctor` leaves out the build output check when the app has no entry points. It said "✓ Build output: app/assets/builds has" with nothing after it
+
 ## [1.0.0] - 2026-11-19
 
 The first stable release. Nothing changed in the gem since 1.0.0.rc2; the parts listed under [Stability](docs/upgrading.md#stability) now change only in a major release. Upgrading from before 0.18.0: go through 0.19 first and fix what `rspack:doctor` reports.

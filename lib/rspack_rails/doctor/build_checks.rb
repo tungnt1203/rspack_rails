@@ -57,7 +57,10 @@ module RspackRails
                   "Create app/javascript/application.js or a file in app/javascript/entrypoints/")
       end
 
+      # Nothing to build without entry points; entry_check reports that.
       def build_check
+        return if entrypoints.empty?
+
         missing = entrypoints.reject do |name, paths|
           exist?("app/assets/builds/#{name}#{Entrypoints.css_only?(paths) ? ".bundle.css" : ".js"}")
         end.keys
