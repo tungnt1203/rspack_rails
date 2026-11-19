@@ -49,4 +49,17 @@ RSpec.describe RspackRails::Manifest do
     path.write("{")
     expect(manifest["application"].scripts).to eq(["application.js"])
   end
+
+  it "keeps the last complete manifest while rspack rewrites it, then reads the new one" do
+    write({ application: { js: ["runtime.js", "application.js"] } }, Time.now - 10)
+    expect(manifest["application"].scripts).to eq(["runtime.js", "application.js"])
+
+    path.write("")
+    File.utime(Time.now - 5, Time.now - 5, path)
+    expect(manifest["application"].scripts).to eq(["runtime.js", "application.js"])
+
+    path.write(JSON.generate(entries: { application: { js: ["application.js"] } }))
+    File.utime(Time.now - 5, Time.now - 5, path)
+    expect(manifest["application"].scripts).to eq(["application.js"])
+  end
 end

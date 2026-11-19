@@ -42,7 +42,17 @@ app/javascript/entrypoints/print.scss   -> print.bundle.css (no print.js)
 <%= rspack_stylesheet_tag "print", media: "print" %>
 ```
 
-`admin.js` and `admin.css` side by side make one entry. Several entries can share a page: under `rspack serve` the helpers link one shared `runtime.js`, so hot updates reach every entry.
+`admin.js` and `admin.css` side by side make one entry.
+
+Several entries can share a page. Under `rspack serve` the helpers link one shared `runtime.js`, so hot updates reach every entry. A build makes each entry self-contained instead, so `<entry>.js` runs on its own. On a page with two entries, a module both of them import (Turbo, your Stimulus `application`, React) is then loaded and run twice, each entry with its own copy. To share one runtime in builds too, add this to `rspack.config.mjs`:
+
+```js
+export default railsConfig((config) => {
+  config.optimization.runtimeChunk = { name: "runtime" };
+});
+```
+
+The helpers then link `runtime.js` before the entries, once per page. Only load the entries through the helpers after this, since `<entry>.js` no longer runs without `runtime.js`.
 
 Restart the dev server after adding a new entry point.
 

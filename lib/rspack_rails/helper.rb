@@ -19,14 +19,14 @@ module RspackRails
     # The CSS that rspack extracts from an entry's imports
     # (app/assets/builds/<entry>.bundle.css). Under `rspack serve`, a
     # stylesheet-only entry (app/javascript/entrypoints/print.css) also gets
-    # its script, which carries the hot update client.
+    # its script, which carries the hot update client (with the same `nonce`,
+    # so a Content Security Policy lets it run).
     def rspack_stylesheet_tag(*entries, **options)
       entries = entries.map { |entry| RspackRails.manifest[entry] }
       links = entries.flat_map(&:stylesheets).uniq.map do |file|
         stylesheet_link_tag(rspack_source(file), **rspack_tag_options(**options))
       end
-      hot = rspack_script_tags(entries.select(&:stylesheet_only).flat_map(&:scripts), rspack_tag_options(defer: true))
-      safe_join([*links, hot].reject(&:empty?), "\n")
+      safe_join([*links, rspack_hot_css_scripts(entries, options)].reject(&:empty?), "\n")
     end
 
     # A mount point for app/javascript/components/<name>.{jsx,tsx}, rendered
@@ -41,6 +41,12 @@ module RspackRails
     end
 
     private
+
+    # Under `rspack serve`, the scripts of stylesheet-only entries; empty otherwise.
+    def rspack_hot_css_scripts(entries, options)
+      scripts = entries.select(&:stylesheet_only).flat_map(&:scripts)
+      rspack_script_tags(scripts, rspack_tag_options(defer: true, **options.slice(:nonce, "nonce")))
+    end
 
     def rspack_script_tags(files, options)
       @rspack_linked_scripts ||= Set.new
