@@ -1,0 +1,23 @@
+✓ Node.js: v22.12.0 (rspack needs ^20.19.0 || >=22.12.0)
+! @rspack/cli: 3.0.0; rspack_rails is tested with Rspack 2
+    → Run `npm install --save-dev @rspack/cli@^2` if the build fails
+! @rspack/core: 3.0.0; rspack_rails is tested with Rspack 2
+    → Run `npm install --save-dev @rspack/core@^2` if the build fails
+! @rspack/dev-server: 3.0.0; rspack_rails is tested with Rspack 2
+    → Run `npm install --save-dev @rspack/dev-server@^2` if the build fails
+✗ rspack.config.mjs: does not build on config/rspack/rails.mjs
+    → Re-run `bin/rails rspack:install`, accept the new rspack.config.mjs and move your changes into its railsConfig callback
+! package.json scripts: missing dev
+    → Run `bin/rails rspack:install`
+✓ Entry points: admin
+! Build output: not built yet: admin
+    → Run `bin/rails rspack:build` (only needed without the dev server)
+! Layout: no layout uses rspack_javascript_tag
+    → Add <%= rspack_javascript_tag "application" %> to app/views/layouts/application.html.erb to get the dev server and HMR
+! Stylesheet: application.bundle.css is built but not linked
+    → Add <%= rspack_stylesheet_tag "application" %> to your layout
+! Procfile.dev: no js process
+    → Run `bin/rails rspack:install`
+✓ Dev server: disabled in this environment
+
+1 error(s), 8 warning(s).

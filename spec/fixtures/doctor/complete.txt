@@ -1,0 +1,19 @@
+✓ Node.js: v22.12.0 (rspack needs ^20.19.0 || >=22.12.0)
+✓ @rspack/cli: 2.3.2
+✓ @rspack/core: 2.3.2
+✓ @rspack/dev-server: 2.3.2
+✓ rspack.config.mjs: uses config/rspack/rails.mjs from rspack_rails <VERSION>
+✓ package.json scripts: build, dev
+✓ Entry points: application, print
+✓ Build output: app/assets/builds has application, print
+✓ Layout: application.html.erb, admin.html.erb use rspack_javascript_tag
+✓ Stylesheet: application.html.erb, admin.html.erb use rspack_stylesheet_tag
+✓ Procfile.dev: runs the dev server
+✓ Dockerfile: installs Node.js and node modules
+✓ Dev container: has Node.js and forwards 3036
+✓ Stimulus: autoload enabled
+✓ Stimulus loader: app/javascript/controllers/autoload.js from rspack_rails <VERSION>
+✓ React loader: app/javascript/components/mount.js from rspack_rails <VERSION>
+✓ Dev server: running at http://localhost:3036
+
+Everything looks good.
