@@ -17,8 +17,11 @@ module RspackRails
     # it has a script only under `rspack serve`, for hot updates.
     Entry = Data.define(:scripts, :stylesheets, :stylesheet_only)
 
+    attr_reader :root
+
     def initialize(root)
-      @path = Pathname(root).join(PATH)
+      @root = Pathname(root)
+      @path = @root.join(PATH)
       @mtime = nil
       @entries = {}
     end

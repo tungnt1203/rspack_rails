@@ -5,6 +5,11 @@ require "socket"
 module RspackRails
   # Answers whether `rspack serve` is reachable. The result is cached briefly
   # so a page with several tags does not open a socket per tag.
+  #
+  # Not synchronized, on purpose: Puma threads share one instance, and two of
+  # them may both see a stale result and check at once. That costs one extra
+  # socket and both store a fresh answer. A Mutex would make every other
+  # request wait out the check (up to CONNECT_TIMEOUT) instead.
   class DevServer
     CONNECT_TIMEOUT = 0.05
 

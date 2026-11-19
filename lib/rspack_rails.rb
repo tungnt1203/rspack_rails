@@ -26,8 +26,12 @@ module RspackRails
       @dev_server ||= DevServer.new(config)
     end
 
+    # Internal. One per app root: a new one when Rails.root changes (another
+    # app in the same process, as in tests or an engine's dummy app).
     def manifest
-      @manifest ||= Manifest.new(defined?(::Rails.root) && ::Rails.root ? ::Rails.root : Dir.pwd)
+      root = Pathname(defined?(::Rails.root) && ::Rails.root ? ::Rails.root : Dir.pwd)
+      @manifest = Manifest.new(root) unless @manifest&.root == root
+      @manifest
     end
 
     # Internal. Registered with Rails.application.deprecators, so the app's

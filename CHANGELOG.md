@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- The view helpers read the manifest of the current `Rails.root`. A process that switches apps (tests, an engine's dummy app) kept reading the first app's `.rspack-manifest.json`
 - `rspack:doctor` leaves out the build output check when the app has no entry points. It said "✓ Build output: app/assets/builds has" with nothing after it
 
 ## [1.0.0] - 2026-11-19
