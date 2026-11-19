@@ -1,0 +1,35 @@
+name: Bug report
+description: Something in rspack_rails does not work as the docs say
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you ran or did, what you expected, and what happened instead. Paste errors as text.
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of bin/rails rspack:doctor
+      description: Run it in the app and paste the whole output. It shows the versions and most setup problems.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest way to see it, ideally from `rails new`. A link to a repo is even better.
+      placeholder: |
+        1. rails new myapp -m https://raw.githubusercontent.com/tungnt1203/rspack_rails/main/template.rb
+        2. ...
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: rspack_rails, Rails, Ruby, Node.js, and the package manager (npm, Yarn, pnpm or bun)
+      placeholder: rspack_rails 1.0.1, Rails 8.1, Ruby 3.4, Node 22, npm
+    validations:
+      required: true

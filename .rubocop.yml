@@ -21,9 +21,10 @@ Style/Documentation:
   Exclude:
     - lib/rspack_rails/railtie.rb
 
-Metrics/ClassLength:
+# The component template is one heredoc.
+Metrics/MethodLength:
   Exclude:
-    - lib/rspack_rails/doctor.rb
+    - benchmark/generate.rb
 
 # Application templates run inside a Rails generator (instance_eval), so a
 # top-level `extend` adds the helpers to that generator.
