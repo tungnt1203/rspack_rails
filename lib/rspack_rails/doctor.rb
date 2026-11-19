@@ -1,54 +1,28 @@
 # frozen_string_literal: true
 
-require "open3"
-require_relative "app"
-require_relative "node_version"
-require_relative "containers"
-require_relative "rspack_config"
-require_relative "rspack_version"
+require_relative "doctor/context"
+require_relative "doctor/package_checks"
+require_relative "doctor/build_checks"
+require_relative "doctor/layout_checks"
+require_relative "doctor/process_checks"
+require_relative "doctor/loader_checks"
+require_relative "doctor/dev_server_checks"
 
 module RspackRails
-  # Inspects a Rails app's rspack setup and reports what is missing.
+  # Inspects a Rails app's rspack setup and reports what is missing. The checks
+  # live in groups under lib/rspack_rails/doctor/, which share one Context.
   class Doctor
     Check = Struct.new(:status, :name, :detail, :hint)
     SYMBOLS = { ok: "✓", warn: "!", error: "✗" }.freeze
-    CHECKS = %i[
-      config_check scripts_check entry_check build_check layout_check stylesheet_check app_stylesheets_check
-      procfile_check dockerfile_check devcontainer_check stimulus_check stimulus_loader_check react_loader_check
-      dev_server_check
-    ].freeze
-
-    # config/rspack/rails.mjs, by RspackConfig.state.
-    BASE_STATES = {
-      missing: [:error, "imports %s, which is missing", "Run `bin/rails rspack:sync`"],
-      edited: [:warn, "%s has hand edits, which the next rspack:build replaces",
-               "Move them into the railsConfig callback in rspack.config.mjs"],
-      outdated: [:warn, "%s is not the one from rspack_rails #{VERSION}",
-                 "Run `bin/rails rspack:sync` (rspack:build does it too)"],
-      current: [:ok, "uses %s from rspack_rails #{VERSION}", nil]
-    }.freeze
-
-    # The Stimulus and React loaders, by ManagedFile#state.
-    LOADER_STATES = {
-      edited: [:warn, "%s has hand edits, which the next rspack:build replaces",
-               "Copy it to a file of your own, import that instead and delete %s"],
-      outdated: [:warn, "%s is not the one from rspack_rails #{VERSION}",
-                 "Run `bin/rails rspack:sync` (rspack:build does it too)"],
-      current: [:ok, "%s from rspack_rails #{VERSION}", nil]
-    }.freeze
+    # In report order.
+    GROUPS = [PackageChecks, BuildChecks, LayoutChecks, ProcessChecks, LoaderChecks, DevServerChecks].freeze
 
     def initialize(root, config: RspackRails.config, dev_server: RspackRails.dev_server, node_version: nil)
-      @app = App.new(root)
-      @root = @app.root
-      @config = config
-      @dev_server = dev_server
-      @node_version = node_version
+      @context = Context.new(root, config: config, dev_server: dev_server, node_version: node_version)
     end
 
     def checks
-      @checks ||= [
-        node_check, *%i[cli core dev-server].map { |name| package_check(name) }, *CHECKS.map { |check| send(check) }
-      ].compact
+      @checks ||= GROUPS.flat_map { |group| group.new(@context).checks }.compact
     end
 
     def ok?
@@ -70,258 +44,6 @@ module RspackRails
       return "Everything looks good." if errors.zero? && warnings.zero?
 
       "#{errors} error(s), #{warnings} warning(s)."
-    end
-
-    private
-
-    def node_check
-      version = node_version
-      return Check.new(:error, "Node.js", "not found", "Install Node.js and make sure `node` is on PATH") unless version
-
-      required = installed_package("core")&.dig("engines", "node")
-      return Check.new(:ok, "Node.js", version) unless required
-
-      case NodeVersion.check(version, required)
-      when true then Check.new(:ok, "Node.js", "#{version} (rspack needs #{required})")
-      when false then Check.new(:error, "Node.js", "#{version}, but rspack needs #{required}", "Upgrade Node.js")
-      else Check.new(:warn, "Node.js", "#{version}; could not read rspack's requirement #{required}")
-      end
-    end
-
-    def package_check(name)
-      label = "@rspack/#{name}"
-      package = installed_package(name)
-      return package_version_check(label, package["version"]) if package
-
-      Check.new(name == :"dev-server" ? :warn : :error, label, "not installed",
-                "Run `#{package_manager.add_dev_command(RspackVersion.pin(label))}`")
-    end
-
-    # config/rspack/rails.mjs is written for one Rspack major version.
-    def package_version_check(label, version)
-      major = RspackVersion::MAJOR
-      case RspackVersion.compare(version)
-      when :supported then Check.new(:ok, label, version)
-      when :older
-        Check.new(:error, label, "#{version}, but rspack_rails needs Rspack #{major}",
-                  "Run `#{package_manager.add_dev_command(RspackVersion.pin(label))}`")
-      else
-        Check.new(:warn, label, "#{version}; rspack_rails is tested with Rspack #{major}",
-                  "Run `#{package_manager.add_dev_command(RspackVersion.pin(label))}` if the build fails")
-      end
-    end
-
-    def config_check
-      return Check.new(:error, "rspack.config.mjs", "missing", "Run `bin/rails rspack:install`") unless
-        exist?("rspack.config.mjs")
-
-      return managed_config_check if RspackConfig.managed?(@root)
-
-      Check.new(:error, "rspack.config.mjs", "does not build on #{RspackConfig::BASE}",
-                "Re-run `bin/rails rspack:install`, accept the new rspack.config.mjs and move your changes " \
-                "into its railsConfig callback")
-    end
-
-    def managed_config_check
-      status, detail, hint = BASE_STATES.fetch(RspackConfig.state(@root))
-      Check.new(status, "rspack.config.mjs", format(detail, RspackConfig::BASE), hint)
-    end
-
-    def scripts_check
-      scripts = package_json.fetch("scripts", {})
-      missing = %w[build dev].reject { |name| scripts.key?(name) }
-      return Check.new(:ok, "package.json scripts", "build, dev") if missing.empty?
-
-      Check.new(missing.include?("build") ? :error : :warn, "package.json scripts",
-                "missing #{missing.join(", ")}", "Run `bin/rails rspack:install`")
-    end
-
-    def entry_check
-      return Check.new(:ok, "Entry points", entrypoints.keys.join(", ")) if entrypoints.any?
-
-      Check.new(:error, "Entry points", "none found",
-                "Create app/javascript/application.js or a file in app/javascript/entrypoints/")
-    end
-
-    def build_check
-      missing = entrypoints.reject do |name, paths|
-        exist?("app/assets/builds/#{name}#{Entrypoints.css_only?(paths) ? ".bundle.css" : ".js"}")
-      end.keys
-      return Check.new(:ok, "Build output", "app/assets/builds has #{entrypoints.keys.join(", ")}") if missing.empty?
-
-      Check.new(:warn, "Build output", "not built yet: #{missing.join(", ")}",
-                "Run `bin/rails rspack:build` (only needed without the dev server)")
-    end
-
-    def layout_check
-      return Check.new(:warn, "Layout", "no layout found in #{Layouts::DIR}") if layouts.empty?
-
-      importmap = layouts_including("javascript_importmap_tags")
-      if importmap.any?
-        return Check.new(:warn, "Layout", "#{names(importmap)} still includes javascript_importmap_tags",
-                         "Remove it if rspack replaces importmap, or the app may load JavaScript twice")
-      end
-      rspack = layouts_including("rspack_javascript_tag")
-      return Check.new(:ok, "Layout", "#{names(rspack)} #{verb(rspack, "uses")} rspack_javascript_tag") if rspack.any?
-
-      missing_layout_tag_check
-    end
-
-    def missing_layout_tag_check
-      tag = Layouts.tag(layouts.first, 'rspack_javascript_tag "application"')
-      Check.new(:warn, "Layout", "no layout uses rspack_javascript_tag",
-                "Add #{tag} to #{layouts.first} to get the dev server and HMR")
-    end
-
-    def stylesheet_check
-      return unless exist?("app/assets/builds/application.bundle.css")
-
-      linked = layouts_including("rspack_stylesheet_tag")
-      if linked.any?
-        return Check.new(:ok, "Stylesheet", "#{names(linked)} #{verb(linked, "uses")} rspack_stylesheet_tag")
-      end
-
-      Check.new(:warn, "Stylesheet", "application.bundle.css is built but not linked",
-                %(Add <%= rspack_stylesheet_tag "application" %> to your layout))
-    end
-
-    # `stylesheet_link_tag :app` links rspack's bundles too, without their options.
-    def app_stylesheets_check
-      return if Dir.glob("app/assets/builds/*.bundle.css", base: @root).empty?
-
-      linking = layouts.select { |path| read(path).match?(Layouts::APP_STYLESHEETS) }
-      return if linking.empty?
-
-      Check.new(:warn, "Stylesheet", "#{names(linking)} #{verb(linking, "links")} rspack's bundles again through " \
-                                     "stylesheet_link_tag :app",
-                %(Use stylesheet_link_tag "application" (or list your own stylesheets); ) +
-                "a print or admin bundle otherwise applies on every page")
-    end
-
-    def procfile_check
-      procfile = read("Procfile.dev")
-      if procfile&.match?(/^js: .*\bdev$/)
-        Check.new(:ok, "Procfile.dev", "runs the dev server")
-      elsif procfile&.match?(/^js:/)
-        Check.new(:warn, "Procfile.dev", "js process does not run `dev`",
-                  "Use `js: #{package_manager.run_command("dev")}` for HMR")
-      else
-        Check.new(:warn, "Procfile.dev", "no js process", "Run `bin/rails rspack:install`")
-      end
-    end
-
-    # Kamal and other Docker deploys run assets:precompile, which runs rspack.
-    def dockerfile_check
-      dockerfile = read("Dockerfile")
-      return unless dockerfile
-      return Check.new(:ok, "Dockerfile", "installs Node.js and node modules") if
-        Containers.dockerfile_ready?(dockerfile)
-
-      Check.new(:error, "Dockerfile", "does not install Node.js and node modules; assets:precompile will fail",
-                "Re-run `bin/rails rspack:install`, or install Node.js and run " \
-                "`#{package_manager.frozen_install_command}` in the build stage")
-    end
-
-    def devcontainer_check
-      devcontainer = read(".devcontainer/devcontainer.json")
-      return unless devcontainer
-
-      port = @config.dev_server_port
-      return Check.new(:ok, "Dev container", "has Node.js and forwards #{port}") if
-        Containers.devcontainer_ready?(devcontainer, port)
-
-      Check.new(:warn, "Dev container", "needs Node.js and port #{port} forwarded for the dev server",
-                "Re-run `bin/rails rspack:install`")
-    end
-
-    def stimulus_check
-      return unless exist?("app/javascript/controllers/autoload.js")
-
-      if node_modules_package("@hotwired/stimulus")
-        Check.new(:ok, "Stimulus", "autoload enabled")
-      else
-        Check.new(:error, "Stimulus", "@hotwired/stimulus is not installed",
-                  "Run `#{package_manager.add_command("@hotwired/stimulus")}`")
-      end
-    end
-
-    def stimulus_loader_check
-      loader_check(ManagedFile::STIMULUS, "Stimulus loader")
-    end
-
-    def react_loader_check
-      loader_check(ManagedFile::REACT, "React loader")
-    end
-
-    def loader_check(file, name)
-      state = file.state(@root)
-      return if state == :missing
-
-      status, detail, hint = LOADER_STATES.fetch(state)
-      Check.new(status, name, format(detail, file.path), hint&.gsub("%s", file.path))
-    end
-
-    def dev_server_check
-      return Check.new(:ok, "Dev server", "disabled in this environment") unless @config.dev_server_enabled
-      return Check.new(:ok, "Dev server", "running at #{@config.dev_server_url}") if @dev_server.running?
-
-      Check.new(:warn, "Dev server", "not running at #{@config.dev_server_url}",
-                "Start it with bin/dev; until then pages use app/assets/builds")
-    end
-
-    def node_version
-      return @node_version if @node_version
-
-      out, status = Open3.capture2("node", "--version")
-      status.success? ? out.strip : nil
-    rescue SystemCallError
-      nil
-    end
-
-    def installed_package(name)
-      @app.node_package("@rspack/#{name}")
-    end
-
-    def node_modules_package(name)
-      @app.node_package(name)
-    end
-
-    def package_json
-      @app.package_json
-    end
-
-    def layouts
-      @layouts ||= @app.layouts
-    end
-
-    def layouts_including(text)
-      layouts.select { |path| read(path).include?(text) }
-    end
-
-    # "application.html.erb, admin.html.slim"
-    def names(paths)
-      paths.map { |path| File.basename(path) }.join(", ")
-    end
-
-    # "uses" for one layout, "use" for several.
-    def verb(paths, singular)
-      paths.one? ? singular : singular.delete_suffix("s")
-    end
-
-    def entrypoints
-      @entrypoints ||= @app.entrypoints
-    end
-
-    def package_manager
-      @package_manager ||= @app.package_manager
-    end
-
-    def exist?(path)
-      @app.path(path).exist?
-    end
-
-    def read(path)
-      @app.read(path)
     end
   end
 end
