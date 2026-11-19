@@ -57,7 +57,8 @@ lib/
     migration.rb             Detects importmap or jsbundling and plans rspack:migrate
     managed_file.rb          Files the gem owns in an app (checksummed, rewritten on upgrade)
     rspack_config.rb         rspack.config.mjs and config/rspack/rails.mjs in an app
-    doctor.rb                rspack:doctor's checks
+    doctor.rb                rspack:doctor: runs the check groups and prints the report
+    doctor/                  The checks, in groups (packages, build, layouts, ...) over a shared Context
     package_manager.rb       Detects bun, yarn, pnpm or npm from the lockfile
     node_version.rb          Matches package.json "engines" ranges
     rspack_version.rb        The Rspack major the gem supports
@@ -71,6 +72,7 @@ lib/
 sig/rspack_rails.rbs         The public Ruby API (see "Stability" in docs/upgrading.md)
 template.rb                  The `rails new -m` template
 spec/                        RSpec unit specs, one file per class
+  fixtures/doctor/           The doctor's full report for a few apps (UPDATE_GOLDEN=1 rewrites them)
 bin/integration*             End-to-end checks against freshly generated Rails apps
 docs/                        The user guides linked from the README
 site/                        The project website, deployed to GitHub Pages

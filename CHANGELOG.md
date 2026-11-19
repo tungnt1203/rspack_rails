@@ -1,7 +1,10 @@
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-19
+
 - The view helpers read the manifest of the current `Rails.root`. A process that switches apps (tests, an engine's dummy app) kept reading the first app's `.rspack-manifest.json`
 - `rspack:doctor` leaves out the build output check when the app has no entry points. It said "✓ Build output: app/assets/builds has" with nothing after it
+- Internal: the doctor's checks move into groups under `lib/rspack_rails/doctor/`. Its output is unchanged, which golden reports in `spec/fixtures/doctor/` now hold it to
 
 ## [1.0.0] - 2026-11-19
 
