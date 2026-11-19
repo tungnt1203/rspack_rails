@@ -1,0 +1,21 @@
+✓ Node.js: v22.12.0
+✗ @rspack/cli: not installed
+    → Run `npm install --save-dev @rspack/cli@^2`
+✗ @rspack/core: not installed
+    → Run `npm install --save-dev @rspack/core@^2`
+! @rspack/dev-server: not installed
+    → Run `npm install --save-dev @rspack/dev-server@^2`
+✗ rspack.config.mjs: missing
+    → Run `bin/rails rspack:install`
+✗ package.json scripts: missing build, dev
+    → Run `bin/rails rspack:install`
+✗ Entry points: none found
+    → Create app/javascript/application.js or a file in app/javascript/entrypoints/
+✓ Build output: app/assets/builds has 
+! Layout: no layout found in app/views/layouts
+! Procfile.dev: no js process
+    → Run `bin/rails rspack:install`
+! Dev server: not running at http://localhost:3036
+    → Start it with bin/dev; until then pages use app/assets/builds
+
+5 error(s), 4 warning(s).

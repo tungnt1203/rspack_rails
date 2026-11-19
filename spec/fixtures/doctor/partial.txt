@@ -1,0 +1,19 @@
+✓ Node.js: v22.12.0 (rspack needs ^20.19.0 || >=22.12.0)
+✓ @rspack/cli: 2.3.2
+✓ @rspack/core: 2.3.2
+✓ @rspack/dev-server: 2.3.2
+✗ rspack.config.mjs: imports config/rspack/rails.mjs, which is missing
+    → Run `bin/rails rspack:sync`
+✗ package.json scripts: missing build, dev
+    → Run `bin/rails rspack:install`
+✓ Entry points: application
+! Build output: not built yet: application
+    → Run `bin/rails rspack:build` (only needed without the dev server)
+✓ Layout: application.html.erb uses rspack_javascript_tag
+! Stylesheet: application.bundle.css is built but not linked
+    → Add <%= rspack_stylesheet_tag "application" %> to your layout
+! Procfile.dev: no js process
+    → Run `bin/rails rspack:install`
+✓ Dev server: running at http://localhost:3036
+
+2 error(s), 3 warning(s).
