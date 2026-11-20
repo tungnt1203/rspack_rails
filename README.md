@@ -9,6 +9,8 @@ Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the
 
 *In the [demo app](https://github.com/tungnt1203/rspack_rails-demo): a Tailwind class added to an ERB view shows up after an automatic reload, then an edited Stimulus controller is swapped in place without one.*
 
+The [demo app](https://github.com/tungnt1203/rspack_rails-demo) also runs [live](https://52-65-113-251.sslip.io): React, CSS modules in Sass, lazy chunks, a Web Worker, Turbo Streams over Action Cable and a page with its own bundle, deployed with Kamal.
+
 ## Quick start
 
 **A new app**
