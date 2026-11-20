@@ -54,6 +54,7 @@ lib/
     layout_installer.rb      Edits layouts and layout partials
     layouts.rb               Finds ERB, Slim and Haml layouts and writes helper calls
     containers.rb            Dockerfile, bin/setup and devcontainer edits
+    tailwind.rb              The paths application.css leaves out of Tailwind's class scan
     migration.rb             Detects importmap or jsbundling and plans rspack:migrate
     managed_file.rb          Files the gem owns in an app (checksummed, rewritten on upgrade)
     rspack_config.rb         rspack.config.mjs and config/rspack/rails.mjs in an app

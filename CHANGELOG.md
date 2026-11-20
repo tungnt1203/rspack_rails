@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.4] - 2026-11-20
+
+- `rspack:install:tailwind` leaves `tmp`, `log`, `storage` and `app/assets/builds` out of Tailwind's class scan with `@source not` lines in `app/javascript/application.css`. Tailwind skips what `.gitignore` lists, but a Docker build has no `.gitignore` and does have bootsnap's cache in `tmp/`, so the production CSS in the image picked up unused classes (twice the size of a local build). `rspack:doctor` warns about a Tailwind stylesheet without them; run `bin/rails rspack:install:tailwind` again to add them
+
 ## [1.0.3] - 2026-11-20
 
 Found by taking a new Rails 8.1 app from `rails new` with the template through `bin/dev`, tests, `assets:precompile` and a Docker image.

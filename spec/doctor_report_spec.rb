@@ -69,6 +69,7 @@ RSpec.describe RspackRails::Doctor, "report" do
     write("package.json", JSON.generate(scripts: { build: "rspack build", dev: "rspack serve" }))
     write("app/javascript/application.js")
     write("app/javascript/entrypoints/print.css")
+    write(RspackRails::Tailwind::STYLESHEET, RspackRails::Tailwind.add_excludes(%(@import "tailwindcss";\n)))
     write("app/assets/builds/application.js")
     write("app/assets/builds/application.bundle.css")
     write("app/assets/builds/print.bundle.css")
@@ -92,6 +93,7 @@ RSpec.describe RspackRails::Doctor, "report" do
     write(RspackRails::ManagedFile::REACT.path, "// mine\n")
     write("package.json", JSON.generate(scripts: { start: "rspack serve" }))
     write("app/javascript/application.js")
+    write(RspackRails::Tailwind::STYLESHEET, %(@import "tailwindcss";\n))
     write("app/assets/builds/print.bundle.css")
     write("app/views/layouts/application.html.erb",
           "<%= javascript_importmap_tags %>\n<%= stylesheet_link_tag :app %>\n")

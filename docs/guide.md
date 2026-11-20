@@ -106,7 +106,7 @@ bin/rails rspack:install:tailwind
 
 This installs `tailwindcss` and `@tailwindcss/webpack`, creates `app/javascript/application.css` with `@import "tailwindcss";`, imports it from your entry and adds `rspack_stylesheet_tag "application"` to the layout.
 
-Classes in your views, helpers and JavaScript are picked up automatically. Under `rspack serve`, editing a view reloads the page with the new classes already built, and CSS edits apply without a reload.
+Classes in your views, helpers and JavaScript are picked up automatically. Tailwind skips what `.gitignore` lists, but a Docker build has no `.gitignore`, so `application.css` also leaves out `tmp`, `log`, `storage` and `app/assets/builds` with `@source not` lines. Without them, the image's production CSS picks up unused classes from bootsnap's cache in `tmp/`. Under `rspack serve`, editing a view reloads the page with the new classes already built, and CSS edits apply without a reload.
 
 Coming from `tailwindcss-rails`? See [Migrating](migrating.md#from-tailwindcss-rails).
 

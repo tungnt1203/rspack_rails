@@ -4,10 +4,11 @@
 # Sets up Tailwind CSS v4 through @tailwindcss/webpack, and moves an app off
 # tailwindcss-rails when it finds one.
 require "rspack_rails/installer"
+require "rspack_rails/tailwind"
 extend RspackRails::Installer
 
 pm = RspackRails::PackageManager.detect(Rails.root)
-stylesheet = "app/javascript/application.css"
+stylesheet = RspackRails::Tailwind::STYLESHEET
 tailwind_rails_source = "app/assets/tailwind/application.css"
 
 require_config! "Tailwind"
@@ -42,6 +43,13 @@ elsif !File.exist?(stylesheet)
   create_file stylesheet, %(@import "tailwindcss";\n)
 elsif !File.read(stylesheet).match?(/@import\s+["']tailwindcss["']/)
   prepend_to_file stylesheet, %(@import "tailwindcss";\n\n)
+end
+
+unless RspackRails::Tailwind.excludes?(File.read(stylesheet))
+  say "Leaving tmp, log, storage and app/assets/builds out of Tailwind's class scan"
+  css = File.read(stylesheet)
+  updated = RspackRails::Tailwind.add_excludes(css)
+  create_file stylesheet, updated, force: true if updated != css
 end
 
 unless File.read(entry).match?(%r{^import ["']\./application\.css["']})

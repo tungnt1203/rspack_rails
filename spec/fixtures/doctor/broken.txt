@@ -21,6 +21,8 @@
     → Use `js: npm run dev` for HMR
 ✗ Dockerfile: does not install Node.js and node modules; assets:precompile will fail
     → Re-run `bin/rails rspack:install`, or install Node.js and run `npm ci` in the build stage
+! Tailwind CSS: scans tmp/ in a Docker build, which has no .gitignore: unused classes end up in the production CSS
+    → Re-run `bin/rails rspack:install:tailwind`, which adds `@source not` lines to app/javascript/application.css
 ! Dev container: needs Node.js and port 3036 forwarded for the dev server
     → Re-run `bin/rails rspack:install`
 ✗ Stimulus: @hotwired/stimulus is not installed
@@ -32,4 +34,4 @@
 ! Dev server: not running at http://localhost:3036
     → Start it with bin/dev; until then pages use app/assets/builds
 
-7 error(s), 9 warning(s).
+7 error(s), 10 warning(s).

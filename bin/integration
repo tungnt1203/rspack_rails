@@ -159,6 +159,7 @@ TS
 step "rspack:install:tailwind"
 bin/rails rspack:install:tailwind
 grep -q '@import "tailwindcss"' app/javascript/application.css || { echo "tailwind import missing"; exit 1; }
+grep -q '@source not "../../tmp"' app/javascript/application.css || { echo "tailwind scan excludes missing"; exit 1; }
 grep -q 'rspack_stylesheet_tag "application"' app/views/layouts/application.html.erb || { echo "stylesheet tag missing"; exit 1; }
 mkdir -p app/views/pages
 echo '<p class="text-fuchsia-700 tracking-widest">hi</p>' > app/views/pages/home.html.erb

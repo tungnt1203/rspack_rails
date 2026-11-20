@@ -113,6 +113,7 @@ if [ "$MODE" = tailwind ]; then
   ! grep -q tailwindcss-rails Gemfile || fail "tailwindcss-rails still in Gemfile"
   ! grep -q '^css:' Procfile.dev || fail "Procfile.dev still runs tailwindcss:watch"
   grep -q '@import "tailwindcss"' app/javascript/application.css || fail "tailwind import not moved"
+  grep -q '@source not "../../tmp"' app/javascript/application.css || fail "tailwind scan excludes missing"
   grep -q 'rspack_stylesheet_tag "application"' app/views/layouts/application.html.erb || fail "stylesheet tag missing"
   grep -q 'rspack_stylesheet_tag "application"' app/views/layouts/admin.html.erb || fail "admin stylesheet tag missing"
   [ -f app/javascript/fonts.css ] || fail "fonts.css did not move with application.css"
