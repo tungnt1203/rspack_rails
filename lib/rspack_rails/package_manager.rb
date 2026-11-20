@@ -4,40 +4,20 @@ module RspackRails
   # Detects the JavaScript package manager of an app from its lockfile and
   # builds the shell commands rspack_rails needs.
   class PackageManager
-    LOCKFILES = {
-      bun: %w[bun.lock bun.lockb],
-      yarn: %w[yarn.lock],
-      pnpm: %w[pnpm-lock.yaml],
-      npm: %w[package-lock.json]
-    }.freeze
+    # frozen_install installs exactly what the lockfile says (Docker builds, CI).
+    Commands = Data.define(:lockfiles, :install, :frozen_install, :add, :add_dev)
 
-    INSTALL = {
-      bun: "bun install",
-      yarn: "yarn install",
-      pnpm: "pnpm install",
-      npm: "npm install"
-    }.freeze
-
-    ADD = {
-      bun: "bun add",
-      yarn: "yarn add",
-      pnpm: "pnpm add",
-      npm: "npm install"
-    }.freeze
-
-    ADD_DEV = {
-      bun: "bun add --dev",
-      yarn: "yarn add --dev",
-      pnpm: "pnpm add --save-dev",
-      npm: "npm install --save-dev"
-    }.freeze
-
-    # Installs exactly what the lockfile says (Docker builds, CI).
-    FROZEN_INSTALL = {
-      bun: "bun install --frozen-lockfile",
-      yarn: "yarn install --frozen-lockfile",
-      pnpm: "pnpm install --frozen-lockfile",
-      npm: "npm ci"
+    # In detection order: an app with both bun.lock and package-lock.json is a bun app.
+    MANAGERS = {
+      bun: Commands.new(lockfiles: %w[bun.lock bun.lockb], install: "bun install",
+                        frozen_install: "bun install --frozen-lockfile", add: "bun add", add_dev: "bun add --dev"),
+      yarn: Commands.new(lockfiles: %w[yarn.lock], install: "yarn install",
+                         frozen_install: "yarn install --frozen-lockfile", add: "yarn add", add_dev: "yarn add --dev"),
+      pnpm: Commands.new(lockfiles: %w[pnpm-lock.yaml], install: "pnpm install",
+                         frozen_install: "pnpm install --frozen-lockfile", add: "pnpm add",
+                         add_dev: "pnpm add --save-dev"),
+      npm: Commands.new(lockfiles: %w[package-lock.json], install: "npm install",
+                        frozen_install: "npm ci", add: "npm install", add_dev: "npm install --save-dev")
     }.freeze
 
     attr_reader :root, :name
@@ -48,34 +28,40 @@ module RspackRails
 
     def initialize(root)
       @root = root.to_s
-      @name, @lockfile = LOCKFILES.lazy.flat_map { |name, files| files.map { |file| [name, file] } }
-                                  .find { |_, file| File.exist?(File.join(@root, file)) }
+      @name, @lockfile = MANAGERS.lazy.flat_map { |name, commands| commands.lockfiles.map { |file| [name, file] } }
+                                 .find { |_, file| File.exist?(File.join(@root, file)) }
       @name ||= :npm
     end
 
     def install_command
-      INSTALL.fetch(name)
+      commands.install
     end
 
     def frozen_install_command
-      FROZEN_INSTALL.fetch(name)
+      commands.frozen_install
     end
 
     # The app's lockfile, or the usual name for this package manager.
     def lockfile
-      @lockfile || LOCKFILES.fetch(name).first
+      @lockfile || commands.lockfiles.first
     end
 
     def add_command(*packages)
-      [ADD.fetch(name), *packages].join(" ")
+      [commands.add, *packages].join(" ")
     end
 
     def add_dev_command(*packages)
-      [ADD_DEV.fetch(name), *packages].join(" ")
+      [commands.add_dev, *packages].join(" ")
     end
 
     def run_command(script)
       "#{name} run #{script}"
+    end
+
+    private
+
+    def commands
+      MANAGERS.fetch(name)
     end
   end
 end
