@@ -34,13 +34,14 @@ module RspackRails
 
     # Files in app/assets/builds that rspack wrote: each entry's script and
     # extracted CSS (with source maps), the dev server's runtime.js, and the
-    # fingerprinted chunks, images and fonts (*.digested.*), and the manifest. Output of other
-    # tools (cssbundling, tailwindcss-rails) is left alone.
+    # fingerprinted chunks, images and fonts (*.digested.*), and the manifests
+    # (the build's and the dev server's). Output of other tools (cssbundling,
+    # tailwindcss-rails) is left alone.
     def outputs(root)
       builds = Pathname(root).join("app/assets/builds")
       names = [*discover(root).keys, "runtime"]
       patterns = names.flat_map { |name| ["#{name}.js", "#{name}.bundle.css"] }.flat_map { |f| [f, "#{f}.map"] }
-      patterns << "**/*.digested.*" << ".rspack-manifest.json"
+      patterns << "**/*.digested.*" << ".rspack-manifest.json" << ".rspack-dev-manifest.json"
       Dir.glob(patterns, base: builds).uniq.sort.map { |path| builds.join(path) }
     end
 

@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-20
+
+Found by taking a new Rails 8.1 app from `rails new` with the template through `bin/dev`, tests, `assets:precompile` and a Docker image.
+
+- `rspack serve` writes its manifest to `app/assets/builds/.rspack-dev-manifest.json`, which the view helpers read while it runs. A build alongside it, such as the one `bin/rails test` runs, used to replace the shared `.rspack-manifest.json`, so dev pages dropped `runtime.js` and ran no JavaScript at all until the next rebuild. Run `bin/rails rspack:sync` (or any `rspack:build`) to get the new `config/rspack/rails.mjs`; until then the helpers keep reading `.rspack-manifest.json`
+
 ## [1.0.2] - 2026-11-19
 
 - The view helpers keep the last complete `.rspack-manifest.json` when they read it while rspack is rewriting it, and read it again on the next call. They used to fall back to the conventional file names until the next rebuild, which under `rspack serve` left `runtime.js` out and broke hot updates on that page

@@ -23,7 +23,7 @@
 
 `rspack_javascript_tag` adds `defer` by default. Both helpers take several entries (`rspack_javascript_tag "application", "admin"`) and any option that `javascript_include_tag` or `stylesheet_link_tag` accepts. Keep `rspack_stylesheet_tag` in `<head>`.
 
-Each build writes `app/assets/builds/.rspack-manifest.json`, listing the scripts and stylesheets of each entry. The helpers link exactly those files, so an entry without CSS gets no stylesheet link. Because the manifest is a dotfile, it never reaches `public/assets`.
+Each build writes `app/assets/builds/.rspack-manifest.json`, listing the scripts and stylesheets of each entry. The helpers link exactly those files, so an entry without CSS gets no stylesheet link. Because the manifest is a dotfile, it never reaches `public/assets`. `rspack serve` writes its own `.rspack-dev-manifest.json`, which the helpers read while it runs, so a build alongside it (`bin/rails test` runs one) does not change what dev pages link.
 
 ## Entry points
 

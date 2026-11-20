@@ -44,7 +44,7 @@ lib/
   rspack_rails/
     railtie.rb               Hooks into Rails: helpers, the dev server proxy, rake tasks
     helper.rb                rspack_javascript_tag, rspack_stylesheet_tag, react_component
-    manifest.rb              Reads app/assets/builds/.rspack-manifest.json
+    manifest.rb              Reads app/assets/builds/.rspack-manifest.json (.rspack-dev-manifest.json under rspack serve)
     dev_server.rb            Is `rspack serve` reachable?
     dev_server_proxy.rb      Proxies /rspack/* from Rails to the dev server
     configuration.rb         RspackRails.configure
