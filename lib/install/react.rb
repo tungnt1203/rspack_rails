@@ -18,9 +18,7 @@ if Dir.glob("app/javascript/components/**/*.{jsx,tsx}").empty?
   copy_file "#{__dir__}/react/#{hello}", "app/javascript/components/#{hello}"
 end
 
-unless File.read(entry).match?(%r{^import ["']\./components/mount["']})
-  append_to_file entry, %(import "./components/mount"\n)
-end
+import_from_entry entry, "./components/mount"
 
 if typescript
   say "Setting \"jsx\": \"react-jsx\" in tsconfig.json"

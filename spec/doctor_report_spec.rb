@@ -88,7 +88,7 @@ RSpec.describe RspackRails::Doctor, "report" do
     rspack_packages(version: "1.7.0")
     install_package("@rspack/core", version: "1.7.0", engines: { node: ">=22.12.0" })
     write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
-    write("config/rspack/rails.mjs", "#{RspackRails::RspackConfig.base_content}// edited\n")
+    write("config/rspack/rails.mjs", "#{RspackRails::ManagedFile::BASE.content}// edited\n")
     write(RspackRails::ManagedFile::STIMULUS.path, older_managed(RspackRails::ManagedFile::STIMULUS))
     write(RspackRails::ManagedFile::REACT.path, "// mine\n")
     write("package.json", JSON.generate(scripts: { start: "rspack serve" }))

@@ -40,7 +40,7 @@ RSpec.describe RspackRails::Doctor do
     install_package("@rspack/cli")
     install_package("@rspack/dev-server")
     write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
-    write("config/rspack/rails.mjs", RspackRails::RspackConfig.base_content)
+    write("config/rspack/rails.mjs", RspackRails::ManagedFile::BASE.content)
     write("package.json", JSON.generate(scripts: { build: "rspack build", dev: "rspack serve" }))
     write("app/javascript/application.js")
     write("app/assets/builds/application.js", "console.log(1)")
@@ -64,7 +64,7 @@ RSpec.describe RspackRails::Doctor do
 
   it "warns about hand edits to config/rspack/rails.mjs" do
     set_up_complete_app
-    write("config/rspack/rails.mjs", RspackRails::RspackConfig.base_content.sub("cheap-module-source-map", "eval"))
+    write("config/rspack/rails.mjs", RspackRails::ManagedFile::BASE.content.sub("cheap-module-source-map", "eval"))
     expect(check("rspack.config.mjs").status).to eq(:warn)
     expect(check("rspack.config.mjs").detail).to include("hand edits")
   end

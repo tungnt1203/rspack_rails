@@ -41,6 +41,19 @@ RSpec.describe RspackRails::ManagedFile do
     expect(described_class.sync_all(@root)).to eq([])
   end
 
+  it "leaves config/rspack/rails.mjs out when asked, and still syncs the loaders" do
+    write(stimulus.path, older_managed(stimulus))
+    expect(described_class.sync_all(@root, base: false).map(&:path)).to eq([stimulus.path])
+    expect(described_class::BASE.exist?(@root)).to be(false)
+  end
+
+  it "says what happened to hand edits only when there were some" do
+    write(react.path, "// my own mount.js\n")
+    edited = react.sync(@root)
+    expect(edited.edits_message).to include(edited.backup.to_s)
+    expect(stimulus.sync(@root, create: true).edits_message).to be_nil
+  end
+
   it "replaces a loader from another version without a backup" do
     write(react.path, older_managed(react))
     expect(react.state(@root)).to eq(:outdated)

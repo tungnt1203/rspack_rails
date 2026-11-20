@@ -51,6 +51,27 @@ module RspackRails
       gsub_file "Gemfile", gem_line, ""
     end
 
+    # Adds `import "<path>"` to the main entry unless it already has one:
+    # first for stylesheets (so the app's own CSS comes after), last otherwise.
+    def import_from_entry(entry, path, first: false)
+      return if rspack_app.read(entry).to_s.match?(/^import ["']#{Regexp.escape(path)}["']/)
+
+      say "Importing #{path} from #{entry}"
+      line = %(import "#{path}"\n)
+      first ? prepend_to_file(entry, line) : append_to_file(entry, line)
+    end
+
+    # Moves the app off a gem that built its CSS (dartsass-rails,
+    # tailwindcss-rails): its Procfile.dev watcher, its old output in
+    # app/assets/builds, the gem itself.
+    def remove_css_gem(name, watcher:, outputs:)
+      say "Removing #{name}"
+      gsub_file "Procfile.dev", /^css: .*#{watcher}.*\n/, "" if rspack_app.file?("Procfile.dev")
+      outputs.each { |path| remove_file path }
+      remove_gem name
+      run "bundle install --quiet", abort_on_failure: true
+    end
+
     # Reads package.json, yields it and writes it back.
     def update_package_json
       package = JSON.parse(rspack_app.read("package.json"))

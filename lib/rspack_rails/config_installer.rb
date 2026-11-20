@@ -25,8 +25,8 @@ module RspackRails
     def require_config!(feature)
       return sync_rspack_config if RspackConfig.managed?(destination_root)
 
-      say "rspack.config.mjs does not build on #{RspackConfig::BASE}, which #{feature} needs. Re-run " \
-          "`bin/rails rspack:install` and accept the new rspack.config.mjs, then run this task again.", :red
+      say "#{RspackConfig::NOT_MANAGED}, which #{feature} needs. #{RspackConfig::REINSTALL}, " \
+          "then run this task again.", :red
       exit 1
     end
 
@@ -44,8 +44,7 @@ module RspackRails
       return unless result.written
 
       say "Writing #{result.path} for rspack_rails #{VERSION}"
-      file = ManagedFile::ALL.find { |managed| managed.path == result.path }
-      say file.edits_message(result.backup), :yellow if result.backup
+      say result.edits_message, :yellow if result.backup
     end
   end
 end

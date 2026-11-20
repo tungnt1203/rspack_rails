@@ -11,50 +11,17 @@ module RspackRails
   module RspackConfig
     APP = "rspack.config.mjs"
     BASE = ManagedFile::BASE.path
-
-    SyncResult = ManagedFile::SyncResult
+    # Said by the installers, the rake tasks and the doctor when APP does not
+    # build on BASE; each adds what the reader should do next.
+    NOT_MANAGED = "#{APP} does not build on #{BASE}".freeze
+    REINSTALL = "Re-run `bin/rails rspack:install` and accept the new #{APP}".freeze
 
     module_function
-
-    # config/rspack/rails.mjs for this version of the gem, carrying a checksum
-    # of its own content.
-    def base_content
-      ManagedFile::BASE.content
-    end
-
-    def checksum(content)
-      ManagedFile.checksum(content)
-    end
-
-    # Whether config/rspack/rails.mjs was changed by hand since rspack_rails
-    # wrote it (ManagedFile#edited?).
-    def edited?(root)
-      ManagedFile::BASE.edited?(root)
-    end
 
     # Whether rspack.config.mjs builds on config/rspack/rails.mjs.
     def managed?(root)
       app = Pathname(root).join(APP)
       app.file? && app.read.include?(BASE)
-    end
-
-    # :missing, :edited (by hand), :outdated (another version) or :current.
-    def state(root)
-      ManagedFile::BASE.state(root)
-    end
-
-    def current?(root)
-      ManagedFile::BASE.current?(root)
-    end
-
-    # Writes config/rspack/rails.mjs when it is missing, from another version
-    # or edited by hand. Hand edits are copied to tmp/rspack_rails/ first.
-    def sync(root)
-      ManagedFile::BASE.sync(root)
-    end
-
-    def edits_message(backup)
-      ManagedFile::BASE.edits_message(backup)
     end
   end
 end

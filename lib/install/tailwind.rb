@@ -52,21 +52,14 @@ unless RspackRails::Tailwind.excludes?(File.read(stylesheet))
   create_file stylesheet, updated, force: true if updated != css
 end
 
-unless File.read(entry).match?(%r{^import ["']\./application\.css["']})
-  say "Importing application.css from #{entry}"
-  prepend_to_file entry, %(import "./application.css"\n)
-end
+import_from_entry entry, "./application.css", first: true
 
 remove_from_layouts 'stylesheet_link_tag[ (]"tailwind"'
 add_stylesheet_tag
 
 if tailwind_rails
-  say "Removing tailwindcss-rails"
-  gsub_file "Procfile.dev", /^css: .*tailwindcss:watch.*\n/, "" if File.exist?("Procfile.dev")
-  remove_file "app/assets/builds/tailwind.css"
-  remove_dir "app/assets/builds/tailwind"
-  remove_gem "tailwindcss-rails"
-  run "bundle install --quiet", abort_on_failure: true
+  remove_css_gem "tailwindcss-rails", watcher: "tailwindcss:watch",
+                                      outputs: %w[app/assets/builds/tailwind.css app/assets/builds/tailwind]
 end
 
 if gem_in_gemfile?("cssbundling-rails")
