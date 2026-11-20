@@ -9,19 +9,24 @@ module RspackRails
   # scripts and stylesheets to link, in order. The view helpers link what it
   # lists instead of guessing file names. A dotfile, so Propshaft and Sprockets
   # leave it out of public/assets.
+  #
+  # `rspack serve` writes DEV_PATH instead, so a build that runs alongside it
+  # (`bin/rails test` runs one) cannot replace the manifest the dev server's
+  # pages need. RspackRails.manifest picks the file.
   class Manifest
     PATH = "app/assets/builds/.rspack-manifest.json"
+    DEV_PATH = "app/assets/builds/.rspack-dev-manifest.json"
 
     # scripts: ["runtime.js", "application.js"]; stylesheets: ["application.bundle.css"].
     # stylesheet_only: built from CSS alone (app/javascript/entrypoints/print.css);
     # it has a script only under `rspack serve`, for hot updates.
     Entry = Data.define(:scripts, :stylesheets, :stylesheet_only)
 
-    attr_reader :root
+    attr_reader :root, :path
 
-    def initialize(root)
+    def initialize(root, path = PATH)
       @root = Pathname(root)
-      @path = @root.join(PATH)
+      @path = @root.join(path)
       # [mtime, entries], replaced as one object: a Puma thread never pairs a
       # new mtime with the previous entries.
       @cache = [nil, {}].freeze

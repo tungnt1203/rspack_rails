@@ -26,12 +26,23 @@ module RspackRails
       @dev_server ||= DevServer.new(config)
     end
 
-    # Internal. One per app root: a new one when Rails.root changes (another
-    # app in the same process, as in tests or an engine's dummy app).
+    # Internal. The dev server's manifest while it runs, the build's otherwise
+    # (also under a config/rspack/rails.mjs from before 1.0.3, which writes
+    # only that one). One of each per app root: new ones when Rails.root
+    # changes (another app in the same process, as in tests or an engine's
+    # dummy app).
     def manifest
-      root = Pathname(defined?(::Rails.root) && ::Rails.root ? ::Rails.root : Dir.pwd)
-      @manifest = Manifest.new(root) unless @manifest&.root == root
-      @manifest
+      root = app_root
+      unless @manifests&.first&.root == root
+        @manifests = [Manifest.new(root), Manifest.new(root, Manifest::DEV_PATH)].freeze
+      end
+      build, dev = @manifests
+      dev_server.running? && dev.path.file? ? dev : build
+    end
+
+    # Internal.
+    def app_root
+      Pathname(defined?(::Rails.root) && ::Rails.root ? ::Rails.root : Dir.pwd)
     end
 
     # Internal. Registered with Rails.application.deprecators, so the app's
