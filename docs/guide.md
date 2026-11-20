@@ -94,7 +94,15 @@ import "./styles/application.css"
 <%= rspack_stylesheet_tag "application" %>
 ```
 
-- `*.module.css` files are compiled as CSS modules.
+- `*.module.css` files are compiled as CSS modules. Import their class names as a namespace (`import styles from` fails the build: a CSS module has no default export):
+
+  ```js
+  import * as styles from "./Button.module.css"
+
+  button.className = styles.primary      // a scoped name ending in "Button_module_css-primary", a short hash in production
+  button.classList.add(styles["is-active"])
+  ```
+
 - Under `rspack serve`, CSS changes apply without a page reload.
 - The `.bundle` suffix keeps the output from clashing with `app/assets/stylesheets/application.css`.
 
@@ -118,7 +126,7 @@ bin/rails rspack:install:sass
 
 This installs `sass-loader` and `sass-embedded` and creates `app/javascript/application.scss`, imported from your entry.
 
-- Import any `.scss` or `.sass` file from JavaScript. `*.module.scss` files are CSS modules.
+- Import any `.scss` or `.sass` file from JavaScript. `*.module.scss` files are CSS modules, imported the same way (`import * as styles from "./Card.module.scss"`).
 - `app/assets/stylesheets` is a load path, so `@use "variables"` finds `app/assets/stylesheets/_variables.scss`.
 - Inside partials, `url()` is resolved from the file that was imported from JavaScript, not from the partial.
 
@@ -171,6 +179,20 @@ body { background: url("./images/hero.png"); }
 - Files under 8 KB are inlined as data URIs.
 - Larger ones are written to `app/assets/builds` as `<name>-<hash>.digested.<ext>`, and Propshaft serves them without fingerprinting them a second time.
 - A root-relative `url()` is left for Rails: Rspack neither bundles nor fingerprints it. Propshaft looks it up in `app/assets`, so `url("/logo.svg")` becomes the fingerprinted `app/assets/images/logo.svg`. A file that only exists in `public/`, such as `url("/icon.png")`, stays as written. Propshaft logs "Unable to resolve" for it, which is harmless.
+
+## Web Workers
+
+Create a worker from a `new URL()` next to `import.meta.url`, and Rspack bundles the worker file with its imports as a chunk of its own:
+
+```ts
+// app/javascript/controllers/report_controller.ts
+const worker = new Worker(new URL("../workers/report.worker.ts", import.meta.url), { name: "report" })
+worker.postMessage({ rows })
+```
+
+- The chunk is written as `<name>-<hash>.digested.js` (`report-…` here, from the `name` option) and loaded from the same origin as the page: `/rspack/` under `rspack serve`, the assets path after a build.
+- A worker can import app code and packages like any other module, so code shared with the page lives in one file.
+- TypeScript checks a worker against the `DOM` library from `tsconfig.json`, where `postMessage` takes a target origin. Call it as `(self as unknown as Worker).postMessage(result)` inside the worker.
 
 ## What `rspack:install` changes
 
