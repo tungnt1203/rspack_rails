@@ -93,18 +93,23 @@ module RspackRails
 
     # Index of the last non-blank line indented under lines[head] (head itself if none).
     def last_child(lines, head)
-      children = lines.drop(head + 1).take_while { |line| line.strip.empty? || indent(line) > indent(lines[head]) }
+      children = lines.drop(head + 1).take_while { |line| line.strip.empty? || depth(line) > depth(lines[head]) }
       last_filled = children.rindex { |line| !line.strip.empty? }
       last_filled ? head + 1 + last_filled : head
     end
 
     def child_indent(lines, head, last)
       first = lines[(head + 1)..last].find { |line| !line.strip.empty? }
-      first ? first[/\A[ \t]*/] : "#{lines[head][/\A[ \t]*/]}  "
+      first ? leading_space(first) : "#{leading_space(lines[head])}  "
     end
 
-    def indent(line)
-      line[/\A[ \t]*/].size
+    # The spaces and tabs a line starts with.
+    def leading_space(line)
+      line[/\A[ \t]*/]
+    end
+
+    def depth(line)
+      leading_space(line).size
     end
   end
 end

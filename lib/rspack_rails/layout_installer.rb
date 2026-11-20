@@ -38,7 +38,7 @@ module RspackRails
       files.each do |path|
         say "Adding rspack_stylesheet_tag to #{path}"
         tag = Layouts.tag(path, STYLESHEET_TAG)
-        gsub_file(path, APPLICATION_SCRIPT, verbose: false) { |line| "#{line}\n#{indent(line)}#{tag}" }
+        gsub_file(path, APPLICATION_SCRIPT, verbose: false) { |line| "#{line}\n#{Layouts.leading_space(line)}#{tag}" }
       end
     end
 
@@ -71,7 +71,7 @@ module RspackRails
       layouts_matching(helper_call(helper)).each do |path|
         say "Replacing #{helper} with #{code[/\A\w+/]} in #{path}"
         bare = /^[ \t]*(?:<%=[ \t]*#{helper}[ \t]*%>|=[ \t]*#{helper}[ \t]*)$/
-        gsub_file(path, bare, verbose: false) { |line| "#{indent(line)}#{Layouts.tag(path, code)}" }
+        gsub_file(path, bare, verbose: false) { |line| "#{Layouts.leading_space(line)}#{Layouts.tag(path, code)}" }
         next unless rspack_app.read(path).match?(helper_call(helper))
 
         say "#{path} calls #{helper} with arguments, so it is removed. Add the rspack tag for that entry by hand.",
@@ -97,10 +97,6 @@ module RspackRails
 
     def helper_call(helper)
       /^[ \t]*(?:<%=|=)[ \t]*#{helper}(?!\w)/
-    end
-
-    def indent(line)
-      line[/\A[ \t]*/]
     end
   end
 end
