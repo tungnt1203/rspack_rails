@@ -1,18 +1,12 @@
 ## [Unreleased]
 
-## [1.0.5] - 2026-11-20
-
-- Builds no longer print Rspack's "asset size limit" and "entrypoint size limit" warnings. They flag any entry over 244 KiB, which an app with React and Turbo passes from the start, so every `assets:precompile` (and every deploy) warned about something nobody had asked to budget. Set `config.performance` in `rspack.config.mjs` to warn or fail over a budget of your own (docs/production.md#bundle-analysis)
-
-## [1.0.4] - 2026-11-20
-
-- `rspack:install:tailwind` leaves `tmp`, `log`, `storage` and `app/assets/builds` out of Tailwind's class scan with `@source not` lines in `app/javascript/application.css`. Tailwind skips what `.gitignore` lists, but a Docker build has no `.gitignore` and does have bootsnap's cache in `tmp/`, so the production CSS in the image picked up unused classes (twice the size of a local build). `rspack:doctor` warns about a Tailwind stylesheet without them; run `bin/rails rspack:install:tailwind` again to add them
-
 ## [1.0.3] - 2026-11-20
 
 Found by taking a new Rails 8.1 app from `rails new` with the template through `bin/dev`, tests, `assets:precompile` and a Docker image.
 
 - `rspack serve` writes its manifest to `app/assets/builds/.rspack-dev-manifest.json`, which the view helpers read while it runs. A build alongside it, such as the one `bin/rails test` runs, used to replace the shared `.rspack-manifest.json`, so dev pages dropped `runtime.js` and ran no JavaScript at all until the next rebuild. Run `bin/rails rspack:sync` (or any `rspack:build`) to get the new `config/rspack/rails.mjs`; until then the helpers keep reading `.rspack-manifest.json`
+- `rspack:install:tailwind` leaves `tmp`, `log`, `storage` and `app/assets/builds` out of Tailwind's class scan with `@source not` lines in `app/javascript/application.css`. Tailwind skips what `.gitignore` lists, but a Docker build has no `.gitignore` and does have bootsnap's cache in `tmp/`, so the production CSS in the image picked up unused classes (twice the size of a local build). `rspack:doctor` warns about a Tailwind stylesheet without them; run `bin/rails rspack:install:tailwind` again to add them
+- Builds no longer print Rspack's "asset size limit" and "entrypoint size limit" warnings. They flag any entry over 244 KiB, which an app with React and Turbo passes from the start, so every `assets:precompile` (and every deploy) warned about something nobody had asked to budget. Set `config.performance` in `rspack.config.mjs` to warn or fail over a budget of your own (docs/production.md#bundle-analysis)
 
 ## [1.0.2] - 2026-11-19
 
