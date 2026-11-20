@@ -73,6 +73,14 @@ bin/rails rspack:analyze
 
 This runs a production build into `tmp/rsdoctor/build` (leaving `app/assets/builds` alone) and writes a single-file [Rsdoctor](https://rsdoctor.rs) report to `tmp/rsdoctor/rsdoctor-report.html`, with bundle and module sizes, duplicate packages and build timings. It installs `@rsdoctor/rspack-plugin` the first time.
 
+Builds do not print Rspack's size hints, which flag every entry over 244 KiB (an app with React and Turbo starts above it). To have a build warn or fail over a budget of your own, set `performance` in `rspack.config.mjs`:
+
+```js
+export default railsConfig((config) => {
+  config.performance = { hints: "error", maxEntrypointSize: 400_000, maxAssetSize: 400_000 };
+});
+```
+
 ## Doctor
 
 `bin/rails rspack:doctor` checks the setup and prints a hint for anything missing:
