@@ -10,6 +10,7 @@
 ✓ Stylesheet: application.html.erb, admin.html.erb use rspack_stylesheet_tag
 ✓ Procfile.dev: runs the dev server
 ✓ Dockerfile: installs Node.js and node modules
+✓ Tailwind CSS: leaves tmp, log, storage and app/assets/builds out of its scan
 ✓ Dev container: has Node.js and forwards 3036
 ✓ Stimulus: autoload enabled
 ✓ Stimulus loader: app/javascript/controllers/autoload.js from rspack_rails <VERSION>
