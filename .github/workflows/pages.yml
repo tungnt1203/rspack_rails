@@ -3,7 +3,7 @@ name: Pages
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "docs/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -24,8 +24,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actions/configure-pages@v5
-      - name: Upload site/ (without Hallmark's working files)
-        run: rm -rf site/.hallmark
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Build the docs pages from docs/*.md
+        working-directory: site
+        run: |
+          npm ci
+          node build-docs.mjs
+      - name: Upload site/ (without Hallmark's working files or node_modules)
+        run: rm -rf site/.hallmark site/docs/.hallmark site/node_modules
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

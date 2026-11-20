@@ -16,3 +16,7 @@
 # Hallmark working files (screenshots, build log)
 .hallmark/
 site/.hallmark/
+
+# GitHub Pages: docs are built from docs/*.md
+site/node_modules/
+site/docs/
