@@ -2,6 +2,7 @@
 
 require "rspack_rails/installer"
 require "rspack_rails/rspack_config"
+require "rspack_rails/rake_tasks"
 
 namespace :rspack do
   desc "Set up rspack in this Rails app"
@@ -44,8 +45,7 @@ namespace :rspack do
 
   desc "Install JavaScript dependencies"
   task :dependencies do
-    command = RspackRails::PackageManager.detect(Rails.root).install_command
-    system(command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
+    RspackRails::RakeTasks.run!(RspackRails::PackageManager.detect(Rails.root).install_command)
   end
 
   desc "Update config/rspack/rails.mjs (and the Stimulus and React loaders) to this version of rspack_rails " \
@@ -53,16 +53,12 @@ namespace :rspack do
   task :sync do
     # The loaders do not depend on rspack.config.mjs: they are synced even when
     # it predates config/rspack/rails.mjs.
-    files = RspackRails::ManagedFile::ALL
-    unless RspackRails::RspackConfig.managed?(Rails.root)
-      files -= [RspackRails::ManagedFile::BASE]
-      warn "rspack.config.mjs does not build on #{RspackRails::RspackConfig::BASE}. Re-run " \
-           "`bin/rails rspack:install` and accept the new rspack.config.mjs to have rspack_rails keep it up to date."
-    end
-    files.each do |file|
-      result = file.sync(Rails.root)
-      puts "Updated #{result.path}" if result.written
-      warn file.edits_message(result.backup) if result.backup
+    config = RspackRails::RspackConfig
+    base = config.managed?(Rails.root)
+    warn "#{config::NOT_MANAGED}. #{config::REINSTALL} to have rspack_rails keep it up to date." unless base
+    RspackRails::ManagedFile.sync_all(Rails.root, base: base).each do |result|
+      puts "Updated #{result.path}"
+      warn result.edits_message if result.backup
     end
   end
 
@@ -72,28 +68,19 @@ namespace :rspack do
     # `rspack build` defaults NODE_ENV to production. Development and test
     # builds keep source maps and skip minification; staging etc. stay production.
     node_env = Rails.env.development? || Rails.env.test? ? "development" : "production"
-    env = { "NODE_ENV" => ENV.fetch("NODE_ENV", node_env) }
-    system(env, command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
+    RspackRails::RakeTasks.run!(command, env: { "NODE_ENV" => ENV.fetch("NODE_ENV", node_env) })
   end
 
   desc "Analyze the production bundle with Rsdoctor (report in tmp/rsdoctor)"
   task analyze: %i[sync dependencies] do
     app = RspackRails::App.new(Rails.root)
     pm = app.package_manager
-    unless RspackRails::RspackConfig.managed?(Rails.root)
-      raise RspackRails::Error,
-            "rspack.config.mjs does not build on #{RspackRails::RspackConfig::BASE}. Re-run " \
-            "`bin/rails rspack:install` and accept the new config."
-    end
+    config = RspackRails::RspackConfig
+    raise RspackRails::Error, "#{config::NOT_MANAGED}. #{config::REINSTALL}." unless config.managed?(Rails.root)
 
-    unless app.dependency?("@rsdoctor/rspack-plugin")
-      command = pm.add_dev_command("@rsdoctor/rspack-plugin")
-      system(command, chdir: Rails.root) || raise(RspackRails::Error, "#{command} failed")
-    end
-
-    command = pm.run_command("build")
-    system({ "RSDOCTOR" => "true", "NODE_ENV" => "production" }, command, chdir: Rails.root) ||
-      raise(RspackRails::Error, "#{command} failed")
+    RspackRails::RakeTasks.run!(pm.add_dev_command("@rsdoctor/rspack-plugin")) unless
+      app.dependency?("@rsdoctor/rspack-plugin")
+    RspackRails::RakeTasks.run!(pm.run_command("build"), env: { "RSDOCTOR" => "true", "NODE_ENV" => "production" })
     puts "Rsdoctor report: #{Rails.root.join("tmp/rsdoctor/rsdoctor-report.html")}"
   end
 

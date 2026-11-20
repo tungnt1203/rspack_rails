@@ -9,7 +9,7 @@ module RspackRails
     # rspack.config.mjs, the package.json scripts, the entry points and what
     # rspack built from them.
     class BuildChecks < Checks
-      # config/rspack/rails.mjs, by RspackConfig.state.
+      # config/rspack/rails.mjs, by ManagedFile::BASE.state.
       BASE_STATES = {
         missing: [:error, "imports %s, which is missing", "Run `bin/rails rspack:sync`"],
         edited: [:warn, "%s has hand edits, which the next rspack:build replaces",
@@ -31,13 +31,13 @@ module RspackRails
 
         return managed_config_check if RspackConfig.managed?(root)
 
-        Check.new(:error, "rspack.config.mjs", "does not build on #{RspackConfig::BASE}",
+        Check.new(:error, RspackConfig::APP, "does not build on #{RspackConfig::BASE}",
                   "Re-run `bin/rails rspack:install`, accept the new rspack.config.mjs and move your changes " \
                   "into its railsConfig callback")
       end
 
       def managed_config_check
-        status, detail, hint = BASE_STATES.fetch(RspackConfig.state(root))
+        status, detail, hint = BASE_STATES.fetch(ManagedFile::BASE.state(root))
         Check.new(status, "rspack.config.mjs", format(detail, RspackConfig::BASE), hint)
       end
 

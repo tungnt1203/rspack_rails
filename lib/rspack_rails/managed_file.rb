@@ -18,9 +18,18 @@ module RspackRails
     BACKUP_DIR = "tmp/rspack_rails"
     INSTALL = File.expand_path("../install", __dir__)
 
-    # written: whether sync rewrote the file. backup: where the hand edits it
-    # replaced were saved, or nil.
-    SyncResult = Data.define(:path, :written, :backup)
+    # file: the ManagedFile. written: whether sync rewrote it. backup: where
+    # the hand edits it replaced were saved, or nil.
+    SyncResult = Data.define(:file, :written, :backup) do
+      def path
+        file.path
+      end
+
+      # What to tell the app when hand edits were replaced, or nil.
+      def edits_message
+        file.edits_message(backup) if backup
+      end
+    end
 
     attr_reader :path
 
@@ -40,9 +49,10 @@ module RspackRails
                 template: File.join(INSTALL, "react/mount.js"))
     ALL = [BASE, STIMULUS, REACT].freeze
 
-    # Syncs every managed file the app has (and config/rspack/rails.mjs).
-    def self.sync_all(root)
-      ALL.map { |file| file.sync(root) }.select(&:written)
+    # Syncs every managed file the app has, and config/rspack/rails.mjs unless
+    # `base` is false (rspack.config.mjs does not build on it). Returns what was written.
+    def self.sync_all(root, base: true)
+      (base ? ALL : ALL - [BASE]).map { |file| file.sync(root) }.select(&:written)
     end
 
     def self.checksum(content)
@@ -92,13 +102,13 @@ module RspackRails
     # when it is missing if it is required or `create` is set (its installer
     # is running). Hand edits are copied to tmp/rspack_rails/ first.
     def sync(root, create: false)
-      return SyncResult.new(path: path, written: false, backup: nil) unless due?(root, create)
+      return SyncResult.new(file: self, written: false, backup: nil) unless due?(root, create)
 
       backup = back_up(root) if edited?(root)
       file = Pathname(root).join(path)
       file.dirname.mkpath
       file.write(content)
-      SyncResult.new(path: path, written: true, backup: backup)
+      SyncResult.new(file: self, written: true, backup: backup)
     end
 
     def edits_message(backup)
