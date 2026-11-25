@@ -95,13 +95,13 @@ function parse(slug) {
 const docs = slugs.map(parse);
 
 const nav = (current) => `
-  <header class="nav">
-    <div class="container nav__bar">
+  <header class="bar">
+    <div class="container bar__inner">
       <a class="wordmark" href="../" aria-label="rspack_rails, home">rspack_rails</a>
       <nav aria-label="Site">
-        <ul class="nav__links">
-          <li><a href="../#how">How it works</a></li>
+        <ul class="bar__links">
           <li><a href="./"${current ? ' aria-current="page"' : ""}>Docs</a></li>
+          <li><a href="${REPO}/blob/main/CHANGELOG.md">Changelog</a></li>
           <li><a href="${REPO}">GitHub</a></li>
         </ul>
       </nav>
@@ -110,9 +110,9 @@ const nav = (current) => `
 
 const footer = `
   <footer class="footer">
-    <div class="container footer__grid">
-      <p class="footer__colophon"><strong>One gem, from rails new to Kamal.</strong><br>These pages are built from <a class="link" href="${REPO}/tree/main/docs">docs/</a> in the repository. Spot a mistake? <a class="link" href="${REPO}/issues/new">Open an issue</a>.</p>
-      <ul class="footer__links">
+    <div class="container footer__inner">
+      <p>These pages are built from <a class="link" href="${REPO}/tree/main/docs">docs/</a> in the repository. Spot a mistake? <a class="link" href="${REPO}/issues/new">Open an issue</a>.</p>
+      <ul>
         <li><a href="../">Home</a></li>
         <li><a href="${REPO}">GitHub</a></li>
         <li><a href="https://rubygems.org/gems/rspack_rails">RubyGems</a></li>
@@ -132,7 +132,7 @@ const page = ({ title, description, body }) => `<!doctype html>
   <meta name="description" content="${escape(description)}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,400..700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../docs.css">
   <script>document.documentElement.classList.add('js');</script>
 </head>

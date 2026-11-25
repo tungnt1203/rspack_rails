@@ -3,24 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>rspack_rails: hot reloading for new Rails apps</title>
-  <meta name="description" content="A Ruby gem that builds a Rails app's JavaScript and CSS with Rspack and applies every save to the open page.">
+  <title>rspack_rails: Rspack for Rails, in one file you own</title>
+  <meta name="description" content="A Ruby gem that bundles a Rails app's JavaScript and CSS with Rspack. Saving a file updates the open page, and the config is one plain Rspack file that no upgrade rewrites.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,400..700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <script>document.documentElement.classList.add('js');</script>
+  <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to the page</a>
-
-  <header class="nav">
-    <div class="container nav__bar">
+  <header class="bar">
+    <div class="container bar__inner">
       <a class="wordmark" href="./" aria-label="rspack_rails, home">rspack_rails</a>
       <nav aria-label="Site">
-        <ul class="nav__links">
-          <li><a href="#how">How it works</a></li>
+        <ul class="bar__links">
           <li><a href="docs/">Docs</a></li>
+          <li><a href="https://github.com/tungnt1203/rspack_rails/blob/main/CHANGELOG.md">Changelog</a></li>
           <li><a href="https://github.com/tungnt1203/rspack_rails">GitHub</a></li>
         </ul>
       </nav>
@@ -29,245 +28,244 @@
 
   <main id="main">
     <section class="hero" aria-labelledby="hero-title">
-      <canvas class="field" data-field aria-hidden="true"></canvas>
-      <div class="container hero__inner">
-        <h1 id="hero-title">Rspack hot reloading for Rails</h1>
-        <p class="lead">For new Rails apps: every save lands in the open page.</p>
-        <div class="command" data-command>
-          <code class="command__text" id="cmd-hero" data-text="rails new myapp -m https://raw.githubusercontent.com/tungnt1203/rspack_rails/main/template.rb"><span class="prompt">$ </span>rails new myapp -m https://raw.githubusercontent.com/<wbr>tungnt1203/<wbr>rspack_rails/<wbr>main/<wbr>template.rb</code>
-          <div class="command__actions">
-            <button class="key key--primary" type="button" data-copy="cmd-hero">Copy the command</button>
-            <a class="key" href="docs/guide.html">Read the guide</a>
-          </div>
-          <p class="command__status" role="status" aria-live="polite"></p>
-        </div>
-      </div>
-    </section>
-
-    <section class="map" id="how" aria-labelledby="how-title">
-      <div class="container">
-        <div class="head-split">
-          <h2 id="how-title">Two servers, one origin</h2>
-          <p class="lead">Rails proxies <code>/rspack/*</code> to <code>rspack serve</code>. Only the hot update socket goes to it directly.</p>
-        </div>
-
-        <div class="switch" data-switch>
-          <div class="tray" role="tablist" aria-label="What is running">
-            <button type="button" role="tab" id="tab-dev" aria-controls="panel-dev" aria-selected="true">bin/dev running</button>
-            <button type="button" role="tab" id="tab-stopped" aria-controls="panel-stopped" aria-selected="false" tabindex="-1">Dev server stopped</button>
-            <button type="button" role="tab" id="tab-prod" aria-controls="panel-prod" aria-selected="false" tabindex="-1">Production</button>
-          </div>
-
-          <div class="diagram" role="tabpanel" id="panel-dev" aria-labelledby="tab-dev">
-            <ol class="flow" aria-label="Requests while bin/dev runs">
-              <li class="node"><span class="node__name">Browser</span><span class="node__meta">the page you are editing</span></li>
-              <li class="edge"><span>page and /rspack/*</span></li>
-              <li class="node"><span class="node__name">Rails</span><span class="node__meta">localhost:3000</span></li>
-              <li class="edge"><span>/rspack/* proxied</span></li>
-              <li class="node node--live"><span class="node__name">rspack serve</span><span class="node__meta">localhost:3036</span></li>
-            </ol>
-            <p class="return"><span>Hot update socket, from rspack serve straight back to the browser</span></p>
-            <p class="diagram__note">The helpers point at <code>/rspack/…</code>, so bundles, chunks, workers and hot updates are same-origin with the page.</p>
-          </div>
-
-          <div class="diagram" role="tabpanel" id="panel-stopped" aria-labelledby="tab-stopped">
-            <ol class="flow" aria-label="Requests with the dev server stopped">
-              <li class="node"><span class="node__name">Browser</span><span class="node__meta">a plain page load</span></li>
-              <li class="edge"><span>page and assets</span></li>
-              <li class="node"><span class="node__name">Rails</span><span class="node__meta">localhost:3000</span></li>
-              <li class="edge"><span>last build</span></li>
-              <li class="node node--live"><span class="node__name">public/rspack</span><span class="node__meta">last rspack build</span></li>
-            </ol>
-            <p class="diagram__note">Stop <code>bin/dev</code> and the helpers fall back to the last build. Nothing to configure.</p>
-          </div>
-
-          <div class="diagram" role="tabpanel" id="panel-prod" aria-labelledby="tab-prod">
-            <ol class="flow" aria-label="The production build" id="ship">
-              <li class="node"><span class="node__name">rspack:build</span><span class="node__meta">runs before assets:precompile</span></li>
-              <li class="edge"><span>bundles</span></li>
-              <li class="node"><span class="node__name">public/rspack</span><span class="node__meta">every file fingerprinted</span></li>
-              <li class="edge"><span>served</span></li>
-              <li class="node node--live"><span class="node__name">Rails</span><span class="node__meta">/rspack/, cached for a year</span></li>
-            </ol>
-            <div class="ship">
-              <p class="diagram__note">Ship with Kamal: Node.js joins the build stage, and the final image ships without it. Dev containers get Node.js and port 3036 too.</p>
-              <figure class="code">
-                <figcaption><span>Dockerfile, build stage</span></figcaption>
-<pre tabindex="0" aria-label="Dockerfile lines"><code><span class="c"># Install Node.js: assets:precompile runs rspack (rspack_rails)</span>
-ARG NODE_VERSION=22.12.0
-RUN curl -sL …/node-build/archive/master.tar.gz | tar xz -C /tmp/ &amp;&amp; …
-
-<span class="c"># Install node modules</span>
-COPY package.json package-lock.json ./
-RUN npm ci
-
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
-RUN rm -rf node_modules</code></pre>
-              </figure>
+      <div class="container hero__grid">
+        <div class="hero__copy">
+          <h1 id="hero-title">Rspack for Rails, in one file you own</h1>
+          <p class="hero__lead">Save a file and the open page updates. The only config rspack_rails adds is <code>rspack.config.mjs</code>, a plain Rspack config that no upgrade rewrites.</p>
+          <div class="command">
+            <p class="command__line"><span class="prompt">$</span> <span id="command-text">rails new myapp -m https://raw.githubusercontent.com/<wbr>tungnt1203/<wbr>rspack_rails/<wbr>main/<wbr>template.rb</span></p>
+            <div class="command__actions">
+              <button class="btn btn--solid" type="button" data-copy="#command-text" hidden>Copy the command</button>
+              <a class="link" href="#start">Add it to an app you have</a>
             </div>
+            <p class="command__status" role="status" aria-live="polite"></p>
           </div>
         </div>
-      </div>
-    </section>
 
-    <section class="pinned" id="develop" aria-labelledby="develop-title">
-      <div class="container pinned__grid">
-        <div class="pinned__stage" data-loop aria-hidden="false">
-          <div class="frame frame--video" data-step-media="0" data-slot="hmr" data-kind="product" data-alt="Screen recording of a save in the editor landing in the open page">
-            <video muted loop playsinline preload="metadata" poster="media/hmr-poster.jpg" width="1296" height="1080"
-                   aria-label="A view edit and a controller edit in the demo app, applied to the open page">
-              <source src="media/hmr.webm" type="video/webm">
-              <source src="media/hmr.mp4" type="video/mp4">
-            </video>
-          </div>
-          <div class="frame" data-step-media="1"><img src="media/edit-controller.jpg" width="1280" height="873" loading="lazy" alt="counter_controller.ts in the editor, the label changed from click to tap"></div>
-          <div class="frame" data-step-media="2"><img src="media/page-controller.jpg" width="1280" height="873" loading="lazy" alt="The demo page showing 0 taps, with the amber card still in place"></div>
-          <div class="frame" data-step-media="3"><img src="media/edit-view.jpg" width="1280" height="873" loading="lazy" alt="home.html.erb in the editor, bg-amber-100 added to the first card"></div>
-          <div class="frame" data-step-media="4"><img src="media/page-view.jpg" width="1280" height="873" loading="lazy" alt="The demo page reloaded with the first card in amber"></div>
-          <button class="key key--small pinned__toggle" type="button" data-loop-toggle>Pause</button>
-        </div>
-
-        <div class="pinned__steps">
-          <h2 id="develop-title">Save, and the page follows</h2>
-          <ol class="steps">
-            <li class="step" data-step="0">
-              <h3>Under bin/dev</h3>
-              <p>Scripts and styles swap in place. Recorded in the demo app: a view, then a controller.</p>
-            </li>
-            <li class="step" data-step="1">
-              <figure class="step__media"><img src="media/edit-controller.jpg" width="1280" height="873" loading="lazy" alt=""></figure>
-              <h3>Edit a controller</h3>
-              <p><code>counter_controller.ts</code>: “click” becomes “tap”.</p>
-            </li>
-            <li class="step" data-step="2">
-              <figure class="step__media"><img src="media/page-controller.jpg" width="1280" height="873" loading="lazy" alt=""></figure>
-              <h3>The count stays</h3>
-              <p>The controller is swapped; the page never reloads.</p>
-            </li>
-            <li class="step" data-step="3">
-              <figure class="step__media"><img src="media/edit-view.jpg" width="1280" height="873" loading="lazy" alt=""></figure>
-              <h3>Edit a view</h3>
-              <p><code>home.html.erb</code> gains <code>bg-amber-100</code>.</p>
-            </li>
-            <li class="step" data-step="4">
-              <figure class="step__media"><img src="media/page-view.jpg" width="1280" height="873" loading="lazy" alt=""></figure>
-              <h3>The page reloads</h3>
-              <p>The class is already built when it lands.</p>
-            </li>
-          </ol>
-        </div>
-      </div>
-    </section>
-
-    <section class="create" id="create" aria-labelledby="create-title">
-      <div class="container">
-        <div class="head-split">
-          <h2 id="create-title">Create the app</h2>
-          <p class="lead">One command writes <code>rspack.config.mjs</code>, a plain Rspack config that is yours, and builds once.</p>
-        </div>
-        <div class="mapping">
-          <figure class="code">
-            <figcaption><span>A new app</span><span>terminal</span></figcaption>
-<pre tabindex="0" aria-label="Terminal output"><code><span class="t">$</span> rails new myapp -m …/rspack_rails/main/template.rb
-rspack_rails is set up. Run bin/dev to start.</code></pre>
-          </figure>
-          <figure class="code">
-            <figcaption><span>An existing app</span><span>the same steps</span></figcaption>
-<pre tabindex="0" aria-label="Commands for an existing app"><code><span class="t">$</span> bundle add rspack_rails
-<span class="t">$</span> bin/rails rspack:install</code></pre>
-          </figure>
-        </div>
-      </div>
-    </section>
-
-    <section class="doctor" id="check" aria-labelledby="check-title">
-      <div class="container">
-        <div class="head-split">
-          <h2 id="check-title">Ask the doctor</h2>
-          <p class="lead"><code>bin/rails rspack:doctor</code> checks the setup and says what to fix. An error exits with status 1, so CI can run it.</p>
-        </div>
-        <table class="ledger">
-          <caption class="visually-hidden">Output of rspack:doctor in a new app</caption>
-          <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Detail</th></tr></thead>
-          <tbody>
-            <tr><th scope="row">Node.js</th><td class="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Pass</td><td class="mono">v26.5.1 (rspack needs ^20.19.0 || &gt;=22.12.0)</td></tr>
-            <tr><th scope="row">@rspack/core</th><td class="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Pass</td><td class="mono">2.3.2</td></tr>
-            <tr><th scope="row">Layout</th><td class="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Pass</td><td class="mono">application.html.erb uses rspack_javascript_tag</td></tr>
-            <tr><th scope="row">Dockerfile</th><td class="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Pass</td><td class="mono">installs Node.js and node modules</td></tr>
-            <tr class="is-warn"><th scope="row">Dev server</th><td class="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Warning</td><td class="mono">not running at http://localhost:3036</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="demo" id="demo" aria-labelledby="demo-title">
-      <div class="container">
-        <div class="head-split">
-          <h2 id="demo-title">The demo app, running</h2>
-          <p class="lead">React, CSS modules, a Web Worker and Turbo Streams, deployed with Kamal. <a class="link" href="https://52-65-113-251.sslip.io">Open it</a> or <a class="link" href="https://github.com/tungnt1203/rspack_rails-demo">read its source</a>.</p>
-        </div>
-        <figure class="shot shot--lead">
-          <div class="frame" data-slot="demo-home" data-kind="product" data-alt="The demo app's home page: the heading beside the manifest panel">
-            <img src="media/demo-home.jpg" width="2560" height="1800" loading="lazy" alt="The demo app's home page: its heading beside the manifest the helpers read, with the hashed script and stylesheet">
-          </div>
+        <figure class="diff" aria-labelledby="diff-title">
+          <figcaption class="diff__head">
+            <b id="diff-title">bin/rails rspack:install</b>
+            <span class="diff__sum">11 files changed, <span class="a">345 insertions(+)</span>, <span class="d">3 deletions(-)</span></span>
+          </figcaption>
+          <ul class="diff__list">
+          <li class="file file--new" style="--row:0">
+            <span class="file__sign" aria-hidden="true">+</span>
+            <span class="file__path">rspack.config.mjs</span>
+            <span class="file__count"><span class="n">+289</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="a" style="--i:3"></i><i class="a" style="--i:4"></i></span></span>
+            <span class="file__note">Yours. No upgrade rewrites it.</span>
+          </li>
+          <li class="file" style="--row:1">
+            <span class="file__sign" aria-hidden="true">~</span>
+            <span class="file__path">package.json</span>
+            <span class="file__count"><span class="n">+17</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="a" style="--i:3"></i><i style="--i:4"></i></span></span>
+            <span class="file__note">build and dev scripts, and the Rspack packages</span>
+          </li>
+          <li class="file" style="--row:2">
+            <span class="file__sign" aria-hidden="true">~</span>
+            <span class="file__path">Dockerfile</span>
+            <span class="file__count"><span class="n">+13</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="a" style="--i:3"></i><i style="--i:4"></i></span></span>
+            <span class="file__note">Node.js, so assets:precompile can build</span>
+          </li>
+          <li class="file" style="--row:3">
+            <span class="file__sign" aria-hidden="true">~</span>
+            <span class="file__path">bin/dev</span>
+            <span class="file__count"><span class="n">+10 −2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="d" style="--i:3"></i><i style="--i:4"></i></span></span>
+            <span class="file__note">starts Rails and the dev server together</span>
+          </li>
+          <li class="file file--new" style="--row:4">
+            <span class="file__sign" aria-hidden="true">+</span>
+            <span class="file__path">app/javascript/application.js</span>
+            <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+            <span class="file__note">the entry point</span>
+          </li>
+          <li class="file" style="--row:5">
+            <span class="file__sign" aria-hidden="true">~</span>
+            <span class="file__path">app/views/layouts/application.html.erb</span>
+            <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+            <span class="file__note">the script tag and the stylesheet tag</span>
+          </li>
+          <li class="file file--new" style="--row:6">
+            <span class="file__sign" aria-hidden="true">+</span>
+            <span class="file__path">Procfile.dev</span>
+            <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+            <span class="file__note">the dev server process</span>
+          </li>
+          <li class="file" style="--row:7">
+            <span class="file__sign" aria-hidden="true">~</span>
+            <span class="file__path">.gitignore</span>
+            <span class="file__count"><span class="n">+3</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+            <span class="file__note">public/rspack and node_modules stay out</span>
+          </li>
+          <li class="file" style="--row:8">
+            <span class="file__sign" aria-hidden="true">~</span>
+            <span class="file__path">.dockerignore</span>
+            <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+            <span class="file__note">public/rspack stays out of the image</span>
+          </li>
+          <li class="file" style="--row:9">
+            <span class="file__sign" aria-hidden="true">~</span>
+            <span class="file__path">bin/setup</span>
+            <span class="file__count"><span class="n">+3</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+            <span class="file__note">installs node modules</span>
+          </li>
+          <li class="file" style="--row:10">
+            <span class="file__sign" aria-hidden="true">~</span>
+            <span class="file__path">.devcontainer/devcontainer.json</span>
+            <span class="file__count"><span class="n">+2 −1</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="d" style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+            <span class="file__note">Node.js, and port 3036 for the dev server</span>
+          </li>
+          </ul>
+          <p class="diff__foot">Counted on a new Rails 8.1 app with the Dockerfile and dev container Rails generates. Apart from <code>rspack.config.mjs</code>, it is a few lines in each file.</p>
         </figure>
-        <div class="shots">
-          <figure class="shot">
-            <div class="frame frame--wide" data-slot="demo-worker" data-kind="product" data-alt="The Web Worker section after a run">
-              <img src="media/demo-worker.jpg" width="2304" height="984" loading="lazy" alt="A histogram of thirty million samples built in a Web Worker">
-            </div>
-            <figcaption>Thirty million samples in a Web Worker, 574 ms, and the page keeps moving.</figcaption>
-          </figure>
-          <figure class="shot">
-            <div class="frame frame--wide" data-slot="demo-admin" data-kind="product" data-alt="The admin page comparing its bundle with the home page's">
-              <img src="media/demo-admin.jpg" width="2560" height="1018" loading="lazy" alt="The admin page: application.js at 439 KB beside admin.js at 1.28 KB">
-            </div>
-            <figcaption>/admin links its own entry: 1.28 KB of JavaScript.</figcaption>
-          </figure>
-        </div>
       </div>
     </section>
 
-    <section class="requirements" id="requirements" aria-labelledby="req-title">
-      <div class="container">
-        <h2 id="req-title">Tested on every pull request</h2>
-        <div class="ruler">
-          <span class="ruler__end">Rails 7.2</span>
-          <span class="ruler__line" aria-hidden="true"></span>
-          <span class="ruler__end">Rails 8.1</span>
-          <p class="ruler__label">A new app on each, built and precompiled</p>
-        </div>
-        <dl class="rows">
-          <div><dt>Ruby</dt><dd>3.2 or newer</dd></div>
-          <div><dt>Node.js</dt><dd>20.19 or 22.12 and newer</dd></div>
-          <div><dt>Package manager</dt><dd>bun, yarn, pnpm or npm, read from the lockfile</dd></div>
-          <div><dt>Asset pipeline</dt><dd>None needed; Propshaft or Sprockets still work</dd></div>
-        </dl>
-      </div>
-    </section>
-
-    <section class="close" id="start" aria-labelledby="start-title">
-      <div class="container close__grid">
+    <section id="how" aria-labelledby="follows-title">
+      <div class="container follows">
         <div>
-          <h2 id="start-title">Start a new app</h2>
-          <p class="close__alt">Already have an app? <code>bundle add rspack_rails</code>, then <code>bin/rails rspack:install</code>.</p>
-        </div>
-        <div class="command" data-command>
-          <code class="command__text" id="cmd-close" data-text="rails new myapp -m https://raw.githubusercontent.com/tungnt1203/rspack_rails/main/template.rb"><span class="prompt">$ </span>rails new myapp -m https://raw.githubusercontent.com/<wbr>tungnt1203/<wbr>rspack_rails/<wbr>main/<wbr>template.rb</code>
-          <div class="command__actions">
-            <button class="key key--primary" type="button" data-copy="cmd-close">Copy the command</button>
-            <a class="link" href="https://github.com/tungnt1203/rspack_rails-demo">See the demo app</a>
+          <div class="section__head">
+            <h2 id="follows-title">Save a file, and the page follows</h2>
+            <p>Run <code>bin/dev</code>, edit something, and the open page changes. Rails proxies the dev server, so there is no second origin to allow.</p>
           </div>
-          <p class="command__status" role="status" aria-live="polite"></p>
+          <ul class="facts">
+            <li><b>CSS</b><span>Swapped in place.</span></li>
+            <li><b>Stimulus controllers</b><span>Swapped in place, and they keep their state.</span></li>
+            <li><b>Other JavaScript</b><span>Reloads the page, unless a module accepts hot updates.</span></li>
+            <li><b>Views</b><span>Reload the page, with the new classes already built.</span></li>
+          </ul>
         </div>
+        <figure class="proof">
+          <video controls muted playsinline preload="none" poster="media/hmr-poster.jpg" width="1280" height="720">
+            <source src="media/hmr.webm" type="video/webm">
+            <source src="media/hmr.mp4" type="video/mp4">
+          </video>
+          <figcaption>The demo app: a Tailwind class added to a view, then a Stimulus controller edited. The count survives the edit.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="serving-title">
+      <div class="container">
+        <div class="section__head">
+          <h2 id="serving-title">Rails serves what Rspack builds</h2>
+          <p>There is no asset pipeline in between. Keep Propshaft or Sprockets for the rest of <code>app/assets</code> if you like; this does not need them.</p>
+        </div>
+        <div class="serving">
+          <div>
+            <h3>In development</h3>
+            <figure class="code">
+              <figcaption><span>what happens when you open a page</span></figcaption>
+              <pre tabindex="0"><code><span class="l">GET /rspack/application.js    proxied to rspack serve</span><span class="l">GET /rspack/application.css   proxied to rspack serve</span><span class="l c"># only hot updates skip Rails</span><span class="l">ws://localhost:3036/ws        browser to dev server</span></code></pre>
+            </figure>
+            <p>Bundles, chunks, Web Workers and lazy-compiled imports come from the page's own origin.</p>
+          </div>
+          <div>
+            <h3>In production</h3>
+            <figure class="code">
+              <figcaption><span>public/rspack, after bin/rails assets:precompile</span></figcaption>
+              <pre tabindex="0"><code><span class="l add">application-1a2b3c4d5e6f7a8b.js</span><span class="l add">application-5e6f7a8b1a2b3c4d.css</span><span class="l add">hero-15691d33a821014e.jpg</span><span class="l c">.rspack-manifest.json</span><span class="l c"># GET /rspack/application-1a2b3c4d5e6f7a8b.js</span><span class="l">cache-control: public, max-age=31536000, immutable</span></code></pre>
+            </figure>
+            <p>Every file Rspack writes is fingerprinted, and Rails serves it with a one-year cache header.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="config-title">
+      <div class="container">
+        <div class="config">
+          <div class="section__head section__head--flush">
+            <h2 id="config-title">The config is a Rspack config</h2>
+            <p>Three parts of it are for Rails: the output directory, the plugin that writes the manifest the view helpers read, and the dev server block. The rest is yours.</p>
+            <p><a class="link" href="docs/configuration.html">How the config is laid out</a></p>
+          </div>
+          <figure class="code">
+            <figcaption><span>rspack.config.mjs</span><span>the parts Rails reads</span></figcaption>
+            <pre tabindex="0"><code><span class="l">output: {</span><span class="l add">  path: path.resolve(root, "public/rspack"),</span><span class="l add">  filename: isDevServer ? "[name].js" : "[name]-[contenthash].js",</span><span class="l">  publicPath: isDevServer ? "/rspack/" : "auto",</span><span class="l">  clean: !isDevServer &amp;&amp; { keep: /\.rspack-dev-manifest\.json$/ },</span><span class="l">},</span><span class="l c">// ...loaders, aliases, and whatever you add</span><span class="l add">plugins: [imagesPlugin(), manifestPlugin()],</span></code></pre>
+          </figure>
+        </div>
+        <div class="tools">
+          <h3>Add the tools you use</h3>
+          <ul class="rows">
+            <li><b>TypeScript</b><code>npm install --save-dev typescript</code><a href="docs/guide.html#typescript">Recipe</a></li>
+            <li><b>Stimulus</b><code>npm install @hotwired/stimulus</code><a href="docs/guide.html#stimulus">Recipe</a></li>
+            <li><b>Sass</b><code>npm install --save-dev sass sass-loader</code><a href="docs/guide.html#sass">Recipe</a></li>
+            <li><b>Tailwind CSS</b><code>npm install --save-dev tailwindcss @tailwindcss/webpack</code><a href="docs/guide.html#tailwind-css">Recipe</a></li>
+            <li><b>React</b><code>npm install react react-dom</code><a href="docs/guide.html#react">Recipe</a></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="start" class="start" aria-labelledby="start-title">
+      <div class="container">
+        <div class="section__head">
+          <h2 id="start-title">Start from what you have</h2>
+          <p>A new Rails app comes with importmap, Stimulus and, if you chose it, Tailwind CSS. The template keeps all three working.</p>
+        </div>
+        <ul class="rows">
+          <li>
+            <b>A new app</b>
+            <div class="cmd">
+              <code>rails new myapp -m https://raw.githubusercontent.com/<wbr>tungnt1203/<wbr>rspack_rails/<wbr>main/<wbr>template.rb</code>
+              <p>Importmap is migrated to Rspack, the Stimulus controllers are registered, and the first build runs.</p>
+            </div>
+          </li>
+          <li>
+            <b>An importmap or jsbundling app</b>
+            <div class="cmd">
+              <code>bin/rails rspack:migrate</code>
+              <p>Moves your pins to npm packages and your layouts to the helper tags. Commit first: it rewrites files.</p>
+            </div>
+          </li>
+          <li>
+            <b>Any other Rails app</b>
+            <div class="cmd">
+              <code>bundle add rspack_rails &amp;&amp; bin/rails rspack:install</code>
+              <p>Writes the config and the entry point, and adds the dev server to <code>bin/dev</code>.</p>
+            </div>
+          </li>
+        </ul>
+        <div class="doctor">
+          <figure class="code">
+            <figcaption><span>bin/rails rspack:doctor</span><span>run it whenever something looks off</span></figcaption>
+            <pre tabindex="0"><code><span class="l">✓ Node.js: v22.12.0 (rspack needs ^20.19.0 || &gt;=22.12.0)</span><span class="l">✓ @rspack/core: 2.3.3</span><span class="l">✓ rspack.config.mjs: writes .rspack-manifest.json for the view helpers</span><span class="l">✓ Layout: application.html.erb uses rspack_javascript_tag</span><span class="l">! Dev server: not running at http://localhost:3036</span><span class="l c">    start it with bin/dev; until then pages use the last bin/rails rspack:build</span></code></pre>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="checked-title">
+      <div class="container checked">
+        <div class="section__head section__head--flush">
+          <h2 id="checked-title">What the tests cover</h2>
+          <p>Every pull request generates real Rails apps with these combinations, builds them, and checks the result.</p>
+        </div>
+        <ul class="rows rows--plain">
+          <li><b>Rails</b><span>7.2 and 8.1</span></li>
+          <li><b>Ruby</b><span>3.2, 3.3 and 3.4</span></li>
+          <li><b>Package manager</b><span>npm, Yarn 1 and bun</span></li>
+          <li><b>Asset pipeline</b><span>Propshaft, Sprockets, or none</span></li>
+          <li><b>Starting point</b><span>importmap, jsbundling, <code>--skip-javascript</code> and <code>--css tailwind</code></span></li>
+          <li><b>Deploy</b><span>a Docker image built and run, as Kamal does</span></li>
+          <li><b>Hot updates</b><span>edits made under <code>rspack serve</code>, watched in Chromium</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="closing-section" aria-labelledby="closing-title">
+      <div class="container closing">
+        <h2 id="closing-title">Try it on a new app</h2>
+        <p>The demo app uses React, CSS modules, a Web Worker, Turbo Streams and a second entry point, and is deployed with Kamal. <a class="link" href="https://52-65-113-251.sslip.io">Open it</a> or <a class="link" href="https://github.com/tungnt1203/rspack_rails-demo">read its source</a>.</p>
+        <a class="btn btn--solid" href="docs/">Read the docs</a>
       </div>
     </section>
   </main>
 
   <footer class="footer">
-    <div class="container footer__grid">
-      <p class="footer__colophon"><strong>One gem, from rails new to Kamal.</strong><br>rspack_rails is a Ruby gem under the MIT licence. Rspack builds the bundles and Rails serves them.</p>
-      <ul class="footer__links">
+    <div class="container footer__inner">
+      <p>rspack_rails is a Ruby gem under the MIT licence. Rspack builds the bundles and Rails serves them.</p>
+      <ul>
         <li><a href="docs/">Docs</a></li>
         <li><a href="https://github.com/tungnt1203/rspack_rails">GitHub</a></li>
         <li><a href="https://rubygems.org/gems/rspack_rails">RubyGems</a></li>
@@ -277,9 +275,6 @@ rspack_rails is set up. Run bin/dev to start.</code></pre>
       </ul>
     </div>
   </footer>
-
-  <script>window.hallmarkSlots = (m) => { for (const [k, v] of Object.entries(m)) { const s = document.querySelector(`[data-slot="${k}"]`); if (!s) continue; const im = new Image(); im.src = typeof v === 'string' ? v : v.src; im.alt = (typeof v === 'object' && v.alt) || s.dataset.alt || ''; s.querySelectorAll(':scope > img').forEach((o) => o.remove()); s.prepend(im); } };
-document.querySelectorAll('[data-slot] img').forEach((i) => { if (i.complete && !i.naturalWidth) i.remove(); else i.addEventListener('error', () => i.remove(), { once: true }); });</script>
   <script src="site.js" defer></script>
 </body>
 </html>
