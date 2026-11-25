@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- Docs: Kamal's asset bridging (`asset_path: /rails/public/rspack`), not the last-3-builds retention, keeps old chunks available during a rolling deploy, because each image holds only its own build. The retention is for deploys that build in place. `bin/integration-docker` now simulates the bridging against a real image
 - `rspack_image_tag "logo.svg"` and `rspack_asset_path "icons/menu.svg"` for images that views show. Every file in `app/javascript/images/` is fingerprinted into `public/rspack` on each build and listed under `assets` in the manifest, so an app without Propshaft or Sprockets still has a fingerprinted `<img>`. Under `rspack serve` the images come from the dev server. An image that is not there raises `RspackRails::Manifest::MissingAsset`
 
 ## [2.0.0] - 2026-11-25

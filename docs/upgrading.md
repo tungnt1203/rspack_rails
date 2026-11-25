@@ -37,7 +37,7 @@ What changes:
 - **Propshaft and Sprockets are optional.** Keep them for the rest of `app/assets`. Without them, `assets:precompile` still runs `rspack:build`. `image_tag "logo.png"` needs one of them. Without, move the image to `app/javascript/images/` and use `rspack_image_tag "logo.png"`, or put it in `public/`.
 - **`stylesheet_link_tag :app`** no longer links rspack's CSS, so a layout that has it is fine as it is. The 1.x installers replaced it with your stylesheets by name; that is no longer needed.
 - **Integrity.** `integrity: true` works with no setting (`config.assets.integrity_hash_algorithm` has no effect on rspack's files).
-- **Old builds.** A build keeps the files of the last 3 builds of its mode and deletes the rest of `public/rspack`. Deploying with Kamal: set `asset_path: /rails/public/rspack`.
+- **Old builds.** A build keeps the files of the last 3 builds of its mode and deletes the rest of `public/rspack` (for deploys that build in place). Deploying with Kamal: set `asset_path: /rails/public/rspack`, which keeps old chunks for pages loaded before a deploy.
 - **Missing builds raise.** `rspack_javascript_tag "application"` with no build raises `RspackRails::Manifest::MissingEntry`, naming what to run, instead of linking a file that does not exist.
 - **`RspackRails::Entrypoints.outputs`** is now `legacy_outputs` (what 1.x wrote to `app/assets/builds`).
 - **Docker and Kamal.** Anything that served or copied `public/assets` for rspack's files looks at `public/rspack` now.

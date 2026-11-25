@@ -59,11 +59,43 @@ docker build -t "$IMAGE" .
 step "docker run"
 docker rm -f "$IMAGE" >/dev/null 2>&1 || true
 docker run -d --name "$IMAGE" -p "$PORT:80" -e RAILS_MASTER_KEY="$(cat config/master.key)" "$IMAGE" >/dev/null
-trap 'docker rm -f "$IMAGE" >/dev/null 2>&1 || true' EXIT
+trap 'docker rm -f "$IMAGE" "$IMAGE-v2" "$IMAGE-assets" >/dev/null 2>&1 || true' EXIT
 for _ in $(seq 1 60); do curl -sf -o /dev/null "http://localhost:$PORT/up" && break; sleep 1; done
 curl -sf -o /dev/null "http://localhost:$PORT/up" || { docker logs "$IMAGE" | tail -20; fail "/up did not respond"; }
 asset=$(docker exec "$IMAGE" ls public/rspack | grep -E '^application-[0-9a-f]+\.js$') || fail "application.js not precompiled"
 curl -sf "http://localhost:$PORT/rspack/$asset" | grep -q 'controllers' || fail "/rspack/$asset is not the rspack bundle"
 docker exec "$IMAGE" sh -c 'test ! -d node_modules' || fail "node_modules shipped in the image"
+
+step "Rolling deploy, as Kamal's asset bridging does it (simulated)"
+# With `asset_path: /rails/public/rspack`, Kamal copies that directory out of each
+# image (extract_assets) and gives the new container a volume with the new files
+# plus the old ones, never overwriting (`cp -rnT`, sync_asset_volumes). A page
+# loaded from the old version asks the new container for its old chunks.
+v1="$WORK_DIR/assets-v1" v2="$WORK_DIR/assets-v2" volume="$WORK_DIR/assets-volume"
+rm -rf "$v1" "$v2" "$volume"; mkdir -p "$v1" "$v2" "$volume"
+docker cp "$IMAGE:/rails/public/rspack/." "$v1"
+old_js=$(ls "$v1" | grep -E '^application-[0-9a-f]+\.js$') || fail "no application.js in the first image"
+echo 'window.rollingDeploy = true' >> app/javascript/application.js
+docker build -q -t "$IMAGE-v2" . >/dev/null
+docker rm -f "$IMAGE-assets" >/dev/null 2>&1 || true
+docker create --name "$IMAGE-assets" "$IMAGE-v2" >/dev/null
+docker cp "$IMAGE-assets:/rails/public/rspack/." "$v2"
+docker rm "$IMAGE-assets" >/dev/null
+new_js=$(ls "$v2" | grep -E '^application-[0-9a-f]+\.js$') || fail "no application.js in the second image"
+[ "$new_js" != "$old_js" ] || fail "a changed source gave the same file name"
+ls "$v2" | grep -q "^$old_js$" && fail "the second image has the first image's files"
+cp -Rn "$v2/." "$volume/" # new first: its manifest wins, as with cp -rnT
+cp -Rn "$v1/." "$volume/" || true # BSD cp exits 1 for the files it skips; Kamal ignores that too
+docker run -d --name "$IMAGE-v2" -p "$((PORT + 1)):80" -e RAILS_MASTER_KEY="$(cat config/master.key)" \
+  -v "$volume:/rails/public/rspack" "$IMAGE-v2" >/dev/null
+for _ in $(seq 1 60); do curl -sf -o /dev/null "http://localhost:$((PORT + 1))/up" && break; sleep 1; done
+curl -sf -o /dev/null "http://localhost:$((PORT + 1))/up" || { docker logs "$IMAGE-v2" | tail -20; fail "the new version did not start"; }
+for file in "$old_js" "$new_js"; do
+  [ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$((PORT + 1))/rspack/$file")" = 200 ] ||
+    fail "the new container does not serve /rspack/$file"
+done
+page=$(docker exec "$IMAGE-v2" bin/rails runner 'puts ApplicationController.render(inline: %(<%= rspack_javascript_tag "application" %>))')
+grep -q "$new_js" <<<"$page" || fail "the new version does not link its own build: $page"
+grep -q "$old_js" <<<"$page" && fail "the new version links the old build: $page"
 
 step "OK"
