@@ -57,6 +57,8 @@ RSpec.describe RspackRails::Doctor do
   def set_up_app_files
     write("app/views/layouts/application.html.erb", '<%= rspack_javascript_tag "application" %>')
     write("Procfile.dev", "web: bin/rails server\njs: npm run dev\n")
+    write("bin/dev", "#!/usr/bin/env ruby\nexec \"foreman\", \"start\", \"-f\", \"Procfile.dev\"\n")
+    @root.join("bin/dev").chmod(0o755)
   end
 
   it "passes a fully set up app" do
@@ -174,6 +176,28 @@ RSpec.describe RspackRails::Doctor do
     expect(check(".gitignore").status).to eq(:warn)
     write(".gitignore", "/log\n/public/rspack\n")
     expect(doctor.checks.map(&:name)).not_to include(".gitignore")
+  end
+
+  it "warns when bin/dev is missing, does not start Procfile.dev or is not executable" do
+    set_up_complete_app
+    expect(check("bin/dev").status).to eq(:ok)
+    @root.join("bin/dev").chmod(0o644)
+    expect(check("bin/dev").hint).to include("chmod +x")
+    write("bin/dev", "#!/usr/bin/env ruby\nexec \"rails\", \"server\"\n")
+    expect(check("bin/dev").detail).to include("Procfile.dev")
+    @root.join("bin/dev").delete
+    expect(check("bin/dev").detail).to eq("missing")
+  end
+
+  it "warns when a Dockerfile is there but the package manager has no lockfile" do
+    set_up_complete_app
+    expect(doctor.checks.map(&:name)).not_to include("Lockfile")
+    write("Dockerfile", "FROM node\nRUN npm ci\n")
+    lockfile = check("Lockfile")
+    expect(lockfile.status).to eq(:warn)
+    expect(lockfile.hint).to include("npm install")
+    write("package-lock.json", "{}")
+    expect(check("Lockfile").status).to eq(:ok)
   end
 
   it "fails when the Dockerfile cannot run rspack" do

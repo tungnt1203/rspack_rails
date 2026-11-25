@@ -10,8 +10,10 @@
 ✓ Layout: application.html.erb uses rspack_javascript_tag
 ! Stylesheet: the application entry builds CSS that no layout links
     → Add <%= rspack_stylesheet_tag "application" %> to your layout
+! bin/dev: missing
+    → Run `bin/rails rspack:install`
 ! Procfile.dev: no js process
     → Run `bin/rails rspack:install`
 ✓ Dev server: running at http://localhost:3036
 
-1 error(s), 2 warning(s).
+1 error(s), 3 warning(s).

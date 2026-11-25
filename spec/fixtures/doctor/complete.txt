@@ -8,8 +8,10 @@
 ✓ Build output: public/rspack has application, print
 ✓ Layout: application.html.erb, admin.html.erb use rspack_javascript_tag
 ✓ Stylesheet: application.html.erb, admin.html.erb use rspack_stylesheet_tag
+✓ bin/dev: starts Procfile.dev
 ✓ Procfile.dev: runs the dev server
 ✓ Dockerfile: installs Node.js and node modules
+✓ Lockfile: package-lock.json
 ✓ Dev container: has Node.js and forwards 3036
 ✓ Dev server: running at http://localhost:3036
 

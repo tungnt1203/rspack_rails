@@ -16,8 +16,10 @@
     → Add <%= rspack_javascript_tag "application" %> to app/views/layouts/application.html.erb to get the dev server and HMR
 ! Stylesheet: the application entry builds CSS that no layout links
     → Add <%= rspack_stylesheet_tag "application" %> to your layout
+! bin/dev: is not executable
+    → Run `chmod +x bin/dev`
 ! Procfile.dev: no js process
     → Run `bin/rails rspack:install`
 ✓ Dev server: disabled in this environment
 
-1 error(s), 8 warning(s).
+1 error(s), 9 warning(s).
