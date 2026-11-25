@@ -39,6 +39,31 @@ RSpec.describe RspackRails::Manifest do
     expect { manifest["admin"] }.to raise_error(described_class::MissingEntry, /it has application.*restart/m)
   end
 
+  describe "#asset" do
+    def write_assets(assets)
+      path.dirname.mkpath
+      path.write(JSON.generate(entries: {}, assets: assets))
+    end
+
+    it "gives the fingerprinted name of an image" do
+      write_assets("logo.svg" => "logo-3f2a9c1d5e6f7a8b.svg", "icons/menu.svg" => "menu-1a2b3c4d5e6f7a8b.svg")
+      expect(manifest.asset("logo.svg")).to eq("logo-3f2a9c1d5e6f7a8b.svg")
+      expect(manifest.asset(:"icons/menu.svg")).to eq("menu-1a2b3c4d5e6f7a8b.svg")
+    end
+
+    it "raises, naming the images it has and where to put one" do
+      write_assets("logo.svg" => "logo-3f2a9c1d5e6f7a8b.svg")
+      expect { manifest.asset("nope.png") }
+        .to raise_error(described_class::MissingAsset, %r{"nope.png".*app/javascript/images/.*rspack:build.*logo.svg}m)
+    end
+
+    it "raises without a manifest, and for a manifest from rspack_rails 1.x" do
+      expect { manifest.asset("logo.svg") }.to raise_error(described_class::MissingAsset)
+      write(application: { js: ["application.js"] })
+      expect { manifest.asset("logo.svg") }.to raise_error(described_class::MissingAsset)
+    end
+  end
+
   it "picks up a rewritten manifest" do
     write({ application: { js: ["application.js"] } }, Time.now - 10)
     expect(manifest["application"].scripts).to eq(["application.js"])

@@ -16,6 +16,10 @@ module RspackRails
     # Raised by the view helpers for an entry that no build lists.
     class MissingEntry < Error
     end
+
+    # Raised by rspack_asset_path and rspack_image_tag for an image no build lists.
+    class MissingAsset < Error
+    end
   end
 
   class Configuration
@@ -51,6 +55,8 @@ module RspackRails
   module Helper
     def rspack_javascript_tag: (*String | Symbol entries, **untyped options) -> String
     def rspack_stylesheet_tag: (*String | Symbol entries, **untyped options) -> String
+    def rspack_asset_path: (String | Symbol name) -> String
+    def rspack_image_tag: (String | Symbol name, **untyped options) -> String
     def react_component: (String name, ?Hash[untyped, untyped] props, ?html: Hash[Symbol, untyped], **untyped more_props) -> String
   end
 end

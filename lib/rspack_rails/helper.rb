@@ -32,6 +32,21 @@ module RspackRails
       safe_join([*links, rspack_hot_css_scripts(entries, options)].reject(&:empty?), "\n")
     end
 
+    # The URL of a file in app/javascript/images, fingerprinted by rspack
+    # (/rspack/logo-3f2a9c1d5e6f7a8b.svg), with `config.asset_host` in front
+    # when set. For `<link rel="icon">`, `<source>`, CSS in a style tag, ...
+    #   <%= rspack_asset_path "icons/menu.svg" %>
+    def rspack_asset_path(name)
+      rspack_url(RspackRails.manifest.asset(name))
+    end
+
+    # An <img> for a file in app/javascript/images; takes the options of `tag.img`
+    # (`alt`, `class`, `loading`, ...).
+    #   <%= rspack_image_tag "logo.svg", alt: "Acme", class: "h-8" %>
+    def rspack_image_tag(name, **options)
+      tag.img(**{ "src" => rspack_asset_path(name) }, **options.stringify_keys)
+    end
+
     # A mount point for app/javascript/components/<name>.{jsx,tsx}, rendered
     # on the client by components/mount.js (bin/rails rspack:install:react).
     #   <%= react_component "Hello", name: "World" %>

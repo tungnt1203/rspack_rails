@@ -177,7 +177,23 @@ body { background: url("./images/hero.png"); }
 
 - Files under 8 KB are inlined as data URIs.
 - Larger ones are written to `public/rspack` as `<name>-<hash>.<ext>`.
+- Images that a view shows (`<img>`, an icon, an Open Graph image) go in `app/javascript/images/`; see below.
 - A root-relative `url()` is left for Rails: Rspack neither bundles nor fingerprints it. `url("/icon.png")` is served from `public/icon.png` as written. Without Propshaft or Sprockets, `image_tag "logo.png"` does not look in `app/assets/images` either: import the image from JavaScript or CSS, or put it in `public/`.
+
+### Images in views
+
+Every file in `app/javascript/images/` is fingerprinted into `public/rspack` on each build and listed in the manifest, whether or not JavaScript imports it. Name it by its path in that directory:
+
+```erb
+<%= rspack_image_tag "logo.svg", alt: "Acme", class: "h-8" %>
+<%= rspack_image_tag "icons/menu.svg", alt: "" %>
+<link rel="icon" href="<%= rspack_asset_path "favicon.png" %>">
+```
+
+- `rspack_image_tag` takes the options of `tag.img`. `rspack_asset_path` returns the URL (`/rspack/logo-<hash>.svg`, with `config.asset_host` in front), for anything that is not an `<img>`.
+- An image that is not there raises `RspackRails::Manifest::MissingAsset`, naming the images that are.
+- Under `rspack serve` the images come from the dev server, so adding or editing one needs no build.
+- It is separate from importing an image in JavaScript or CSS, which emits its own copy next to the same file name. Use the directory for what views reference, and imports for what CSS and JavaScript reference.
 
 ## Web Workers
 
