@@ -110,9 +110,14 @@ import { VueLoaderPlugin } from "rspack-vue-loader";
 
 // in plugins
 new VueLoaderPlugin(),
+new rspack.DefinePlugin({
+  __VUE_OPTIONS_API__: true,
+  __VUE_PROD_DEVTOOLS__: false,
+  __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
+}),
 ```
 
-`<script lang="ts">` works as it is, and so do `<style>` blocks. Mount the app from your entry:
+The three `DefinePlugin` flags are the ones Vue asks a bundler to set (without them its console warns in development). `<script lang="ts">` works as it is, and so do `<style>` blocks. Edited components are swapped in place under `rspack serve`. Mount the app from your entry:
 
 ```js
 // app/javascript/application.js
@@ -139,7 +144,6 @@ npm install --save-dev svelte-loader
   options: {
     compilerOptions: { dev: !isProduction },
     emitCss: isProduction,
-    hotReload: isDevServer,
   },
 },
 
@@ -147,6 +151,8 @@ npm install --save-dev svelte-loader
 extensions: ["...", ".svelte"],
 mainFields: ["svelte", "browser", "module", "main"],
 ```
+
+Under `rspack serve`, an edited `.svelte` file reloads the page instead of being swapped in place (checked with Svelte 5).
 
 ## Preact
 
