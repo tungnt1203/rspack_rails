@@ -97,7 +97,7 @@ const docs = slugs.map(parse);
 const nav = (current) => `
   <header class="bar">
     <div class="container bar__inner">
-      <a class="wordmark" href="../" aria-label="rspack_rails, home">rspack_rails</a>
+      <a class="wordmark" href="../" aria-label="rspack_rails, home"><img src="../media/rspack-mascot.svg" alt="" width="40" height="31">rspack_rails</a>
       <nav aria-label="Site">
         <ul class="bar__links">
           <li><a href="./"${current ? ' aria-current="page"' : ""}>Docs</a></li>
@@ -111,6 +111,7 @@ const nav = (current) => `
 const footer = `
   <footer class="footer">
     <div class="container footer__inner">
+      <img src="../media/rspack-mascot.svg" alt="" width="72" height="56" loading="lazy">
       <p>These pages are built from <a class="link" href="${REPO}/tree/main/docs">docs/</a> in the repository. Spot a mistake? <a class="link" href="${REPO}/issues/new">Open an issue</a>.</p>
       <ul>
         <li><a href="../">Home</a></li>
@@ -132,7 +133,8 @@ const page = ({ title, description, body }) => `<!doctype html>
   <meta name="description" content="${escape(description)}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,400..700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Martian+Mono:wdth,wght@75..112.5,400..600&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="../media/rspack-mascot.svg">
   <link rel="stylesheet" href="../docs.css">
   <script>document.documentElement.classList.add('js');</script>
 </head>
