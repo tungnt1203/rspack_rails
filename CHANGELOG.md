@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- Docs: React Compiler, `sideEffects` for tree shaking (and why not `false`), CSS as a string or `CSSStyleSheet` for web components, and `isolatedModules` for TypeScript
+
 - Docs: recipes for code splitting (dynamic `import()`, prefetch, a shared chunk between entries), Lightning CSS instead of PostCSS, and the size under which images and fonts are inlined
 
 - `rspack:doctor` checks `bin/dev` (present, starts `Procfile.dev`, executable) and, when the app has a Dockerfile, that the JavaScript lockfile exists, which the Docker build's frozen install needs

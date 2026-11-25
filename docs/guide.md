@@ -146,7 +146,7 @@ npx tsc --init   # then set "noEmit": true, and "paths" if you use aliases
 "scripts": { "typecheck": "tsc --noEmit" }
 ```
 
-`"paths"` aliases in `tsconfig.json` are honored by the build, so `"@/*": ["./app/javascript/*"]` makes `import "@/lib/api"` work in both TypeScript and Rspack. For type errors in the dev server overlay, add [`ts-checker-rspack-plugin`](https://github.com/rspack-contrib/ts-checker-rspack-plugin) to `plugins` under `rspack serve`.
+Set `"isolatedModules": true` in `tsconfig.json`: SWC compiles one file at a time, and this makes `tsc` report the code that needs more than that. `"paths"` aliases in `tsconfig.json` are honored by the build, so `"@/*": ["./app/javascript/*"]` makes `import "@/lib/api"` work in both TypeScript and Rspack. For type errors in the dev server overlay, add [`ts-checker-rspack-plugin`](https://github.com/rspack-contrib/ts-checker-rspack-plugin) to `plugins` under `rspack serve`.
 
 ### Stimulus
 
@@ -284,6 +284,14 @@ end
 ```
 
 Set `"jsx": "react-jsx"` in `tsconfig.json` if you use TypeScript.
+
+**React Compiler.** It memoizes components for you, so `useMemo` and `useCallback` are rarely needed. It is experimental and needs `@rspack/core` 2.1.0 or later. Turn it on in the same `jsc.transform` as `react`:
+
+```js
+jsc: { transform: { react: { runtime: "automatic", development: !isProduction, refresh: isDevServer }, reactCompiler: true } },
+```
+
+With React 17 or 18, use `reactCompiler: { target: "18" }` and install `react-compiler-runtime`. The swc-loader rule in the generated config matches `.ts`, `.jsx` and `.tsx`, so plain `.js` files are not compiled: write components in `.jsx`. [rspack.rs](https://rspack.rs/guide/integrations/react) lists the compiler's options, such as `compilationMode: "annotation"` to compile only functions you mark.
 
 ## What `rspack:install` changes
 
