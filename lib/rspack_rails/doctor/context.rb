@@ -73,6 +73,10 @@ module RspackRails
         @app.path(path).exist?
       end
 
+      def executable?(path)
+        @app.path(path).executable?
+      end
+
       def read(path)
         @app.read(path)
       end

@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- `rspack:doctor` checks `bin/dev` (present, starts `Procfile.dev`, executable) and, when the app has a Dockerfile, that the JavaScript lockfile exists, which the Docker build's frozen install needs
+
 ## [2.0.0] - 2026-11-25
 
 Rspack now builds into `public/rspack` and Rails serves it itself: no Propshaft or Sprockets in the way, and none required (both still work for the rest of `app/assets`). The config is one file, `rspack.config.mjs`, that `rspack:install` writes once and rspack_rails never rewrites. The view helpers are unchanged, so layouts need no edit.

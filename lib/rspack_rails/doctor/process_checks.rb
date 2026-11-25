@@ -9,10 +9,36 @@ module RspackRails
     # dev containers.
     class ProcessChecks < Checks
       def checks
-        [procfile_check, dockerfile_check, devcontainer_check]
+        [bin_dev_check, procfile_check, dockerfile_check, lockfile_check, devcontainer_check]
       end
 
       private
+
+      # bin/dev starts Rails and the dev server together, from Procfile.dev.
+      def bin_dev_check
+        script = read("bin/dev")
+        return Check.new(:warn, "bin/dev", "missing", "Run `bin/rails rspack:install`") unless script
+
+        unless script.include?("Procfile.dev")
+          return Check.new(:warn, "bin/dev", "does not start Procfile.dev, so the dev server is not started",
+                           "Run `bin/rails rspack:install`")
+        end
+        return Check.new(:ok, "bin/dev", "starts Procfile.dev") if executable?("bin/dev")
+
+        Check.new(:warn, "bin/dev", "is not executable", "Run `chmod +x bin/dev`")
+      end
+
+      # A Docker build installs node modules from the lockfile, frozen.
+      def lockfile_check
+        return unless read("Dockerfile")
+
+        lockfile = package_manager.lockfile
+        return Check.new(:ok, "Lockfile", lockfile) if exist?(lockfile)
+
+        Check.new(:warn, "Lockfile", "#{lockfile} is missing, which `#{package_manager.frozen_install_command}` " \
+                                     "in the Docker build needs",
+                  "Run `#{package_manager.install_command}` and commit #{lockfile}")
+      end
 
       def procfile_check
         procfile = read("Procfile.dev")

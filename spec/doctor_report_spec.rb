@@ -82,6 +82,9 @@ RSpec.describe RspackRails::Doctor, "report" do
     write("app/views/layouts/application.html.erb", tags)
     write("app/views/layouts/admin.html.erb", tags)
     write("Procfile.dev", "web: bin/rails server\njs: npm run dev\n")
+    write("bin/dev", "exec foreman start -f Procfile.dev\n")
+    @root.join("bin/dev").chmod(0o755)
+    write("package-lock.json", "{}")
     pm = RspackRails::PackageManager.detect(@root)
     write("Dockerfile", RspackRails::Containers.add_node_to_dockerfile(File.read("#{rails_fixtures}/Dockerfile"), pm))
     write(".devcontainer/devcontainer.json",
@@ -99,6 +102,7 @@ RSpec.describe RspackRails::Doctor, "report" do
     write("app/views/layouts/application.html.erb",
           "<%= javascript_importmap_tags %>\n<%= stylesheet_link_tag :app %>\n")
     write("Procfile.dev", "web: bin/rails server\njs: npm run watch\n")
+    write("bin/dev", "exec rails server\n")
     write("Dockerfile", File.read("#{rails_fixtures}/Dockerfile"))
     write(".devcontainer/devcontainer.json", File.read("#{rails_fixtures}/devcontainer.json"))
     expect_golden("broken", report(running: false, node_version: "v20.0.0"))
@@ -112,6 +116,8 @@ RSpec.describe RspackRails::Doctor, "report" do
     write_build(application: { js: %w[application-1a2b3c4d.js], css: %w[application-5e6f7a8b.css] })
     write("app/views/layouts/application.html.erb", "<%= yield %>\n")
     write("Procfile.dev", "web: bin/rails server\n")
+    write("bin/dev", "exec foreman start -f Procfile.dev\n")
+    @root.join("bin/dev").chmod(0o644)
     expect_golden("other", report(enabled: false))
   end
 

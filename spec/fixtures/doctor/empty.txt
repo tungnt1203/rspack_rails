@@ -12,9 +12,11 @@
 ✗ Entry points: none found
     → Create app/javascript/application.js or a file in app/javascript/entrypoints/
 ! Layout: no layout found in app/views/layouts
+! bin/dev: missing
+    → Run `bin/rails rspack:install`
 ! Procfile.dev: no js process
     → Run `bin/rails rspack:install`
 ! Dev server: not running at http://localhost:3036
     → Start it with bin/dev; until then pages use the last bin/rails rspack:build in public/rspack
 
-5 error(s), 4 warning(s).
+5 error(s), 5 warning(s).
