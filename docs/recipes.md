@@ -187,6 +187,62 @@ new rspack.ProvidePlugin({ $: "jquery", jQuery: "jquery" }),
 
 Any module that uses `$` as a free variable now gets jQuery, without an import. Code of your own should import it.
 
+## Split code
+
+Two ways to keep what a page downloads small.
+
+**Load on demand.** A dynamic `import()` becomes a chunk of its own, fetched when the code reaches it. Use it for what few visitors need: a chart library, an editor, an admin-only screen.
+
+```js
+document.querySelector("#chart-button").addEventListener("click", async () => {
+  const { renderChart } = await import("./chart")
+  renderChart()
+})
+```
+
+The chunk is written to `public/rspack` as `<name>-<hash>.js` and loaded from next to the entry, so it needs nothing in the view and works behind an `asset_host`. To fetch it while the browser is idle, before anyone clicks, add a magic comment: `import(/* webpackPrefetch: true */ "./chart")`. Use `webpackPreload: true` for a chunk the page needs right away.
+
+**Share code between entries.** Pages with two entries load a module both import (Turbo, your Stimulus `application`, a UI library) twice, once per entry. Put it in a chunk of its own:
+
+```js
+// rspack.config.mjs
+optimization: {
+  runtimeChunk: { name: "runtime" },
+  splitChunks: { chunks: "all" },
+},
+```
+
+The shared chunk is listed in the manifest next to the entries that use it, so `rspack_javascript_tag` links it and the runtime before the entry. Keep the runtime chunk shared, as in [Entry points](guide.md#entry-points): without it each entry runs its own copy of the shared modules, which defeats the split. Rspack decides what is worth a chunk (it skips small modules), so check the result with `bin/rails rspack:build` before you rely on it.
+
+## Lightning CSS instead of PostCSS
+
+Rspack's built-in Lightning CSS loader adds vendor prefixes and compiles newer CSS syntax (nesting, `color-mix()`, `light-dark()`) for your browsers, with no `postcss.config.js` and no extra packages. Use it when you did not need PostCSS plugins other than Autoprefixer:
+
+```js
+// the css rule in module.rules
+{
+  test: /\.css$/,
+  use: [{ loader: "builtin:lightningcss-loader" }],
+  type: "css/auto",
+},
+```
+
+It reads the same targets as the rest of the build (your `.browserslistrc`, or Baseline widely available), so `user-select: none` comes out with its `-webkit-` prefix where an old Safari needs it. Tailwind CSS and Sass keep their own steps; see [Usage](guide.md#adding-tools). With a `postcss.config.js` for other plugins, stay on the [PostCSS recipe](#less-and-postcss).
+
+## Where images and fonts are inlined
+
+The `asset` rule in `rspack.config.mjs` inlines a file under 8 KB into the bundle as a data URI and emits a larger one. Each inlined file saves a request and adds its weight to every page that loads the bundle. Change the limit on the rule:
+
+```js
+{
+  test: /\.(png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|otf|eot)$/i,
+  type: "asset",
+  parser: { dataUrlCondition: { maxSize: 2 * 1024 } },
+},
+```
+
+Use `type: "asset/resource"` to never inline (fonts are usually better as files, which the browser caches on their own).
+
 ## Leave out what you do not use
 
 `IgnorePlugin` skips modules that a library pulls in by a dynamic path. The usual case is Moment.js, which bundles every locale:
