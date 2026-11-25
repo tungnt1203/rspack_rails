@@ -49,7 +49,7 @@ See [Migrating](docs/migrating.md) for what changes.
 - **One config file, yours.** `rspack.config.mjs` is a plain Rspack config with the Rails parts commented. Nothing is generated behind it and nothing is rewritten on upgrade.
 - **Images for views.** `rspack_image_tag "logo.svg"` for files in `app/javascript/images`, fingerprinted, without Propshaft.
 - **TypeScript, CSS modules, images and fonts** work out of the box; Sass, Tailwind CSS, React and Stimulus are a package and a few lines of config ([Adding tools](docs/guide.md#adding-tools)).
-- **A doctor.** `bin/rails rspack:doctor` checks Node.js, packages, config and layouts, and says what to fix.
+- **A doctor.** `bin/rails rspack:doctor` checks Node.js, packages, config, layouts, `bin/dev` and the Docker setup, and says what to fix ([the list](docs/production.md#doctor)).
 - **Deploys that work.** The installer sets up the `Dockerfile` for Kamal, `bin/setup` and dev containers.
 
 ## How it works

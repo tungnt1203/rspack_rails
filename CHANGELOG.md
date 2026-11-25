@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- Docs: the full list of what `rspack:doctor` checks, and troubleshooting for missing styles, JavaScript loading twice, `bin/dev`, and Docker builds (lockfile, Node.js)
+
 - Docs: React Compiler, `sideEffects` for tree shaking (and why not `false`), CSS as a string or `CSSStyleSheet` for web components, and `isolatedModules` for TypeScript
 
 - Docs: recipes for code splitting (dynamic `import()`, prefetch, a shared chunk between entries), Lightning CSS instead of PostCSS, and the size under which images and fonts are inlined

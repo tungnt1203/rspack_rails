@@ -26,6 +26,23 @@ No build lists that entry yet. Start the dev server with `bin/dev`, or run `bin/
 
 Without Propshaft or Sprockets, `image_tag "logo.png"` has nothing to look it up in. Put the image in `app/javascript/images/` and use `rspack_image_tag "logo.png"` (or `rspack_asset_path "logo.png"` for the URL). Rspack fingerprints it. Or put it in `public/` and use `image_tag "/logo.png"`.
 
+## The page has no styles
+
+When the application entry imports CSS, Rspack writes it to its own file, and the layout has to link it. Add `<%= rspack_stylesheet_tag "application" %>` to the layout's `<head>`. `rspack:doctor` says "the application entry builds CSS that no layout links" when it is missing.
+
+## JavaScript loads twice, or the dev server never starts
+
+- A layout that still has `javascript_importmap_tags` next to `rspack_javascript_tag` loads both. Remove the importmap tag once Rspack replaces it.
+- `bin/dev` has to start `Procfile.dev` (which runs `bin/rails server` and the dev server) and be executable. Running `bin/rails server` alone gives you the last build, with no hot updates. Run `bin/rails rspack:install` to restore the script, or `chmod +x bin/dev`.
+
+## The Docker build fails at `npm ci`
+
+A frozen install needs the lockfile in the image. Commit `package-lock.json` (or `yarn.lock`, `pnpm-lock.yaml`, `bun.lock`) and make sure `.dockerignore` does not list it. `rspack:doctor` warns when the lockfile is missing from an app that has a `Dockerfile`. See [Deploying](production.md#deploying-docker-and-kamal) for the rest of the Docker setup.
+
+## `assets:precompile` fails because Node.js is missing
+
+The build stage of the `Dockerfile` needs Node.js and the node modules, which Rails does not add for apps created without a JavaScript bundler. Re-run `bin/rails rspack:install` to add them, or see [Deploying](production.md#deploying-docker-and-kamal).
+
 ## Something else
 
 [Open an issue](https://github.com/tungnt1203/rspack_rails/issues/new) with the output of `bin/rails rspack:doctor`, your Rails and Node.js versions, and the steps that reproduce the problem.
