@@ -77,6 +77,7 @@ Put two helpers in your layout:
 | Guide | What's in it |
 |---|---|
 | [Usage](docs/guide.md) | Entry points, `#/` imports, CSS, images and fonts, and how to add TypeScript, Stimulus, Sass, Tailwind CSS or React |
+| [Recipes](docs/recipes.md) | Environment values, aliases, Less, PostCSS, Vue, Svelte, Preact, jQuery globals and built-in plugins |
 | [Production](docs/production.md) | Builds, source maps, Subresource Integrity, Docker and Kamal, dev containers, bundle analysis |
 | [Configuration](docs/configuration.md) | Customizing `rspack.config.mjs`, environment variables, every rake task |
 | [Migrating](docs/migrating.md) | Moving from importmap-rails or jsbundling-rails |

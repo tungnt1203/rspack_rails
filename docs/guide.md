@@ -131,7 +131,7 @@ worker.postMessage({ rows })
 
 ## Adding tools
 
-`rspack.config.mjs` is yours, so each tool is a package and a few lines in it. [rspack.rs](https://rspack.rs) documents each in full.
+`rspack.config.mjs` is yours, so each tool is a package and a few lines in it. [rspack.rs](https://rspack.rs) documents each in full. [Recipes](recipes.md) has more: environment values, aliases, Less, PostCSS, Vue, Svelte, Preact, jQuery globals and plugins.
 
 ### TypeScript
 

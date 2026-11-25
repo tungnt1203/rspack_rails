@@ -15,7 +15,7 @@ const out = path.join(here, "docs");
 const REPO = "https://github.com/tungnt1203/rspack_rails";
 
 // Reading order. Any other docs/*.md is appended after these.
-const ORDER = ["guide", "configuration", "production", "migrating", "upgrading", "troubleshooting"];
+const ORDER = ["guide", "recipes", "configuration", "production", "migrating", "upgrading", "troubleshooting"];
 const files = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".md")).map((f) => f.slice(0, -3));
 const slugs = [...ORDER.filter((s) => files.includes(s)), ...files.filter((s) => !ORDER.includes(s)).sort()];
 
