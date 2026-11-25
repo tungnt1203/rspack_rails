@@ -64,4 +64,4 @@ Deprecations go through `Rails.application.deprecators`, so `config.active_suppo
 | `bin/rails rspack:migrate` | Moves an importmap or jsbundling app to Rspack |
 | `bin/rails rspack:build` | Installs JavaScript dependencies, then runs `build` |
 | `bin/rails rspack:clobber` | Removes `public/rspack` (also runs with `assets:clobber`) |
-| `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, `Procfile.dev` and the dev server |
+| `bin/rails rspack:doctor` | Checks Node.js, packages, config, build output, layout, `bin/dev`, `Procfile.dev`, the dev server, and a Dockerfile or dev container if there is one ([what it checks](production.md#doctor)) |

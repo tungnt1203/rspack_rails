@@ -100,4 +100,19 @@ performance: { hints: "error", maxEntrypointSize: 400_000, maxAssetSize: 400_000
 0 error(s), 1 warning(s).
 ```
 
-The task exits with status 1 when there are errors, so it can run in CI.
+The task exits with status 1 when there are errors, so it can run in CI. Warnings do not fail it.
+
+What it checks, and how serious a failure is:
+
+| Area | Checks | Fails as |
+|---|---|---|
+| Node.js and packages | Node.js is installed and meets Rspack's requirement; `@rspack/core` and `@rspack/cli` are installed at the major version rspack_rails is written for; `@rspack/dev-server` is installed | error (a newer major, or a missing dev server: warning) |
+| Config | `rspack.config.mjs` exists and writes the manifest the view helpers read; `package.json` has `build` and `dev` scripts; at least one entry point exists | error (a missing `dev` script: warning) |
+| Build | `public/rspack` has a build of every entry; `public/rspack` is in `.gitignore` | warning |
+| Dev server | Running at `RSPACK_DEV_SERVER_HOST:PORT` (skipped where it is disabled) | warning |
+| Views | A layout uses `rspack_javascript_tag`, none still includes `javascript_importmap_tags`, and the application entry's CSS is linked with `rspack_stylesheet_tag` | warning |
+| Processes | `bin/dev` exists, starts `Procfile.dev` and is executable; `Procfile.dev` runs the dev server | warning |
+| Docker | With a `Dockerfile`: it installs Node.js and node modules, and the lockfile its frozen install needs is committed | error for the Dockerfile, warning for the lockfile |
+| Dev container | With `.devcontainer/devcontainer.json`: Node.js and the dev server port are set up | warning |
+
+Checks that do not apply to the app (no `Dockerfile`, no dev container) are left out of the output.
