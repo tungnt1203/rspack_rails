@@ -54,11 +54,21 @@ await check("The HMR websocket connects to RSPACK_DEV_SERVER_PUBLIC_URL", async 
   }
 });
 
-await check("A module edit is hot-swapped and keeps the page's state", async () => {
+await check("Stimulus controller edit is hot-swapped and keeps its state", async () => {
   for (let i = 0; i < 3; i++) await page.click("#increment");
   await waitFor(() => document.querySelector("#count").textContent === "3 clicks");
-  edit("app/javascript/label.js", (source) => source.replace('"click"', '"tap"'));
+  edit("app/javascript/controllers/counter_controller.js", (source) => source.replace('"click"', '"tap"'));
   await waitFor(() => document.querySelector("#count").textContent === "3 taps");
+  await notReloaded();
+});
+
+await check("A new controller file connects without a reload", async () => {
+  fs.writeFileSync(
+    file("app/javascript/controllers/greeting_controller.js"),
+    `import { Controller } from "@hotwired/stimulus"\n\n` +
+      `export default class extends Controller {\n  connect() {\n    this.element.textContent = "connected"\n  }\n}\n`,
+  );
+  await waitFor(() => document.querySelector("#greeting").textContent === "connected");
   await notReloaded();
 });
 

@@ -3,7 +3,7 @@
 [![Gem Version](https://img.shields.io/gem/v/rspack_rails)](https://rubygems.org/gems/rspack_rails)
 [![CI](https://github.com/tungnt1203/rspack_rails/actions/workflows/main.yml/badge.svg)](https://github.com/tungnt1203/rspack_rails/actions/workflows/main.yml)
 
-Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the Rust-powered, webpack-compatible bundler, with **hot module replacement** in development and the asset pipeline in production.
+Bundle your Rails app's JavaScript and CSS with [Rspack](https://rspack.rs), the Rust-powered, webpack-compatible bundler, with **hot module replacement** in development and fingerprinted files that Rails serves itself in production.
 
 ![Editing a view and a Stimulus controller in the rspack_rails demo app](docs/hmr.gif)
 
@@ -44,7 +44,7 @@ See [Migrating](docs/migrating.md) for what changes.
 
 ## What you get
 
-- **Hot updates in development.** JavaScript and CSS are swapped in place, through Rails, with no second origin to configure. Editing a view reloads the page.
+- **Hot updates in development.** CSS is swapped in place, and so are the JavaScript modules that accept hot updates: Stimulus controllers as the [guide](docs/guide.md#stimulus) sets them up, React components with Fast Refresh. Any other JavaScript edit reloads the page. It all goes through Rails, with no second origin to configure, and editing a view reloads the page.
 - **No asset pipeline to configure.** Rspack fingerprints its files into `public/rspack`, and Rails serves them with a far-future cache header. Propshaft and Sprockets are not needed (and still work for the rest of your assets).
 - **One config file, yours.** `rspack.config.mjs` is a plain Rspack config with the Rails parts commented. Nothing is generated behind it and nothing is rewritten on upgrade.
 - **Images for views.** `rspack_image_tag "logo.svg"` for files in `app/javascript/images`, fingerprinted, without Propshaft.
