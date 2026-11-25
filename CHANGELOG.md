@@ -22,7 +22,7 @@ Rspack now builds into `public/rspack` and Rails serves it itself: no Propshaft 
 - `rspack_image_tag "logo.svg"` and `rspack_asset_path "icons/menu.svg"` for images that views show. Every file in `app/javascript/images/` is fingerprinted into `public/rspack` on each build and listed under `assets` in the manifest, so an app without Propshaft or Sprockets still has a fingerprinted `<img>`. Under `rspack serve` the images come from the dev server. An image that is not there raises `RspackRails::Manifest::MissingAsset`
 - `rspack:doctor` checks that `rspack.config.mjs` writes the manifest, and warns about a `.gitignore` without `/public/rspack`
 - `rspack:install` adds `/public/rspack` to `.gitignore` and `.dockerignore`, and `rspack_stylesheet_tag "application"` next to the script tag
-- Docs: during a rolling deploy with Kamal, `asset_path: /rails/public/rspack` keeps old chunks available to pages loaded before it (each image holds only its own build). `bin/integration-docker` simulates that bridging against a real image, and `bin/integration-template no-pipeline` builds an app with `--skip-asset-pipeline`
+- Docs: during a rolling deploy with Kamal, `asset_path: /rails/public/rspack` keeps old chunks available to pages loaded before it (each image holds only its own build). `bin/integration-docker` simulates that bridging against a real image, and `bin/integration-template no-pipeline` builds an app with `--skip-asset-pipeline`, and `bin/integration-template tailwind` takes `rails new --css tailwind` (importmap, Stimulus, Tailwind), migrates it and moves Tailwind to Rspack as the guide says
 
 ## [1.0.3] - 2026-11-20
 

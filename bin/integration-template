@@ -5,11 +5,13 @@
 #   bin/integration-template skip-js          # --skip-javascript
 #   bin/integration-template no-pipeline      # --skip-javascript --skip-asset-pipeline: no Propshaft or Sprockets
 #   bin/integration-template importmap        # default rails new (importmap), migrated
+#   bin/integration-template tailwind         # rails new --css tailwind (importmap + Stimulus + Tailwind), then
+#                                             # Tailwind through Rspack as docs/guide.md describes
 #   bin/integration-template importmap "~> 8.1.0"
 set -euo pipefail
 
 GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MODE="${1:?usage: bin/integration-template skip-js|no-pipeline|importmap [rails requirement]}"
+MODE="${1:?usage: bin/integration-template skip-js|no-pipeline|importmap|tailwind [rails requirement]}"
 REQUIREMENT="${2:-}"
 WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
 
@@ -28,6 +30,7 @@ case "$MODE" in
   skip-js) flags=(--skip-javascript) ;;
   no-pipeline) flags=(--skip-javascript --skip-asset-pipeline) ;;
   importmap) flags=() ;; # the default: importmap-rails, migrated
+  tailwind) flags=(--css tailwind) ;; # what a new Rails app usually has: importmap, Stimulus, tailwindcss-rails
   *) fail "unknown mode $MODE" ;;
 esac
 
@@ -47,11 +50,43 @@ if [ "$MODE" = no-pipeline ]; then
   ! grep -Eq '^    (propshaft|sprockets-rails) ' Gemfile.lock || fail "the app has an asset pipeline"
 fi
 
-if [ "$MODE" = importmap ]; then
+if [ "$MODE" = importmap ] || [ "$MODE" = tailwind ]; then
   [ ! -f config/importmap.rb ] || fail "config/importmap.rb not removed"
   ! grep -q importmap-rails Gemfile || fail "importmap-rails still in Gemfile"
   grep -q 'webpackContext' app/javascript/controllers/index.js || fail "Stimulus controllers not registered through Rspack"
   ! grep -q 'stimulus-loading' app/javascript/controllers/index.js || fail "controllers/index.js still uses stimulus-loading"
+fi
+
+if [ "$MODE" = tailwind ]; then
+  step "Tailwind CSS through Rspack, as docs/guide.md describes"
+  grep -q tailwindcss-rails Gemfile || fail "rails new --css tailwind did not add tailwindcss-rails"
+  npm install --silent --save-dev tailwindcss @tailwindcss/webpack
+  # Move off tailwindcss-rails: the gem, its Procfile.dev line, its build and the layout line that linked it.
+  bundle remove tailwindcss-rails > /dev/null
+  ruby -i -ne 'print unless /tailwindcss:watch/' Procfile.dev
+  ruby -i -ne 'print unless /stylesheet_link_tag "tailwind"/' app/views/layouts/application.html.erb
+  rm -rf app/assets/tailwind app/assets/builds/tailwind.css
+  cat > app/javascript/application.css <<'CSS'
+@import "tailwindcss";
+
+@source not "../../tmp";
+@source not "../../log";
+@source not "../../storage";
+@source not "../../public/rspack";
+CSS
+  # The module.rules entry for CSS, as the guide shows it.
+  ruby -e 'src = File.read("rspack.config.mjs")
+    rule = "        test: /\\.css$/,\n        type: \"css/auto\",\n"
+    abort "css rule not found in rspack.config.mjs" unless src.include?(rule)
+    use = "        use: [{ loader: \"@tailwindcss/webpack\", options: { base: root } }],\n"
+    File.write("rspack.config.mjs", src.sub(rule, rule + use))'
+  printf 'import "./application.css"\n' | cat - app/javascript/application.js > tmp/application.js && mv tmp/application.js app/javascript/application.js
+  bin/rails rspack:build
+  css=$(ls public/rspack | grep -E '^application-[0-9a-f]+\.css$') || fail "no application CSS built"
+  # The generated layout uses `container mx-auto mt-28 px-5 flex`; Tailwind found them by scanning the views.
+  grep -q 'mx-auto' "public/rspack/$css" || fail "Tailwind utilities from the views are missing"
+  grep -q 'Hello World' public/rspack/application-*.js || fail "the Stimulus controllers are not in the bundle"
+  ! grep -Eq '^\s*gem "tailwindcss-rails"' Gemfile || fail "tailwindcss-rails is still in the Gemfile"
 fi
 
 step "rspack:doctor"

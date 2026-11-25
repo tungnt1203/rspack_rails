@@ -94,7 +94,7 @@ The integration scripts each generate a Rails app in a temporary directory, inst
 | An installer, `rspack.config.mjs`, the helpers, the doctor or a rake task | `bin/integration` |
 | `rspack:migrate` | `bin/integration-migrate importmap` (or `jsbundling`) |
 | The dev server, the proxy, HMR or view reloads | `bin/integration-hmr` (installs Playwright and Chromium) |
-| `template.rb` | `bin/integration-template skip-js` (or `importmap`) |
+| `template.rb` | `bin/integration-template skip-js` (or `importmap`, `no-pipeline`, `tailwind`) |
 | Dockerfile, `bin/setup` or devcontainer edits | `bin/integration-docker` (needs Docker) |
 
 Most scripts take a Rails version and a package manager:

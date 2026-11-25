@@ -32,7 +32,7 @@ For esbuild, webpack and rollup setups.
 
 ## Sass and Tailwind CSS
 
-`rails new --css sass` and `--css tailwind` set up dartsass-rails and tailwindcss-rails, which `rspack:migrate` leaves alone: they build CSS into `app/assets/builds`, which Propshaft or Sprockets keep serving. To bundle the CSS with Rspack instead, remove the gem and its `css:` line in `Procfile.dev`, then add Sass or Tailwind to `rspack.config.mjs` ([Adding tools](guide.md#adding-tools)).
+`rails new --css sass` and `--css tailwind` set up dartsass-rails and tailwindcss-rails, which `rspack:migrate` leaves alone: they build CSS into `app/assets/builds`, which Propshaft or Sprockets keep serving. To bundle the CSS with Rspack instead, add Sass or Tailwind to `rspack.config.mjs` and remove the gem ([Adding tools](guide.md#adding-tools); the Tailwind section lists what to remove).
 
 ## A new app with `rails new`
 

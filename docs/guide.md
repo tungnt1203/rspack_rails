@@ -222,6 +222,14 @@ npm install --save-dev tailwindcss @tailwindcss/webpack
 
 Classes in views, helpers and JavaScript are picked up automatically. Under `rspack serve`, editing a view reloads the page with the new classes already built.
 
+**Coming from `rails new --css tailwind`?** That app has tailwindcss-rails, which builds into `app/assets/builds` for Propshaft or Sprockets, and it works next to Rspack as it is. To let Rspack build the CSS instead, after the steps above:
+
+- remove the `tailwindcss-rails` gem (`bundle remove tailwindcss-rails`), the `css:` line in `Procfile.dev`, and `app/assets/tailwind` with the old `app/assets/builds/tailwind.css`;
+- put your `@theme` and `@plugin` lines from `app/assets/tailwind/application.css` into `app/javascript/application.css`;
+- remove `stylesheet_link_tag "tailwind"` from the layout if it has one (Rails 7.2). Rails 8's `stylesheet_link_tag :app` can stay: it links what is left in `app/assets`.
+
+`rspack_stylesheet_tag "application"`, which `rspack:install` adds next to the script tag, links the new CSS. CI runs this move on Rails 7.2 and 8.1.
+
 ### React
 
 ```bash
