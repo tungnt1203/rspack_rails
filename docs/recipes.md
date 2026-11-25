@@ -243,6 +243,43 @@ The `asset` rule in `rspack.config.mjs` inlines a file under 8 KB into the bundl
 
 Use `type: "asset/resource"` to never inline (fonts are usually better as files, which the browser caches on their own).
 
+## Drop unused code
+
+Production builds already remove exports nobody imports (tree shaking). Rspack can only drop a whole module, such as a barrel file's unused re-exports, when it knows importing it does nothing else. Say so in `package.json`:
+
+```json
+"sideEffects": ["*.css", "./app/javascript/application.js", "./app/javascript/controllers/**"]
+```
+
+Modules that match run even when nothing they export is used; every other module is dropped when unused.
+Do not set `"sideEffects": false` in the app. It makes every unlisted module removable, so `import "./side.js"` with no names, and every `import "./style.css"`, vanish from the bundle without a warning. List what has side effects instead, as above: stylesheets, your entries, and any file that registers something (Stimulus controllers, custom elements, polyfills) when it is imported. Packages in `node_modules` set their own `sideEffects`; this is only about your code.
+
+## CSS as a string or a style sheet
+
+By default a `.css` import is linked as a stylesheet and exports nothing. Set `exportType` on a rule when the CSS belongs to a component rather than to the page. Web components with a shadow root take a `CSSStyleSheet`:
+
+```js
+// in module.rules, before the css rule
+{
+  test: /\.shadow\.css$/,
+  type: "css/auto",
+  parser: { exportType: "css-style-sheet" },
+},
+```
+
+```js
+import sheet from "./card.shadow.css"
+
+class Card extends HTMLElement {
+  constructor() {
+    super()
+    this.attachShadow({ mode: "open" }).adoptedStyleSheets = [sheet]
+  }
+}
+```
+
+`exportType: "text"` exports the CSS as a string, for a `<style>` you build yourself, and `"style"` injects a `<style>` tag when the module runs. These files are part of the JavaScript bundle, not a separate `<name>.css` in `public/rspack`, so `rspack_stylesheet_tag` does not link them. Narrow the plain `css` rule so it skips them (`exclude: /\.shadow\.css$/`), or both rules match.
+
 ## Leave out what you do not use
 
 `IgnorePlugin` skips modules that a library pulls in by a dynamic path. The usual case is Moment.js, which bundles every locale:
