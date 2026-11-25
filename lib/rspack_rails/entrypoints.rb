@@ -31,24 +31,5 @@ module RspackRails
     def main_entry(root)
       SCRIPT_EXTENSIONS.map { |ext| "app/javascript/application.#{ext}" }.find { |path| root.join(path).file? }
     end
-
-    # What rspack_rails 1.x wrote to app/assets/builds: each entry's script
-    # and extracted CSS (with source maps), the dev server's runtime.js, the
-    # fingerprinted chunks, images and fonts (*.digested.*), and the
-    # manifests. Output of other tools (cssbundling, tailwindcss-rails) is
-    # left alone. Version 2 writes to public/rspack instead.
-    def legacy_outputs(root)
-      builds = Pathname(root).join("app/assets/builds")
-      names = [*discover(root).keys, "runtime"]
-      patterns = names.flat_map { |name| ["#{name}.js", "#{name}.bundle.css"] }.flat_map { |f| [f, "#{f}.map"] }
-      patterns << "**/*.digested.*" << ".rspack-manifest.json" << ".rspack-dev-manifest.json"
-      Dir.glob(patterns, base: builds).uniq.sort.map { |path| builds.join(path) }
-    end
-
-    # A stylesheet-only entry builds a stylesheet and no script
-    # (except under `rspack serve`, which adds its HMR client).
-    def css_only?(paths)
-      paths.all? { |path| STYLE_EXTENSIONS.include?(File.extname(path).delete_prefix(".")) }
-    end
   end
 end

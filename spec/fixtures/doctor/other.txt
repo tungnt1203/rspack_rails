@@ -5,8 +5,8 @@
     → Run `npm install --save-dev @rspack/core@^2` if the build fails
 ! @rspack/dev-server: 3.0.0; rspack_rails is tested with Rspack 2
     → Run `npm install --save-dev @rspack/dev-server@^2` if the build fails
-✗ rspack.config.mjs: does not build on config/rspack/rails.mjs
-    → Re-run `bin/rails rspack:install`, accept the new rspack.config.mjs and move your changes into its railsConfig callback
+✗ rspack.config.mjs: does not write .rspack-manifest.json, which the view helpers read
+    → Copy the manifestPlugin and output settings from lib/install/rspack.config.mjs in the rspack_rails gem, or re-run `bin/rails rspack:install` and accept the new file
 ! package.json scripts: missing dev
     → Run `bin/rails rspack:install`
 ✓ Entry points: admin

@@ -54,21 +54,11 @@ await check("The HMR websocket connects to RSPACK_DEV_SERVER_PUBLIC_URL", async 
   }
 });
 
-await check("Stimulus controller edit is hot-swapped and keeps its state", async () => {
+await check("A module edit is hot-swapped and keeps the page's state", async () => {
   for (let i = 0; i < 3; i++) await page.click("#increment");
   await waitFor(() => document.querySelector("#count").textContent === "3 clicks");
-  edit("app/javascript/controllers/counter_controller.js", (source) => source.replace('"click"', '"tap"'));
+  edit("app/javascript/label.js", (source) => source.replace('"click"', '"tap"'));
   await waitFor(() => document.querySelector("#count").textContent === "3 taps");
-  await notReloaded();
-});
-
-await check("A new controller file connects without a reload", async () => {
-  fs.writeFileSync(
-    file("app/javascript/controllers/greeting_controller.js"),
-    `import { Controller } from "@hotwired/stimulus"\n\n` +
-      `export default class extends Controller {\n  connect() {\n    this.element.textContent = "connected"\n  }\n}\n`,
-  );
-  await waitFor(() => document.querySelector("#greeting").textContent === "connected");
   await notReloaded();
 });
 
@@ -88,16 +78,11 @@ await check("A dynamic import() is compiled on demand, through Rails", async () 
   await notReloaded();
 });
 
-await check("Editing a view reloads the page, with the view's new Tailwind class", async () => {
-  // Views are rendered by Rails: rspack serve reloads the page (watchFiles),
-  // and Tailwind has generated the class by then.
-  edit("app/views/pages/home.html.erb", (source) => `${source}\n<p id="new-view" class="text-fuchsia-900">new</p>\n`);
+await check("Editing a view reloads the page", async () => {
+  // Views are rendered by Rails: rspack serve reloads the page (watchFiles).
+  edit("app/views/pages/home.html.erb", (source) => `${source}\n<p id="new-view">new</p>\n`);
   await page.waitForSelector("#new-view", { timeout: 20_000 });
   if (await page.evaluate(() => window.__noReload === true)) throw new Error("the page did not reload");
-  await waitFor(() => {
-    const color = (selector) => getComputedStyle(document.querySelector(selector)).color;
-    return color("#new-view") !== color(".probe");
-  });
 });
 
 await browser.close();

@@ -50,28 +50,12 @@ RSpec.describe RspackRails::Entrypoints do
     entries = described_class.discover(@root)
 
     expect(entries["admin"]).to eq(%w[app/javascript/entrypoints/admin.css app/javascript/entrypoints/admin.js])
-    expect(described_class.css_only?(entries["print"])).to be(true)
-    expect(described_class.css_only?(entries["mailer"])).to be(true)
-    expect(described_class.css_only?(entries["admin"])).to be(false)
+    expect(entries["print"]).to eq(%w[app/javascript/entrypoints/print.css])
+    expect(entries["mailer"]).to eq(%w[app/javascript/entrypoints/mailer.scss])
   end
 
   it "works with only entrypoints" do
     write("app/javascript/entrypoints/admin.js")
     expect(described_class.discover(@root).keys).to eq(["admin"])
-  end
-
-  it "lists what rspack_rails 1.x wrote to app/assets/builds and nothing else" do
-    write("app/javascript/application.js")
-    write("app/javascript/entrypoints/print.css")
-    %w[application.js application.js.map application.bundle.css runtime.js print.bundle.css print.js
-       lazy-1a2b.digested.js hero-1a2b.digested.png media/font-1a2b.digested.woff2
-       tailwind.css other.js .keep].each { |file| write("app/assets/builds/#{file}") }
-
-    files = described_class.legacy_outputs(@root).map do |path|
-      path.relative_path_from(@root.join("app/assets/builds")).to_s
-    end
-    expect(files).to match_array(%w[application.js application.js.map application.bundle.css runtime.js
-                                    print.bundle.css print.js lazy-1a2b.digested.js hero-1a2b.digested.png
-                                    media/font-1a2b.digested.woff2])
   end
 end

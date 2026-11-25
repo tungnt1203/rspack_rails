@@ -6,15 +6,13 @@
     → Run `npm install --save-dev @rspack/core@^2`
 ✗ @rspack/dev-server: 1.7.0, but rspack_rails needs Rspack 2
     → Run `npm install --save-dev @rspack/dev-server@^2`
-! rspack.config.mjs: config/rspack/rails.mjs has hand edits, which the next rspack:build replaces
-    → Move them into the railsConfig callback in rspack.config.mjs
+✗ rspack.config.mjs: does not write .rspack-manifest.json, which the view helpers read
+    → Copy the manifestPlugin and output settings from lib/install/rspack.config.mjs in the rspack_rails gem, or re-run `bin/rails rspack:install` and accept the new file
 ✗ package.json scripts: missing build, dev
     → Run `bin/rails rspack:install`
 ✓ Entry points: application
 ! Build output: not built yet: application
     → Run `bin/rails rspack:build` (only needed without the dev server)
-! Old build output: app/assets/builds still has files from rspack_rails 1.x
-    → Run `bin/rails rspack:clobber`, then `bin/rails rspack:build`
 ! .gitignore: does not list public/rspack, where builds go
     → Add `/public/rspack` to .gitignore (and .dockerignore)
 ! Layout: application.html.erb still includes javascript_importmap_tags
@@ -23,17 +21,9 @@
     → Use `js: npm run dev` for HMR
 ✗ Dockerfile: does not install Node.js and node modules; assets:precompile will fail
     → Re-run `bin/rails rspack:install`, or install Node.js and run `npm ci` in the build stage
-! Tailwind CSS: scans tmp/ in a Docker build, which has no .gitignore: unused classes end up in the production CSS
-    → Re-run `bin/rails rspack:install:tailwind`, which adds `@source not` lines to app/javascript/application.css
 ! Dev container: needs Node.js and port 3036 forwarded for the dev server
     → Re-run `bin/rails rspack:install`
-✗ Stimulus: @hotwired/stimulus is not installed
-    → Run `npm install @hotwired/stimulus`
-! Stimulus loader: app/javascript/controllers/autoload.js is not the one from rspack_rails <VERSION>
-    → Run `bin/rails rspack:sync` (rspack:build does it too)
-! React loader: app/javascript/components/mount.js has hand edits, which the next rspack:build replaces
-    → Copy it to a file of your own, import that instead and delete app/javascript/components/mount.js
 ! Dev server: not running at http://localhost:3036
     → Start it with bin/dev; until then pages use the last bin/rails rspack:build in public/rspack
 
-7 error(s), 11 warning(s).
+7 error(s), 6 warning(s).

@@ -26,7 +26,7 @@ fi
 
 step "rails new --devcontainer -m template.rb with $("${rails_cmd[@]}" --version) in $WORK_DIR"
 cd "$WORK_DIR"
-RSPACK_FEATURES=stimulus,tailwind RSPACK_RAILS_PATH="$GEM_ROOT" "${rails_cmd[@]}" new app --quiet --skip-javascript \
+RSPACK_RAILS_PATH="$GEM_ROOT" "${rails_cmd[@]}" new app --quiet --skip-javascript \
   --devcontainer --skip-test --skip-system-test --skip-active-record --skip-ci --skip-rubocop --skip-brakeman \
   -m "$GEM_ROOT/template.rb"
 cd app
@@ -63,7 +63,7 @@ trap 'docker rm -f "$IMAGE" "$IMAGE-v2" "$IMAGE-assets" >/dev/null 2>&1 || true'
 for _ in $(seq 1 60); do curl -sf -o /dev/null "http://localhost:$PORT/up" && break; sleep 1; done
 curl -sf -o /dev/null "http://localhost:$PORT/up" || { docker logs "$IMAGE" | tail -20; fail "/up did not respond"; }
 asset=$(docker exec "$IMAGE" ls public/rspack | grep -E '^application-[0-9a-f]+\.js$') || fail "application.js not precompiled"
-curl -sf "http://localhost:$PORT/rspack/$asset" | grep -q 'controllers' || fail "/rspack/$asset is not the rspack bundle"
+curl -sf "http://localhost:$PORT/rspack/$asset" | grep -q 'Hello from rspack_rails' || fail "/rspack/$asset is not the rspack bundle"
 docker exec "$IMAGE" sh -c 'test ! -d node_modules' || fail "node_modules shipped in the image"
 
 step "Rolling deploy, as Kamal's asset bridging does it (simulated)"

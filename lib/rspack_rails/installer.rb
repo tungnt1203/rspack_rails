@@ -3,7 +3,6 @@
 require "json"
 require_relative "app"
 require_relative "containers"
-require_relative "config_installer"
 require_relative "layout_installer"
 require_relative "rspack_version"
 
@@ -12,7 +11,6 @@ module RspackRails
   # template runs inside a Rails generator and does `extend RspackRails::Installer`,
   # so these methods can use Thor actions (say, gsub_file, insert_into_file).
   module Installer
-    include ConfigInstaller
     include LayoutInstaller
 
     TEMPLATES = File.expand_path("../install", __dir__)
@@ -30,46 +28,11 @@ module RspackRails
       App.new(destination_root)
     end
 
-    # The app's main entry (app/javascript/application.{js,ts,jsx,tsx}), or exits
-    # with a hint when there is none.
-    def main_entry!
-      entry = rspack_app.main_entry
-      return entry if entry
-
-      say "No app/javascript/application.{js,ts,jsx,tsx} found. Run `bin/rails rspack:install` first.", :red
-      exit 1
-    end
-
-    def gem_in_gemfile?(name)
-      rspack_app.read("Gemfile").to_s.match?(/^\s*gem\s+["']#{Regexp.escape(name)}["']/)
-    end
-
     # Removes a gem from the Gemfile, along with the comment line describing it.
     def remove_gem(name)
       gem_line = /^[ \t]*gem[ \t]+["']#{Regexp.escape(name)}["'].*\n/
       gsub_file "Gemfile", /^[ \t]*#.*\n(?=#{gem_line.source})/, ""
       gsub_file "Gemfile", gem_line, ""
-    end
-
-    # Adds `import "<path>"` to the main entry unless it already has one:
-    # first for stylesheets (so the app's own CSS comes after), last otherwise.
-    def import_from_entry(entry, path, first: false)
-      return if rspack_app.read(entry).to_s.match?(/^import ["']#{Regexp.escape(path)}["']/)
-
-      say "Importing #{path} from #{entry}"
-      line = %(import "#{path}"\n)
-      first ? prepend_to_file(entry, line) : append_to_file(entry, line)
-    end
-
-    # Moves the app off a gem that built its CSS (dartsass-rails,
-    # tailwindcss-rails): its Procfile.dev watcher, its old output in
-    # app/assets/builds, the gem itself.
-    def remove_css_gem(name, watcher:, outputs:)
-      say "Removing #{name}"
-      gsub_file "Procfile.dev", /^css: .*#{watcher}.*\n/, "" if rspack_app.file?("Procfile.dev")
-      outputs.each { |path| remove_file path }
-      remove_gem name
-      run "bundle install --quiet", abort_on_failure: true
     end
 
     # Reads package.json, yields it and writes it back.

@@ -182,22 +182,4 @@ RSpec.describe RspackRails::Helper do
       expect(view.rspack_asset_path("logo.svg")).to eq("/rspack/logo-3f2a9c1d5e6f7a8b.svg")
     end
   end
-
-  describe "#react_component" do
-    it "takes props as keywords" do
-      html = view.react_component("Hello", name: "World", count: 2)
-      expect(html).to include('data-react-component="Hello"')
-      expect(html).to include("data-react-props=\"{&quot;name&quot;:&quot;World&quot;,&quot;count&quot;:2}\"")
-      expect(html).to start_with("<div")
-    end
-
-    it "takes a props hash plus HTML options" do
-      html = view.react_component("admin/Chart", { title: "<b>" },
-                                  html: { class: "chart", tag: :span, data: { x: "1" } })
-      expect(html).to start_with('<span class="chart"')
-      expect(html).to include('data-x="1"')
-      expect(html).to include('data-react-component="admin/Chart"')
-      expect(html).not_to include("<b>")
-    end
-  end
 end

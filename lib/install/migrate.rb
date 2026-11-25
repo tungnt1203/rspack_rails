@@ -8,7 +8,6 @@ extend RspackRails::Installer
 
 migration = RspackRails::Migration.new(Rails.root)
 pm = RspackRails::PackageManager.detect(Rails.root)
-stimulus = File.exist?("app/javascript/controllers/application.js")
 
 case migration.source
 when :rspack
@@ -70,12 +69,12 @@ if migration.source == :jsbundling && bundlers.any?
   end
 end
 
-apply "#{__dir__}/stimulus.rb" if stimulus
-
+# stimulus-loading exists only with importmap: register the controllers through Rspack instead.
 controllers_index = "app/javascript/controllers/index.js"
 if migration.source == :importmap && File.exist?(controllers_index) &&
    File.read(controllers_index).include?("@hotwired/stimulus-loading")
-  remove_file controllers_index # replaced by controllers/autoload.js
+  say "Registering Stimulus controllers through Rspack in #{controllers_index}"
+  create_file controllers_index, File.read("#{__dir__}/controllers_index.js"), force: true
 end
 
 if migration.source == :jsbundling

@@ -57,6 +57,5 @@ module RspackRails
     def rspack_stylesheet_tag: (*String | Symbol entries, **untyped options) -> String
     def rspack_asset_path: (String | Symbol name) -> String
     def rspack_image_tag: (String | Symbol name, **untyped options) -> String
-    def react_component: (String name, ?Hash[untyped, untyped] props, ?html: Hash[Symbol, untyped], **untyped more_props) -> String
   end
 end

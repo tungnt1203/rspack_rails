@@ -5,13 +5,10 @@
 - [View helpers](#view-helpers)
 - [Entry points](#entry-points)
 - [Importing app code](#importing-app-code)
-- [Stimulus](#stimulus)
 - [CSS](#css)
-- [Tailwind CSS](#tailwind-css)
-- [Sass](#sass)
-- [React](#react)
-- [TypeScript](#typescript)
 - [Images and fonts](#images-and-fonts)
+- [Web Workers](#web-workers)
+- [Adding tools](#adding-tools): [TypeScript](#typescript), [Stimulus](#stimulus), [Sass](#sass), [Tailwind CSS](#tailwind-css), [React](#react)
 - [What `rspack:install` changes](#what-rspackinstall-changes)
 
 ## View helpers
@@ -44,12 +41,10 @@ app/javascript/entrypoints/print.scss   -> print-<hash>.css (no script)
 
 `admin.js` and `admin.css` side by side make one entry.
 
-Several entries can share a page. Under `rspack serve` the helpers link one shared `runtime.js`, so hot updates reach every entry. A build makes each entry self-contained instead, so `<entry>.js` runs on its own. On a page with two entries, a module both of them import (Turbo, your Stimulus `application`, React) is then loaded and run twice, each entry with its own copy. To share one runtime in builds too, add this to `rspack.config.mjs`:
+Several entries can share a page. Under `rspack serve` the helpers link one shared `runtime.js`, so hot updates reach every entry. A build makes each entry self-contained instead, so `<entry>.js` runs on its own. On a page with two entries, a module both of them import (Turbo, your Stimulus `application`, React) is then loaded and run twice, each entry with its own copy. To share one runtime in builds too, set it in `rspack.config.mjs` (it is `isDevServer ? { name: "runtime" } : false` there):
 
 ```js
-export default railsConfig((config) => {
-  config.optimization.runtimeChunk = { name: "runtime" };
-});
+optimization: { runtimeChunk: { name: "runtime" } },
 ```
 
 The helpers then link `runtime.js` before the entries, once per page. Only load the entries through the helpers after this, since `<entry>.js` no longer runs without `runtime.js`.
@@ -65,21 +60,7 @@ import { formatDate } from "#/lib/dates"        // app/javascript/lib/dates.js (
 import logo from "#/images/logo.svg"
 ```
 
-`rspack:install` adds `"imports": { "#/*": "./app/javascript/*" }` to `package.json`. `rspack:install:typescript` adds the same mapping to the `paths` of `tsconfig.json`, so type checking and your editor follow it too. Bare imports such as `import "lib/dates"` keep working as they did with importmap.
-
-## Stimulus
-
-```bash
-bin/rails rspack:install:stimulus
-```
-
-This installs `@hotwired/stimulus` and adds `app/javascript/controllers/autoload.js`, imported from your entry. Every `*_controller.js` (or `.ts`) under `app/javascript/controllers` is registered automatically, with the usual naming: `admin/user_card_controller.js` becomes `admin--user-card`.
-
-Under `rspack serve`, editing or adding a controller hot-swaps it in the open page, so form input and other page state survive.
-
-**`autoload.js` belongs to rspack_rails,** like `config/rspack/rails.mjs`. `rspack:sync` and `rspack:build` rewrite it when the gem changes, and save any hand edits to `tmp/rspack_rails/` first. A copy without a checksum line, as 0.17.0 and earlier wrote it, counts as edited and is saved too. To register controllers your own way, copy it to a file of your own, import that instead and delete `autoload.js`.
-
-If your entry imported `./controllers` (the stimulus-rails index), the installer switches it to `./controllers/autoload`. stimulus-rails may still rewrite `controllers/index.js` when you run `bin/rails generate stimulus`, but nothing imports that file any more.
+`rspack:install` adds `"imports": { "#/*": "./app/javascript/*" }` to `package.json`. With TypeScript, add the same mapping to the `paths` of `tsconfig.json` so type checking and your editor follow it too. Bare imports such as `import "lib/dates"` keep working as they did with importmap.
 
 ## CSS
 
@@ -104,67 +85,6 @@ import "./styles/application.css"
   ```
 
 - Under `rspack serve`, CSS changes apply without a page reload.
-
-## Tailwind CSS
-
-```bash
-bin/rails rspack:install:tailwind
-```
-
-This installs `tailwindcss` and `@tailwindcss/webpack`, creates `app/javascript/application.css` with `@import "tailwindcss";`, imports it from your entry and adds `rspack_stylesheet_tag "application"` to the layout.
-
-Classes in your views, helpers and JavaScript are picked up automatically. Tailwind skips what `.gitignore` lists, but a Docker build has no `.gitignore`, so `application.css` also leaves out `tmp`, `log`, `storage` and `public/rspack` with `@source not` lines. Without them, the image's production CSS picks up unused classes from bootsnap's cache in `tmp/`. Under `rspack serve`, editing a view reloads the page with the new classes already built, and CSS edits apply without a reload.
-
-Coming from `tailwindcss-rails`? See [Migrating](migrating.md#from-tailwindcss-rails).
-
-## Sass
-
-```bash
-bin/rails rspack:install:sass
-```
-
-This installs `sass-loader` and `sass-embedded` and creates `app/javascript/application.scss`, imported from your entry.
-
-- Import any `.scss` or `.sass` file from JavaScript. `*.module.scss` files are CSS modules, imported the same way (`import * as styles from "./Card.module.scss"`).
-- `app/assets/stylesheets` is a load path, so `@use "variables"` finds `app/assets/stylesheets/_variables.scss`.
-- Inside partials, `url()` is resolved from the file that was imported from JavaScript, not from the partial.
-
-Coming from `dartsass-rails`? See [Migrating](migrating.md#from-dartsass-rails). On Sprockets, see [Sass files on Sprockets](troubleshooting.md#sass-files-on-sprockets-fail-with-a-missing-sassc-gem).
-
-## React
-
-```bash
-bin/rails rspack:install:react
-```
-
-This installs `react`, `react-dom` and React Fast Refresh, and adds `app/javascript/components/` with a sample `Hello` component. Render any component from a view:
-
-```erb
-<%= react_component "Hello", name: "World" %>
-<%= react_component "admin/Chart", { points: @points }, html: { class: "chart" } %>
-```
-
-- Components are found by path, with no registration step: `admin/Chart` is `app/javascript/components/admin/Chart.jsx` (or `.tsx`).
-- They mount when their element enters the page and unmount when it leaves, so Turbo Drive, frames and streams work.
-- Props are passed as JSON.
-- Under `rspack serve`, edits apply through Fast Refresh and components keep their state.
-- The loader, `app/javascript/components/mount.js`, is kept up to date by rspack_rails the same way as the [Stimulus autoloader](#stimulus).
-- With TypeScript set up, the installer also sets `"jsx": "react-jsx"` in `tsconfig.json` and adds `@types/react`.
-
-**React Compiler.** To memoize components automatically with the [React Compiler](https://react.dev/learn/react-compiler), set `RSPACK_REACT_COMPILER=true` (Rspack 2.1 or later). It runs in Rspack's built-in SWC, with no Babel. Set it for every build, including `assets:precompile` on deploy, so development and production behave the same.
-
-## TypeScript
-
-`.ts` and `.tsx` files compile out of the box with Rspack's built-in SWC loader, Stimulus controllers (`*_controller.ts`) included. SWC strips types without checking them. For type checking:
-
-```bash
-bin/rails rspack:install:typescript   # tsconfig.json, typescript, a "typecheck" script
-npm run typecheck
-```
-
-- The installer adds `app/javascript/types/assets.d.ts`, so imports of stylesheets, images and fonts type-check (`import heroUrl from "./hero.png"` is a `string`).
-- Type errors show in the dev server overlay while you work (`ts-checker-rspack-plugin`). Builds stay fast and leave checking to `typecheck`.
-- `paths` aliases in `tsconfig.json` are honored, so `"@/*": ["./app/javascript/*"]` makes `import "@/lib/api"` work in both TypeScript and Rspack.
 
 ## Images and fonts
 
@@ -209,14 +129,128 @@ worker.postMessage({ rows })
 - A worker can import app code and packages like any other module, so code shared with the page lives in one file.
 - TypeScript checks a worker against the `DOM` library from `tsconfig.json`, where `postMessage` takes a target origin. Call it as `(self as unknown as Worker).postMessage(result)` inside the worker.
 
+## Adding tools
+
+`rspack.config.mjs` is yours, so each tool is a package and a few lines in it. [rspack.rs](https://rspack.rs) documents each in full.
+
+### TypeScript
+
+`.ts` and `.tsx` files compile out of the box with Rspack's built-in SWC loader. SWC strips types without checking them, so add a check to your scripts:
+
+```bash
+npm install --save-dev typescript
+npx tsc --init   # then set "noEmit": true, and "paths" if you use aliases
+```
+
+```json
+"scripts": { "typecheck": "tsc --noEmit" }
+```
+
+`"paths"` aliases in `tsconfig.json` are honored by the build, so `"@/*": ["./app/javascript/*"]` makes `import "@/lib/api"` work in both TypeScript and Rspack. For type errors in the dev server overlay, add [`ts-checker-rspack-plugin`](https://github.com/rspack-contrib/ts-checker-rspack-plugin) to `plugins` under `rspack serve`.
+
+### Stimulus
+
+```bash
+npm install @hotwired/stimulus
+```
+
+```js
+// app/javascript/controllers/application.js
+import { Application } from "@hotwired/stimulus"
+
+export const application = Application.start()
+```
+
+```js
+// app/javascript/controllers/index.js: registers every *_controller.js (or .ts) under this directory
+import { application } from "./application"
+
+const controllers = import.meta.webpackContext(".", { recursive: true, regExp: /_controller\.[jt]s$/ })
+
+for (const key of controllers.keys()) {
+  const name = key.replace(/^\.\//, "").replace(/_controller\.[jt]s$/, "").replaceAll("/", "--").replaceAll("_", "-")
+  application.register(name, controllers(key).default)
+}
+```
+
+Import `./controllers` from your entry. `admin/user_card_controller.js` becomes `admin--user-card`. [`rspack:migrate`](migrating.md) writes this `index.js` for an importmap app that had stimulus-rails.
+
+### Sass
+
+```bash
+npm install --save-dev sass sass-loader
+```
+
+```js
+// rspack.config.mjs, in module.rules
+{
+  test: /\.s[ac]ss$/,
+  type: "css/auto", // *.module.scss files become CSS modules
+  loader: "sass-loader",
+  options: { sassOptions: { loadPaths: [path.resolve(root, "app/assets/stylesheets")] } }, // @use "variables"
+},
+```
+
+Import `.scss` files from JavaScript, like CSS. `url()` inside a partial is resolved from the file that was imported from JavaScript.
+
+### Tailwind CSS
+
+```bash
+npm install --save-dev tailwindcss @tailwindcss/webpack
+```
+
+```js
+// rspack.config.mjs: the module.rules entry for CSS
+{
+  test: /\.css$/,
+  type: "css/auto",
+  use: [{ loader: "@tailwindcss/webpack", options: { base: root } }],
+},
+```
+
+```css
+/* app/javascript/application.css, imported from application.js */
+@import "tailwindcss";
+
+/* Tailwind skips what .gitignore lists, but a Docker build has no .gitignore:
+   leave out what Rails and rspack write to, or the image's CSS grows unused classes. */
+@source not "../../tmp";
+@source not "../../log";
+@source not "../../storage";
+@source not "../../public/rspack";
+```
+
+Classes in views, helpers and JavaScript are picked up automatically. Under `rspack serve`, editing a view reloads the page with the new classes already built.
+
+### React
+
+```bash
+npm install react react-dom
+npm install --save-dev @rspack/plugin-react-refresh react-refresh
+```
+
+```js
+// rspack.config.mjs
+import { ReactRefreshRspackPlugin } from "@rspack/plugin-react-refresh";
+
+// in the swc-loader rule: jsc.transform.react
+react: { runtime: "automatic", development: !isProduction, refresh: isDevServer },
+
+// in plugins
+isDevServer && new ReactRefreshRspackPlugin(),
+```
+
+Mount components from your entry however suits the app; a `data-` attribute on an element and `createRoot` is enough. Set `"jsx": "react-jsx"` in `tsconfig.json` if you use TypeScript.
+
 ## What `rspack:install` changes
 
-- Creates `rspack.config.mjs` (your config, built on `config/rspack/rails.mjs`; see [Configuration](configuration.md)) and `app/javascript/application.js`. An existing `application.ts`, `.jsx` or `.tsx` is kept as the entry.
+- Creates `rspack.config.mjs` and `app/javascript/application.js`. An existing `application.ts`, `.jsx` or `.tsx` is kept as the entry. The config is yours: rspack_rails never rewrites it.
 - Adds `build`, `build:watch` and `dev` (`rspack serve`) scripts to `package.json`.
-- Adds `rspack_javascript_tag "application"` to your layouts (ERB, Slim or Haml), and replaces Rails 8's `stylesheet_link_tag :app`, which would also link Rspack's bundles.
+- Adds `rspack_javascript_tag "application"` and `rspack_stylesheet_tag "application"` to your layouts (ERB, Slim or Haml).
 - Adds a `js:` process running the dev server to `Procfile.dev`, and sets up `bin/dev`.
 - Makes the `Dockerfile` install Node.js and your node modules so Kamal deploys can precompile ([Deploying](production.md#deploying-docker-and-kamal)), and makes `bin/setup` install node modules.
 - In a dev container, adds Node.js and forwards the dev server port ([Dev containers](production.md#dev-containers)).
 - Installs `@rspack/cli`, `@rspack/core` and `@rspack/dev-server`.
+- Adds `/public/rspack` to `.gitignore` and `.dockerignore`.
 
-Running it again is safe: it leaves your config, entry, layouts and `Procfile.dev` alone when they are already set up.
+Running it again is safe: it leaves your entry, layouts and `Procfile.dev` alone when they are already set up, and asks before it replaces a different `rspack.config.mjs`.

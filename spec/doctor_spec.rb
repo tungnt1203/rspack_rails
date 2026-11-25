@@ -47,11 +47,14 @@ RSpec.describe RspackRails::Doctor do
     install_package("@rspack/core", engines: { node: "^20.19.0 || >=22.12.0" })
     install_package("@rspack/cli")
     install_package("@rspack/dev-server")
-    write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
-    write("config/rspack/rails.mjs", RspackRails::ManagedFile::BASE.content)
+    write("rspack.config.mjs", File.read(File.expand_path("../lib/install/rspack.config.mjs", __dir__)))
     write("package.json", JSON.generate(scripts: { build: "rspack build", dev: "rspack serve" }))
     write("app/javascript/application.js")
     write_build(application: { js: %w[application-1a2b3c4d.js] })
+    set_up_app_files
+  end
+
+  def set_up_app_files
     write("app/views/layouts/application.html.erb", '<%= rspack_javascript_tag "application" %>')
     write("Procfile.dev", "web: bin/rails server\njs: npm run dev\n")
   end
@@ -63,35 +66,22 @@ RSpec.describe RspackRails::Doctor do
     expect(doctor.summary).to eq("Everything looks good.")
   end
 
-  it "warns about an outdated config/rspack/rails.mjs" do
+  it "fails when rspack.config.mjs is missing" do
     set_up_complete_app
-    write("config/rspack/rails.mjs", older_managed)
-    expect(check("rspack.config.mjs").status).to eq(:warn)
-    expect(check("rspack.config.mjs").hint).to include("rspack:sync")
-  end
-
-  it "warns about hand edits to config/rspack/rails.mjs" do
-    set_up_complete_app
-    write("config/rspack/rails.mjs", RspackRails::ManagedFile::BASE.content.sub("cheap-module-source-map", "eval"))
-    expect(check("rspack.config.mjs").status).to eq(:warn)
-    expect(check("rspack.config.mjs").detail).to include("hand edits")
-  end
-
-  it "fails when config/rspack/rails.mjs is missing" do
-    set_up_complete_app
-    @root.join("config/rspack/rails.mjs").delete
+    @root.join("rspack.config.mjs").delete
     expect(check("rspack.config.mjs").status).to eq(:error)
-    expect(check("rspack.config.mjs").hint).to include("rspack:sync")
+    expect(check("rspack.config.mjs").hint).to include("rspack:install")
   end
 
-  it "fails on a config that does not build on config/rspack/rails.mjs, from before 0.13.0" do
+  it "fails on a config that does not write the manifest the view helpers read" do
     set_up_complete_app
-    write("rspack.config.mjs", 'publicPath: isDevServer ? "/rspack/" : "auto",')
+    write("rspack.config.mjs", "export default {};\n")
     expect(check("rspack.config.mjs").status).to eq(:error)
-    expect(check("rspack.config.mjs").hint).to include("rspack:install", "railsConfig")
+    expect(check("rspack.config.mjs").detail).to include(".rspack-manifest.json")
+    expect(check("rspack.config.mjs").hint).to include("rspack:install")
   end
 
-  it "fails on Rspack 1, which config/rspack/rails.mjs does not support" do
+  it "fails on Rspack 1, which the generated config does not support" do
     set_up_complete_app
     install_package("@rspack/core", version: "1.7.12")
     expect(check("@rspack/core").status).to eq(:error)
@@ -168,27 +158,6 @@ RSpec.describe RspackRails::Doctor do
     expect(check("Layout").hint).to start_with('Add = rspack_javascript_tag "application" to')
   end
 
-  it "requires @hotwired/stimulus once autoload is installed" do
-    set_up_complete_app
-    write("app/javascript/controllers/autoload.js")
-    expect(check("Stimulus").status).to eq(:error)
-    install_package("@hotwired/stimulus")
-    expect(check("Stimulus").status).to eq(:ok)
-  end
-
-  it "checks the Stimulus and React loaders once installed" do
-    set_up_complete_app
-    expect(check("Stimulus loader")).to be_nil
-    write("app/javascript/controllers/autoload.js", RspackRails::ManagedFile::STIMULUS.content)
-    expect(check("Stimulus loader").status).to eq(:ok)
-
-    write("app/javascript/components/mount.js", "// mine\n")
-    react = check("React loader")
-    expect(react.status).to eq(:warn)
-    expect(react.detail).to include("hand edits")
-    expect(react.hint).to include("delete app/javascript/components/mount.js")
-  end
-
   it "warns when extracted CSS is built but not linked" do
     set_up_complete_app
     expect(check("Stylesheet")).to be_nil
@@ -196,15 +165,6 @@ RSpec.describe RspackRails::Doctor do
     expect(check("Stylesheet").status).to eq(:warn)
     write("app/views/layouts/application.html.erb", '<%= rspack_stylesheet_tag "application" %>')
     expect(check("Stylesheet").status).to eq(:ok)
-  end
-
-  it "warns about output left in app/assets/builds by rspack_rails 1.x" do
-    set_up_complete_app
-    expect(doctor.checks.map(&:name)).not_to include("Old build output")
-    write("app/assets/builds/application.js")
-    old = check("Old build output")
-    expect(old.status).to eq(:warn)
-    expect(old.hint).to include("rspack:clobber")
   end
 
   it "warns when .gitignore does not list public/rspack" do

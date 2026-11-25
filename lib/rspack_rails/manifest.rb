@@ -4,7 +4,7 @@ require "json"
 require "pathname"
 
 module RspackRails
-  # public/rspack/.rspack-manifest.json, which config/rspack/rails.mjs writes
+  # public/rspack/.rspack-manifest.json, which rspack.config.mjs writes
   # on every build and while `rspack serve` runs: for each entry, the scripts
   # and stylesheets to link, in order. The files carry a fingerprint in their
   # names, so the view helpers link what the manifest lists.

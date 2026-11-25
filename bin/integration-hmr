@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # End-to-end check of hot module replacement in a real browser. Generates a
-# Rails app with Stimulus and Tailwind (no React), builds it once (as
+# Rails app with a plain JavaScript counter, builds it once (as
 # rspack:build does before tests), then runs `rails server` and `rspack serve`
 # and drives Chromium with Playwright (spec/integration/hmr_check.mjs): edits
-# to a controller, a new controller, CSS and a view must apply without a reload.
+# to a module, CSS and a lazy chunk must apply without a reload, a view reloads the page.
 #
 #   bin/integration-hmr
 #   bin/integration-hmr "~> 8.1.0"
@@ -38,10 +38,8 @@ cd app
 echo "gem \"rspack_rails\", path: \"$GEM_ROOT\"" >> Gemfile
 bundle install --quiet
 
-step "Installing rspack, Stimulus and Tailwind"
+step "Installing rspack"
 bin/rails rspack:install
-bin/rails rspack:install:stimulus
-bin/rails rspack:install:tailwind
 
 step "A page with a counter"
 cat > config/routes.rb <<'RUBY'
@@ -52,34 +50,30 @@ RUBY
 printf 'class PagesController < ApplicationController\n  def home; end\nend\n' > app/controllers/pages_controller.rb
 mkdir -p app/views/pages
 cat > app/views/pages/home.html.erb <<'ERB'
-<div data-controller="counter">
-  <button id="increment" data-action="counter#increment">+1</button>
-  <span id="count" data-counter-target="output"></span>
-</div>
-<p id="greeting" data-controller="greeting">not connected</p>
+<button id="increment">+1</button>
+<span id="count"></span>
 <p class="probe">probe</p>
 <button id="load-lazy" onclick="loadLazy()">load</button>
 <p id="lazy"></p>
 ERB
-# A dynamic import(): under rspack serve it is compiled when the page first asks for it.
-echo 'export const message = "lazy loaded"' > app/javascript/lazy.js
-echo 'window.loadLazy = () => import("./lazy").then((m) => { document.querySelector("#lazy").textContent = m.message })' >> app/javascript/application.js
-cat > app/javascript/controllers/counter_controller.js <<'JS'
-import { Controller } from "@hotwired/stimulus"
+echo '.probe { color: black; }' > app/javascript/application.css
+echo 'export const label = "click"' > app/javascript/label.js
+# The counter keeps its state when label.js is edited: the page accepts that module's updates.
+cat > app/javascript/application.js <<'JS'
+import "./application.css"
+import { label } from "./label"
 
-export default class extends Controller {
-  static targets = ["output"]
-  static values = { count: Number }
+const output = document.querySelector("#count")
+let count = 0
+const show = () => { output.textContent = `${count} ${label}${count === 1 ? "" : "s"}` }
+document.querySelector("#increment").addEventListener("click", () => { count++; show() })
+show()
+import.meta.webpackHot?.accept("./label", show) // live binding: `label` is the new value
 
-  increment() {
-    this.countValue++
-  }
-
-  countValueChanged() {
-    this.outputTarget.textContent = `${this.countValue} ${"click"}${this.countValue === 1 ? "" : "s"}`
-  }
-}
+// A dynamic import(): under rspack serve it is compiled when the page first asks for it.
+window.loadLazy = () => import("./lazy").then((m) => { document.querySelector("#lazy").textContent = m.message })
 JS
+echo 'export const message = "lazy loaded"' > app/javascript/lazy.js
 
 step "rspack:build first (fills the persistent cache, as before tests or precompile)"
 bin/rails rspack:build

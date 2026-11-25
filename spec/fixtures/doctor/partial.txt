@@ -2,8 +2,7 @@
 ✓ @rspack/cli: 2.3.2
 ✓ @rspack/core: 2.3.2
 ✓ @rspack/dev-server: 2.3.2
-✗ rspack.config.mjs: imports config/rspack/rails.mjs, which is missing
-    → Run `bin/rails rspack:sync`
+✓ rspack.config.mjs: writes .rspack-manifest.json for the view helpers
 ✗ package.json scripts: missing build, dev
     → Run `bin/rails rspack:install`
 ✓ Entry points: application
@@ -15,4 +14,4 @@
     → Run `bin/rails rspack:install`
 ✓ Dev server: running at http://localhost:3036
 
-2 error(s), 2 warning(s).
+1 error(s), 2 warning(s).
