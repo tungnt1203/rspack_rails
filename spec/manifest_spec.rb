@@ -22,19 +22,21 @@ RSpec.describe RspackRails::Manifest do
   end
 
   it "reads an entry's files" do
-    write(print: { js: [], css: ["print.bundle.css"], stylesheetOnly: true })
+    write(print: { js: [], css: ["print-9c0d1e2f.css"], stylesheetOnly: true })
     expect(manifest["print"]).to eq(
-      described_class::Entry.new(scripts: [], stylesheets: ["print.bundle.css"], stylesheet_only: true)
+      described_class::Entry.new(scripts: [], stylesheets: ["print-9c0d1e2f.css"], stylesheet_only: true)
     )
     expect(manifest[:print].stylesheet_only).to be(true)
   end
 
-  it "falls back to the conventional names without a manifest or for an unknown entry" do
-    expect(manifest["admin"]).to eq(
-      described_class::Entry.new(scripts: ["admin.js"], stylesheets: ["admin.bundle.css"], stylesheet_only: false)
-    )
-    write(application: { js: ["application.js"], css: [] })
-    expect(manifest["admin"].scripts).to eq(["admin.js"])
+  it "says what to run when there is no manifest" do
+    expect { manifest["admin"] }
+      .to raise_error(described_class::MissingEntry, %r{"admin" in public/rspack/.*bin/dev.*rspack:build})
+  end
+
+  it "names the entries it has when asked for an unknown one" do
+    write(application: { js: ["application-1a2b3c4d.js"], css: [] })
+    expect { manifest["admin"] }.to raise_error(described_class::MissingEntry, /it has application.*restart/m)
   end
 
   it "picks up a rewritten manifest" do
@@ -47,7 +49,7 @@ RSpec.describe RspackRails::Manifest do
   it "treats a half-written manifest as missing" do
     path.dirname.mkpath
     path.write("{")
-    expect(manifest["application"].scripts).to eq(["application.js"])
+    expect { manifest["application"] }.to raise_error(described_class::MissingEntry)
   end
 
   it "keeps the last complete manifest while rspack rewrites it, then reads the new one" do

@@ -1,5 +1,31 @@
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-25
+
+Rspack now builds into `public/rspack` and Rails serves it itself: no Propshaft or Sprockets in the way, and none required. The view helpers are unchanged, so layouts need no edit. Read [From 1.x to 2.0](docs/upgrading.md#from-1x-to-20) when you upgrade: `bundle update rspack_rails`, `bin/rails rspack:clobber`, `bin/rails rspack:build`.
+
+### Breaking
+
+- Builds go to `public/rspack`, not `app/assets/builds`, and every file Rspack writes there carries a fingerprint: `application-1a2b3c4d.js`, `application-5e6f7a8b.css`, chunks, images and fonts. The `.digested` and `.bundle` name parts are gone. Rails serves the directory under `/rspack/` (the path the dev server already used) with `Cache-Control: public, max-age=31536000, immutable`, through a middleware that is only added where `config.public_file_server.enabled` is on. With a web server in front that serves `public/`, give `/rspack/` the same header there
+- `rspack_javascript_tag` and `rspack_stylesheet_tag` write their own `<script>` and `<link>` tags instead of calling `javascript_include_tag` and `stylesheet_link_tag`, so an app without Propshaft or Sprockets works. They take the options of the tag (`defer`, `nonce: true`, `integrity: true`, `media`, `data`) and still honor `config.asset_host` and the relative URL root
+- `integrity: true` computes SHA-384 hashes itself (and adds `crossorigin="anonymous"`). `config.assets.integrity_hash_algorithm` is no longer needed and has no effect on these tags
+- An entry that no build lists raises `RspackRails::Manifest::MissingEntry`, with the entries the manifest has and what to run (`bin/dev` or `bin/rails rspack:build`). 1.x linked the conventional file name, which became a 404
+- `assets:precompile` and `assets:clobber` run `rspack:build` and `rspack:clobber` also when the app has no pipeline, so a Dockerfile or Kamal deploy that calls them keeps working
+- The dev server keeps everything in memory except `.rspack-dev-manifest.json`. With it stopped, pages link the last `rspack:build` (1.x linked the dev server's last files)
+- `RspackRails::Entrypoints.outputs` is `legacy_outputs`: what 1.x wrote to `app/assets/builds`. `rspack:clobber` still removes it, next to `public/rspack`
+- The deprecation horizon is 3.0
+
+### Added
+
+- A build keeps the files of its last 3 builds (`RSPACK_KEEP_BUILDS`) and deletes everything else in `public/rspack`, so pages loaded before a deploy still find their chunks while servers roll over (with Kamal, set `asset_path: /rails/public/rspack`). Replaces `output.clean`, which deleted the previous build at once. A build identical to the last counts once, so `test:prepare` on every run does not push real builds out
+- `rspack:doctor` warns about output left in `app/assets/builds` and a `.gitignore` without `/public/rspack`
+- `rspack:install` adds `/public/rspack` to `.gitignore` and `.dockerignore`, removes `//= link_tree ../builds` from `app/assets/config/manifest.js` and deletes the 1.x output. Tailwind's class scan leaves out `public/rspack`
+
+### Removed
+
+- The installer's rewrite of `stylesheet_link_tag :app` and the doctor's warning about it. `:app` links `app/assets` only, and rspack's CSS is not there anymore
+- `output.clean`, the `.digested` suffix, the dev server's runtime plugin and the Propshaft notes in the generated config
+
 ## [1.0.3] - 2026-11-20
 
 Found by taking a new Rails 8.1 app from `rails new` with the template through `bin/dev`, tests, `assets:precompile` and a Docker image.

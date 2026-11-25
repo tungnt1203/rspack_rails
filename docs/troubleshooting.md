@@ -16,13 +16,19 @@ config.module.parser = { ...config.module.parser, javascript: { exportsPresence:
 
 ## Pages load old code after I stop the dev server
 
-`app/assets/builds` still holds the dev server's output, which loads code-split chunks from it. Run `bin/rails rspack:build`. It also runs before tests and `assets:precompile`.
+`public/rspack` holds the last `bin/rails rspack:build`, which is what pages link while the dev server is stopped. Run `bin/rails rspack:build` to refresh it. It also runs before tests and `assets:precompile`.
 
-## A print or admin stylesheet applies on every page
+## `rspack has no entry named "application"`
 
-Rails 8's default `stylesheet_link_tag :app` links every CSS file under `app/assets`, including Rspack's `app/assets/builds/*.bundle.css`, without the options you gave `rspack_stylesheet_tag` (such as `media: "print"`).
+No build lists that entry yet. Start the dev server with `bin/dev`, or run `bin/rails rspack:build`. For a new file in `app/javascript/entrypoints/`, restart the dev server. The message names the entries the manifest has.
 
-`rspack:install` replaces `:app` with your own stylesheets by name. If a layout still has `:app`, list your stylesheets in its place. `rspack:doctor` warns about it.
+## A stylesheet from the old `app/assets/builds` is linked twice
+
+rspack_rails 1.x built into `app/assets/builds`, where Rails 8's `stylesheet_link_tag :app` still finds the files. Run `bin/rails rspack:clobber`, then `bin/rails rspack:build`. `rspack:doctor` warns about it.
+
+## `image_tag` cannot find an image
+
+Without Propshaft or Sprockets, `image_tag "logo.png"` has nothing to look it up in. Import the image from JavaScript or CSS (Rspack fingerprints it), or put it in `public/` and use `image_tag "/logo.png"`.
 
 ## Sass files on Sprockets fail with a missing `sassc` gem
 

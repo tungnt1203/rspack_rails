@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require "json"
 require "open3"
+require_relative "../manifest"
 require_relative "../app"
 
 module RspackRails
@@ -54,6 +56,17 @@ module RspackRails
 
       def package_manager
         @package_manager ||= @app.package_manager
+      end
+
+      # The entries in public/rspack/.rspack-manifest.json, by name; empty
+      # when nothing has been built.
+      def built_entries
+        @built_entries ||= begin
+          json = read(Manifest::PATH)
+          json ? JSON.parse(json).fetch("entries", {}) : {}
+        rescue JSON::ParserError
+          {}
+        end
       end
 
       def exist?(path)

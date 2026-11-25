@@ -46,7 +46,7 @@ elsif !File.read(stylesheet).match?(/@import\s+["']tailwindcss["']/)
 end
 
 unless RspackRails::Tailwind.excludes?(File.read(stylesheet))
-  say "Leaving tmp, log, storage and app/assets/builds out of Tailwind's class scan"
+  say "Leaving tmp, log, storage and public/rspack out of Tailwind's class scan"
   css = File.read(stylesheet)
   updated = RspackRails::Tailwind.add_excludes(css)
   create_file stylesheet, updated, force: true if updated != css

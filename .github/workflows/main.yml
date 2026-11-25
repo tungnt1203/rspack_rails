@@ -112,7 +112,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [skip-js, importmap]
+        mode: [skip-js, no-pipeline, importmap]
         rails: ['~> 7.2.0', '~> 8.1.0']
 
     steps:

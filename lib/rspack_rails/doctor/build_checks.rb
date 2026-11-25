@@ -20,7 +20,7 @@ module RspackRails
       }.freeze
 
       def checks
-        [config_check, scripts_check, entry_check, build_check]
+        [config_check, scripts_check, entry_check, build_check, legacy_output_check, gitignore_check]
       end
 
       private
@@ -61,13 +61,28 @@ module RspackRails
       def build_check
         return if entrypoints.empty?
 
-        missing = entrypoints.reject do |name, paths|
-          exist?("app/assets/builds/#{name}#{Entrypoints.css_only?(paths) ? ".bundle.css" : ".js"}")
-        end.keys
-        return Check.new(:ok, "Build output", "app/assets/builds has #{entrypoints.keys.join(", ")}") if missing.empty?
+        missing = entrypoints.keys - built_entries.keys
+        return Check.new(:ok, "Build output", "public/rspack has #{entrypoints.keys.join(", ")}") if missing.empty?
 
         Check.new(:warn, "Build output", "not built yet: #{missing.join(", ")}",
                   "Run `bin/rails rspack:build` (only needed without the dev server)")
+      end
+
+      # rspack_rails 1.x built into app/assets/builds. Rails 8's
+      # `stylesheet_link_tag :app` would still link its stylesheets.
+      def legacy_output_check
+        return if Entrypoints.legacy_outputs(root).empty?
+
+        Check.new(:warn, "Old build output", "app/assets/builds still has files from rspack_rails 1.x",
+                  "Run `bin/rails rspack:clobber`, then `bin/rails rspack:build`")
+      end
+
+      def gitignore_check
+        gitignore = read(".gitignore")
+        return if gitignore.nil? || gitignore.match?(%r{^/?public/rspack\b})
+
+        Check.new(:warn, ".gitignore", "does not list public/rspack, where builds go",
+                  "Add `/public/rspack` to .gitignore (and .dockerignore)")
       end
     end
   end

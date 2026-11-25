@@ -2,17 +2,23 @@
 
 require "active_support"
 require "active_support/deprecation"
+require "concurrent/map"
+require "digest"
 require_relative "rspack_rails/version"
+
+# Rspack integration for Rails: rake tasks, installer and view helpers.
+module RspackRails
+  class Error < StandardError; end
+end
+
 require_relative "rspack_rails/package_manager"
 require_relative "rspack_rails/configuration"
 require_relative "rspack_rails/dev_server"
 require_relative "rspack_rails/entrypoints"
 require_relative "rspack_rails/manifest"
 
-# Rspack integration for Rails: rake tasks, installer and view helpers.
+# The module's methods, defined once its classes are loaded.
 module RspackRails
-  class Error < StandardError; end
-
   class << self
     def config
       @config ||= Configuration.new
@@ -40,6 +46,20 @@ module RspackRails
       dev_server.running? && dev.path.file? ? dev : build
     end
 
+    # Internal. The `integrity` attribute for a file in public/rspack
+    # ("sha384-..."), computed once: a file's name carries a fingerprint of its
+    # content, so the same name is the same bytes.
+    def integrity(file)
+      @integrity ||= Concurrent::Map.new
+      root = app_root
+      @integrity.compute_if_absent([root, file]) do
+        path = root.join(Manifest::OUTPUT_DIR, file)
+        raise Error, "#{path.relative_path_from(root)} is missing; run bin/rails rspack:build" unless path.file?
+
+        "sha384-#{Digest::SHA384.file(path).base64digest}"
+      end
+    end
+
     # Internal.
     def app_root
       Pathname(defined?(::Rails.root) && ::Rails.root ? ::Rails.root : Dir.pwd)
@@ -49,7 +69,7 @@ module RspackRails
     # config.active_support.deprecation applies once the app is initialized.
     # Before that (rake tasks that do not load :environment), warnings go to stderr.
     def deprecator
-      @deprecator ||= ActiveSupport::Deprecation.new("2.0", "rspack_rails")
+      @deprecator ||= ActiveSupport::Deprecation.new("3.0", "rspack_rails")
     end
   end
 end

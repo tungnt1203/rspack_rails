@@ -13,10 +13,11 @@
 
 `rspack:build` runs automatically before `assets:precompile`, `test:prepare`, `spec:prepare` and `db:test:prepare`. Set `RSPACK_SKIP_BUILD=1` to turn that off. It installs JavaScript dependencies first, then runs the `build` script with `NODE_ENV` set from `Rails.env`: `development` in development and test, `production` everywhere else.
 
-- **Production mode.** When `RAILS_ENV` or `NODE_ENV` is `production`, the generated config minifies. Lazy-loaded chunks are named `*.digested.js`, so Propshaft serves them without fingerprinting them a second time.
+- **Production mode.** When `RAILS_ENV` or `NODE_ENV` is `production`, the generated config minifies.
+- **Output.** Builds write to `public/rspack`, every file named with a fingerprint (`application-1a2b3c4d.js`, chunks, images and fonts too), and Rails serves them under `/rspack/` with `Cache-Control: public, max-age=31536000, immutable`. No asset pipeline is involved, so `app/assets` keeps whatever Propshaft or Sprockets does with it. With a web server in front that serves `public/` itself, give `/rspack/` the same header there.
 - **Browser targets.** JavaScript and CSS are compiled for the browsers in your [browserslist](https://github.com/browserslist/browserslist) config (`.browserslistrc`, or `"browserslist"` in `package.json`). Without one, the target is Baseline "widely available", which matches Rails 8's `allow_browser versions: :modern`.
-- **Source maps.** On in development (`cheap-module-source-map`), off in production, so your source never lands in `public/assets`. `RSPACK_DEVTOOL` picks another [devtool](https://rspack.rs/config/devtool), for example `hidden-source-map` to upload maps to an error tracker.
-- **Clean output.** Each build deletes what earlier builds left in `app/assets/builds` (a development build's source maps, old chunks), so precompiling on a machine that ran development builds ships none of it. Files other tools write there are kept.
+- **Source maps.** On in development (`cheap-module-source-map`), off in production, so your source never ships in `public/rspack`. `RSPACK_DEVTOOL` picks another [devtool](https://rspack.rs/config/devtool), for example `hidden-source-map` to upload maps to an error tracker.
+- **Old builds.** A build keeps the files of the last 3 builds (`RSPACK_KEEP_BUILDS=5` keeps more) and deletes everything else in `public/rspack`, so a page loaded before a deploy still finds its chunks while servers roll over, and precompiling on a machine that ran development builds ships none of its leftovers. Only `rspack_rails` writes to that directory. Only builds of the same mode count, so a production build never ships a development build's source maps. A build identical to the last one counts once.
 - **Lazy compilation.** Under `rspack serve`, dynamic `import()`s are compiled the first time the page asks for them, which keeps startup fast in large apps. The request goes to `/rspack/_rspack/lazy/trigger` on the page's own origin, which Rails proxies to the dev server.
 - **Persistent cache.** Kept in `node_modules/.cache/rspack`. Editing `rspack.config.mjs`, `config/rspack/rails.mjs`, `package.json`, the lockfile, `tsconfig.json` or `.browserslistrc` starts a fresh cache. Delete the directory to clear it by hand.
 
@@ -29,26 +30,22 @@ Pass `integrity: true` to have the browser check each bundle against a hash, so 
 <%= rspack_stylesheet_tag "application", integrity: true %>
 ```
 
-Propshaft computes no hashes until an algorithm is set (Sprockets always does):
+The helpers hash each file with SHA-384 (and add `crossorigin="anonymous"`, which the browser needs to check a file from another origin). Nothing to configure.
 
-```ruby
-# config/initializers/assets.rb
-Rails.application.config.assets.integrity_hash_algorithm = "sha384"
-```
-
-- The asset pipeline computes the hashes from the files it serves, so they hold after Propshaft rewrites `url()`s in the CSS.
-- Like Rails' own helpers, the attribute is only added on HTTPS (and on localhost), and never for files from `rspack serve`.
-- Only the files linked by the helpers are covered. Chunks that Rspack loads at runtime (dynamic `import()`, Web Workers) get no hash. Rspack's own `SubresourceIntegrityPlugin` would hash them at build time, before Propshaft rewrites CSS chunks, so the browser would block them.
+- The attribute is never added for files from `rspack serve`, which rewrites them on every change.
+- Only the files linked by the helpers are covered. Chunks that Rspack loads at runtime (dynamic `import()`, Web Workers) get no hash. Rspack's own `SubresourceIntegrityPlugin` covers those too, if you need it.
 
 ## Deploying (Docker and Kamal)
 
-`assets:precompile` runs `rspack:build`, so the image needs Node.js at build time. Rails only adds Node.js to the `Dockerfile` for apps created with a JavaScript bundler, so `rspack:install` adds it to the build stage:
+`assets:precompile` runs `rspack:build` (rspack_rails defines the task when there is no Propshaft or Sprockets), so the image needs Node.js at build time. Rails only adds Node.js to the `Dockerfile` for apps created with a JavaScript bundler, so `rspack:install` adds it to the build stage:
 
 - Node.js (the version you run locally, or `NODE_VERSION`), installed the same way Rails does for esbuild apps.
 - `COPY package.json package-lock.json` and `npm ci` (or your package manager's frozen install) before the app is copied, so the layer is cached.
 - `RUN rm -rf node_modules` after precompiling, so the final image ships the built assets and no Node.js or node modules.
 
 `rspack:doctor` reports a `Dockerfile` that cannot run Rspack. CI builds and runs the image of a new app.
+
+**Rolling deploys.** A page loaded before a deploy asks for the old build's chunks, which a new container does not have. Kamal's asset bridging copies them over: set `asset_path: /rails/public/rspack` in `config/deploy.yml`. The old files stay there while `RSPACK_KEEP_BUILDS` builds of them exist.
 
 ## Dev containers
 
@@ -71,7 +68,7 @@ The same goes for a dev server behind a TLS proxy. Only the websocket uses this 
 bin/rails rspack:analyze
 ```
 
-This runs a production build into `tmp/rsdoctor/build` (leaving `app/assets/builds` alone) and writes a single-file [Rsdoctor](https://rsdoctor.rs) report to `tmp/rsdoctor/rsdoctor-report.html`, with bundle and module sizes, duplicate packages and build timings. It installs `@rsdoctor/rspack-plugin` the first time.
+This runs a production build into `tmp/rsdoctor/build` (leaving `public/rspack` alone) and writes a single-file [Rsdoctor](https://rsdoctor.rs) report to `tmp/rsdoctor/rsdoctor-report.html`, with bundle and module sizes, duplicate packages and build timings. It installs `@rsdoctor/rspack-plugin` the first time.
 
 Builds do not print Rspack's size hints, which flag every entry over 244 KiB (an app with React and Turbo starts above it). To have a build warn or fail over a budget of your own, set `performance` in `rspack.config.mjs`:
 
@@ -90,7 +87,7 @@ export default railsConfig((config) => {
 ✓ @rspack/core: 2.3.2
 ✓ Layout: uses rspack_javascript_tag
 ! Dev server: not running at http://localhost:3036
-    → Start it with bin/dev; until then pages use app/assets/builds
+    → Start it with bin/dev; until then pages use the last bin/rails rspack:build in public/rspack
 
 0 error(s), 1 warning(s).
 ```

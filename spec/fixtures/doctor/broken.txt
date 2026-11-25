@@ -13,10 +13,12 @@
 ✓ Entry points: application
 ! Build output: not built yet: application
     → Run `bin/rails rspack:build` (only needed without the dev server)
+! Old build output: app/assets/builds still has files from rspack_rails 1.x
+    → Run `bin/rails rspack:clobber`, then `bin/rails rspack:build`
+! .gitignore: does not list public/rspack, where builds go
+    → Add `/public/rspack` to .gitignore (and .dockerignore)
 ! Layout: application.html.erb still includes javascript_importmap_tags
     → Remove it if rspack replaces importmap, or the app may load JavaScript twice
-! Stylesheet: application.html.erb links rspack's bundles again through stylesheet_link_tag :app
-    → Use stylesheet_link_tag "application" (or list your own stylesheets); a print or admin bundle otherwise applies on every page
 ! Procfile.dev: js process does not run `dev`
     → Use `js: npm run dev` for HMR
 ✗ Dockerfile: does not install Node.js and node modules; assets:precompile will fail
@@ -32,6 +34,6 @@
 ! React loader: app/javascript/components/mount.js has hand edits, which the next rspack:build replaces
     → Copy it to a file of your own, import that instead and delete app/javascript/components/mount.js
 ! Dev server: not running at http://localhost:3036
-    → Start it with bin/dev; until then pages use app/assets/builds
+    → Start it with bin/dev; until then pages use the last bin/rails rspack:build in public/rspack
 
-7 error(s), 10 warning(s).
+7 error(s), 11 warning(s).

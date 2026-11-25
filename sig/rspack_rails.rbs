@@ -1,4 +1,5 @@
 # The public API of rspack_rails, stable from 1.0 (docs/upgrading.md, "Stability").
+# 2.0 added Manifest::MissingEntry and StaticFiles.
 # Other constants and methods under RspackRails (the installers, the doctor,
 # the migration, the deprecator) are internal and may change in any release.
 module RspackRails
@@ -10,6 +11,12 @@ module RspackRails
   def self.config: () -> Configuration
   def self.configure: () { (Configuration) -> void } -> void
   def self.dev_server: () -> DevServer
+
+  class Manifest
+    # Raised by the view helpers for an entry that no build lists.
+    class MissingEntry < Error
+    end
+  end
 
   class Configuration
     attr_reader dev_server_host: String
@@ -30,6 +37,14 @@ module RspackRails
     PREFIX: String
     def initialize: (untyped app, ?config: Configuration) -> void
     def call: (Hash[String, untyped] env) -> [Integer, Hash[String, String], Array[String]]
+  end
+
+  # Rack middleware the Railtie inserts where Rails serves public/; serves
+  # public/rspack under /rspack/ with a far-future Cache-Control.
+  class StaticFiles
+    PREFIX: String
+    def initialize: (untyped app, root: Pathname | String) -> void
+    def call: (Hash[String, untyped] env) -> untyped
   end
 
   # Included into Action View.

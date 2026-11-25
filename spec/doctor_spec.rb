@@ -27,6 +27,14 @@ RSpec.describe RspackRails::Doctor do
     write("node_modules/#{name}/package.json", JSON.generate(data))
   end
 
+  # public/rspack/.rspack-manifest.json, as a build writes it.
+  def write_build(**entries)
+    listed = entries.transform_values do |files|
+      { js: files[:js] || [], css: files[:css] || [], stylesheetOnly: false }
+    end
+    write(RspackRails::Manifest::PATH, JSON.generate(entries: listed))
+  end
+
   def doctor(node_version: "v22.12.0")
     described_class.new(@root, config: config, dev_server: dev_server, node_version: node_version)
   end
@@ -43,7 +51,7 @@ RSpec.describe RspackRails::Doctor do
     write("config/rspack/rails.mjs", RspackRails::ManagedFile::BASE.content)
     write("package.json", JSON.generate(scripts: { build: "rspack build", dev: "rspack serve" }))
     write("app/javascript/application.js")
-    write("app/assets/builds/application.js", "console.log(1)")
+    write_build(application: { js: %w[application-1a2b3c4d.js] })
     write("app/views/layouts/application.html.erb", '<%= rspack_javascript_tag "application" %>')
     write("Procfile.dev", "web: bin/rails server\njs: npm run dev\n")
   end
@@ -124,7 +132,7 @@ RSpec.describe RspackRails::Doctor do
     build = check("Build output")
     expect(build.status).to eq(:warn)
     expect(build.detail).to eq("not built yet: admin")
-    write("app/assets/builds/admin.js")
+    write_build(application: { js: %w[application-1a2b3c4d.js] }, admin: { js: %w[admin-5e6f7a8b.js] })
     expect(check("Build output").status).to eq(:ok)
   end
 
@@ -184,29 +192,28 @@ RSpec.describe RspackRails::Doctor do
   it "warns when extracted CSS is built but not linked" do
     set_up_complete_app
     expect(check("Stylesheet")).to be_nil
-    write("app/assets/builds/application.bundle.css", "body{}")
+    write_build(application: { js: %w[application-1a2b3c4d.js], css: %w[application-5e6f7a8b.css] })
     expect(check("Stylesheet").status).to eq(:warn)
     write("app/views/layouts/application.html.erb", '<%= rspack_stylesheet_tag "application" %>')
     expect(check("Stylesheet").status).to eq(:ok)
   end
 
-  it "warns when stylesheet_link_tag :app links rspack's bundles again" do
+  it "warns about output left in app/assets/builds by rspack_rails 1.x" do
     set_up_complete_app
-    write("app/views/layouts/application.html.erb",
-          %(<%= stylesheet_link_tag :app %>\n<%= rspack_javascript_tag "application" %>))
-    expect(doctor.checks.map(&:name)).not_to include("Stylesheet")
-    write("app/assets/builds/print.bundle.css", "nav{display:none}")
-    stylesheet = doctor.checks.select { |c| c.name == "Stylesheet" }.last
-    expect(stylesheet.status).to eq(:warn)
-    expect(stylesheet.detail).to include("stylesheet_link_tag :app")
+    expect(doctor.checks.map(&:name)).not_to include("Old build output")
+    write("app/assets/builds/application.js")
+    old = check("Old build output")
+    expect(old.status).to eq(:warn)
+    expect(old.hint).to include("rspack:clobber")
   end
 
-  it "ignores stylesheet_link_tag :app in a comment" do
+  it "warns when .gitignore does not list public/rspack" do
     set_up_complete_app
-    write("app/views/layouts/application.html.erb",
-          %(<%# not stylesheet_link_tag :app %>\n<%= rspack_javascript_tag "application" %>))
-    write("app/assets/builds/print.bundle.css", "nav{display:none}")
-    expect(doctor.checks.map(&:status).uniq).to eq([:ok])
+    expect(doctor.checks.map(&:name)).not_to include(".gitignore")
+    write(".gitignore", "/log\n")
+    expect(check(".gitignore").status).to eq(:warn)
+    write(".gitignore", "/log\n/public/rspack\n")
+    expect(doctor.checks.map(&:name)).not_to include(".gitignore")
   end
 
   it "fails when the Dockerfile cannot run rspack" do

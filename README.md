@@ -55,7 +55,7 @@ See [Migrating](docs/migrating.md) for what changes.
 ## What you get
 
 - **Hot updates in development.** JavaScript, CSS, Stimulus controllers and React components are swapped in place. Editing a view reloads the page.
-- **The asset pipeline in production.** Rspack writes to `app/assets/builds`, and Propshaft or Sprockets fingerprints and serves the files, as `jsbundling-rails` does.
+- **No asset pipeline to configure.** Rspack fingerprints its files into `public/rspack`, and Rails serves them with a far-future cache header. Propshaft and Sprockets are not needed (and still work for the rest of your assets).
 - **No manifests to maintain.** Stimulus controllers and React components are found by file name.
 - **TypeScript, CSS modules, Tailwind CSS v4, Sass**, plus images and fonts imported from JavaScript or CSS.
 - **A doctor.** `bin/rails rspack:doctor` checks Node.js, packages, config and layouts, and says what to fix.
@@ -78,8 +78,8 @@ Put two helpers in your layout:
 ```
 
 - **`bin/dev` running:** the helpers point at `/rspack/…`, and Rails proxies those requests to `rspack serve`. Only the HMR websocket goes to the dev server directly.
-- **Dev server stopped:** the helpers fall back to the last build in `app/assets/builds`.
-- **Production:** `rspack:build` runs before `assets:precompile`, and the asset pipeline serves the result.
+- **Dev server stopped:** the helpers link the last `bin/rails rspack:build` in `public/rspack`.
+- **Production:** `rspack:build` runs before `assets:precompile` (the task exists without Propshaft or Sprockets too), and Rails serves `public/rspack` under `/rspack/`.
 
 ## Documentation
 
@@ -98,7 +98,7 @@ How fast is it? [Rails + Rspack: esbuild speed, webpack features, one command](h
 
 ## Requirements
 
-- Ruby 3.2+ and Rails 7.2+ (Propshaft or Sprockets)
+- Ruby 3.2+ and Rails 7.2+ (with or without Propshaft or Sprockets)
 - Node.js 20.19+ or 22.12+
 - bun, yarn, pnpm or npm, detected from your lockfile
 - Rspack 2, installed for you

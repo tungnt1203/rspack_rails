@@ -50,12 +50,13 @@ When Rspack runs on its own (`bin/dev`, `npm run build`) with a `config/rspack/r
 | `RSPACK_DEV_SERVER_HOST` | `localhost` | Dev server host |
 | `RSPACK_DEV_SERVER_PORT` | `3036` | Dev server port |
 | `RSPACK_DEV_SERVER_PUBLIC_URL` | `http://<host>:<port>` | Where the browser opens the HMR websocket, for forwarded ports and TLS proxies ([Dev containers](production.md#dev-containers)) |
-| `RSPACK_DEV_SERVER` | | `false` turns the dev server check off; the helpers always use `app/assets/builds` |
+| `RSPACK_DEV_SERVER` | | `false` turns the dev server check off; the helpers always use the last build in `public/rspack` |
 | `RSPACK_DEVTOOL` | `cheap-module-source-map` in development, off in production | Source map [devtool](https://rspack.rs/config/devtool); `false` turns maps off |
 | `RSPACK_LAZY_COMPILATION` | on under `rspack serve` | `false` compiles every dynamic `import()` upfront |
 | `RSPACK_VIEW_RELOAD` | on under `rspack serve` | `false` stops reloading the page when `app/views`, `app/helpers` or `app/components` change |
 | `RSPACK_REACT_COMPILER` | off | `true` enables the React Compiler |
 | `NODE_VERSION` | the local `node --version` | Node.js version `rspack:install` writes into the `Dockerfile` |
+| `RSPACK_KEEP_BUILDS` | `3` | How many builds' files `public/rspack` keeps ([Production](production.md#builds)) |
 | `RSPACK_SKIP_BUILD` | | Any value stops `rspack:build` from running before `assets:precompile` and test tasks |
 | `RSPACK_FORCE` | | `1` lets `rspack:migrate` run on a dirty git tree |
 | `RSPACK_FEATURES` | | For `template.rb`: the extras to install without asking, such as `stimulus,typescript,tailwind` |
@@ -67,7 +68,7 @@ To decide in Ruby whether pages use the dev server, use an initializer:
 ```ruby
 # config/initializers/rspack_rails.rb
 RspackRails.configure do |config|
-  config.dev_server_enabled = false # pages always use app/assets/builds
+  config.dev_server_enabled = false # pages always use the last build in public/rspack
 end
 ```
 
@@ -88,6 +89,6 @@ Deprecations go through `Rails.application.deprecators`, so `config.active_suppo
 | `bin/rails rspack:migrate` | Moves an importmap or jsbundling app to Rspack |
 | `bin/rails rspack:build` | Updates `config/rspack/rails.mjs`, installs JavaScript dependencies, then runs `build` |
 | `bin/rails rspack:sync` | Updates `config/rspack/rails.mjs`, and the Stimulus and React loaders if installed, to this version of rspack_rails |
-| `bin/rails rspack:clobber` | Removes Rspack output from `app/assets/builds`, leaving other tools' files alone (also runs with `assets:clobber`) |
+| `bin/rails rspack:clobber` | Removes `public/rspack`, and what rspack_rails 1.x left in `app/assets/builds` (also runs with `assets:clobber`) |
 | `bin/rails rspack:doctor` | Checks Node.js, packages, config, layout, `Procfile.dev` and the dev server |
 | `bin/rails rspack:analyze` | Writes an Rsdoctor bundle report to `tmp/rsdoctor/rsdoctor-report.html` |

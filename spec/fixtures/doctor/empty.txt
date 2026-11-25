@@ -15,6 +15,6 @@
 ! Procfile.dev: no js process
     → Run `bin/rails rspack:install`
 ! Dev server: not running at http://localhost:3036
-    → Start it with bin/dev; until then pages use app/assets/builds
+    → Start it with bin/dev; until then pages use the last bin/rails rspack:build in public/rspack
 
 5 error(s), 4 warning(s).

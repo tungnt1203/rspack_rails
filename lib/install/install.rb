@@ -6,18 +6,20 @@ extend RspackRails::Installer
 
 pm = RspackRails::PackageManager.detect(Rails.root)
 
-say "Creating app/assets/builds"
-empty_directory "app/assets/builds"
-create_file "app/assets/builds/.keep", "" unless File.exist?("app/assets/builds/.keep")
+# Rspack writes to public/rspack, which Rails serves under /rspack/.
+# Nothing in it is committed or shipped in a Docker build context.
+{ ".gitignore" => "\n/public/rspack\n/node_modules\n", ".dockerignore" => "\n/public/rspack\n" }.each do |ignore, lines|
+  next unless File.exist?(ignore) && !File.read(ignore).match?(%r{^/?public/rspack\b})
 
-if File.exist?(".gitignore") && !File.read(".gitignore").include?("/app/assets/builds/*")
-  append_to_file ".gitignore", "\n/app/assets/builds/*\n!/app/assets/builds/.keep\n/node_modules\n"
+  say "Leaving public/rspack out of #{ignore}"
+  append_to_file ignore, lines
 end
 
-manifest = Rails.root.join("app/assets/config/manifest.js")
-if manifest.exist? && !manifest.read.include?("link_tree ../builds")
-  append_to_file "app/assets/config/manifest.js", %(//= link_tree ../builds\n)
+# Left by rspack_rails 1.x, which built into the asset pipeline.
+if File.exist?("app/assets/config/manifest.js")
+  gsub_file "app/assets/config/manifest.js", %r{^//= link_tree \.\./builds\n}, ""
 end
+RspackRails::Entrypoints.legacy_outputs(Rails.root).each { |file| remove_file file.relative_path_from(Rails.root).to_s }
 
 say "Creating rspack entry point"
 # An existing application.ts (or .jsx, .tsx) is the entry; a new .js would shadow it.
@@ -59,8 +61,6 @@ if (layout = self.layout)
 else
   say "Add this to your layout: <%= #{js_tag} %>", :yellow
 end
-
-replace_app_stylesheets_tag
 
 say "Configuring bin/dev"
 js_process = "js: #{pm.run_command("dev")}"

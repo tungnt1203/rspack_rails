@@ -73,7 +73,7 @@ npm run typecheck
 
 step "rspack:build"
 bin/rails rspack:build
-grep -q 'from-application-ts' app/assets/builds/application.js || fail "application.ts not in the bundle"
+grep -q 'from-application-ts' public/rspack/application-*.js || fail "application.ts not in the bundle"
 
 step "rspack:doctor"
 doctor=$(bin/rails rspack:doctor)
@@ -85,8 +85,8 @@ grep -q 'Stylesheet: application.html.slim uses rspack_stylesheet_tag' <<<"$doct
 step "assets:precompile (production)"
 export RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1
 bin/rails assets:clobber
-[ -z "$(ls app/assets/builds)" ] || fail "rspack:clobber left files: $(ls app/assets/builds)"
+[ ! -e public/rspack ] || fail "rspack:clobber left files: $(ls public/rspack)"
 bin/rails assets:precompile
-grep -q 'from-application-ts' public/assets/application-*.js || fail "application.ts not in the production bundle"
+grep -q 'from-application-ts' public/rspack/application-*.js || fail "application.ts not in the production bundle"
 
 step "OK"
