@@ -19,6 +19,17 @@ const ORDER = ["guide", "recipes", "configuration", "production", "migrating", "
 const files = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".md")).map((f) => f.slice(0, -3));
 const slugs = [...ORDER.filter((s) => files.includes(s)), ...files.filter((s) => !ORDER.includes(s)).sort()];
 
+// How the sidebar and the index group the pages. A page not listed lands in "More".
+const GROUPS = [
+  ["Build with it", ["guide", "recipes"]],
+  ["Configure and ship", ["configuration", "production"]],
+  ["Move and fix", ["migrating", "upgrading", "troubleshooting"]],
+];
+const groupOf = (slug) => GROUPS.find(([, pages]) => pages.includes(slug))?.[0] ?? "More";
+const groups = [...new Set([...GROUPS.map(([name]) => name), ...slugs.map(groupOf)])]
+  .map((name) => [name, slugs.filter((s) => groupOf(s) === name)])
+  .filter(([, pages]) => pages.length);
+
 const escape = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const plain = (md) => md.replace(/`([^`]+)`/g, "$1").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_]/g, "").trim();
 
@@ -42,6 +53,20 @@ const rewrite = (href) => {
   const target = path.posix.normalize(path.posix.join("docs", file));
   return `${REPO}/blob/main/${target}${hash ? `#${hash}` : ""}`;
 };
+
+// One search entry per h2 or h3: its heading and the text under it, cut at the next heading.
+function sectionsOf(slug, pageTitle, html) {
+  const text = (h) => h.replace(/<a class="anchor"[^>]*>.*?<\/a>/g, "").replace(/<button class="code__copy".*?<\/button>/g, "").replace(/<[^>]+>/g, " ")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ").trim();
+  const parts = html.split(/(<h[23] id="[^"]+">.*?<\/h[23]>)/s);
+  const out = [{ page: slug, pageTitle, heading: pageTitle, id: "", text: text(parts[0]).slice(0, 400) }];
+  for (let i = 1; i < parts.length; i += 2) {
+    const id = parts[i].match(/id="([^"]+)"/)[1];
+    out.push({ page: slug, pageTitle, heading: text(parts[i]), id, text: text(parts[i + 1] ?? "").slice(0, 400) });
+  }
+  return out;
+}
 
 function parse(slug) {
   let md = fs.readFileSync(path.join(root, "docs", `${slug}.md`), "utf8");
@@ -76,7 +101,7 @@ function parse(slug) {
       code(code, info) {
         const lang = (info || "").split(/\s/)[0];
         const label = { erb: "ERB", js: "JavaScript", ts: "TypeScript", bash: "Shell", sh: "Shell", ruby: "Ruby", rb: "Ruby", css: "CSS", scss: "Sass", json: "JSON", yaml: "YAML", yml: "YAML", dockerfile: "Dockerfile", html: "HTML", text: "" }[lang] ?? lang;
-        return `<figure class="code">${label ? `<figcaption><span>${escape(label)}</span></figcaption>` : ""}<pre tabindex="0"><code>${escape(code)}</code></pre></figure>\n`;
+        return `<figure class="code">${label ? `<figcaption><span>${escape(label)}</span></figcaption>` : ""}<button class="code__copy" type="button" hidden>Copy</button><pre tabindex="0"><code>${escape(code)}</code></pre></figure>\n`;
       },
       // Typographic quotes in prose; code spans and blocks have their own renderers.
       text(text) {
@@ -89,7 +114,8 @@ function parse(slug) {
       },
     },
   });
-  return { slug, title, description, leadHtml, toc, html: marked.parse(md) };
+  const html = marked.parse(md);
+  return { slug, title, description, leadHtml, toc, html, sections: sectionsOf(slug, title, html) };
 }
 
 const docs = slugs.map(parse);
@@ -100,6 +126,7 @@ const nav = (current) => `
       <a class="wordmark" href="../" aria-label="rspack_rails, home"><img src="../media/rspack-mascot.svg" alt="" width="40" height="31">rspack_rails</a>
       <nav aria-label="Site">
         <ul class="bar__links">
+          <li><button class="search-btn" type="button" data-search hidden>Search<kbd>/</kbd></button></li>
           <li><a href="./"${current ? ' aria-current="page"' : ""}>Docs</a></li>
           <li><a href="${REPO}/blob/main/CHANGELOG.md">Changelog</a></li>
           <li><a href="${REPO}">GitHub</a></li>
@@ -143,6 +170,15 @@ const page = ({ title, description, body }) => `<!doctype html>
 ${nav(true)}
 ${body}
 ${footer}
+  <dialog class="search" aria-label="Search the docs">
+    <form class="search__box" method="dialog">
+      <label class="visually-hidden" for="search-q">Search the docs</label>
+      <input id="search-q" type="search" autocomplete="off" placeholder="Search the docs" role="combobox" aria-expanded="false" aria-controls="search-results">
+      <button class="search__close" aria-label="Close search">Esc</button>
+    </form>
+    <ul class="search__results" id="search-results" role="listbox" aria-label="Results"></ul>
+    <p class="search__hint" role="status" aria-live="polite">Type a word, a helper name or a task.</p>
+  </dialog>
   <script src="../docs.js" defer></script>
 </body>
 </html>
@@ -152,9 +188,16 @@ const rail = (current) => `
         <nav class="rail" aria-label="Documentation">
           <details class="rail__menu" open>
             <summary>All pages</summary>
-            <ol>
-${docs.map((d) => `              <li><a href="${d.slug}.html"${d.slug === current ? ' aria-current="page"' : ""}>${escape(d.title)}</a></li>`).join("\n")}
-            </ol>
+${groups.map(([name, pages]) => `            <div class="rail__group">
+              <p class="rail__label">${escape(name)}</p>
+              <ol>
+${pages.map((slug) => docs.find((d) => d.slug === slug)).map((d) => `                <li><a href="${d.slug}.html"${d.slug === current ? ' aria-current="page"' : ""}>${escape(d.title)}</a>${d.slug === current && d.toc.length ? `
+                  <ol class="rail__sub" aria-label="On this page">
+${d.toc.map((t) => `                    <li><a href="#${t.id}">${t.text}</a></li>`).join("\n")}
+                  </ol>
+                ` : ""}</li>`).join("\n")}
+              </ol>
+            </div>`).join("\n")}
           </details>
         </nav>`;
 
@@ -184,12 +227,6 @@ ${doc.html}
           ${next ? `<a class="pager__link pager__link--next" href="${next.slug}.html" rel="next"><span>Next</span>${escape(next.title)}</a>` : ""}
         </nav>
       </article>
-      ${doc.toc.length ? `<nav class="toc" aria-label="On this page">
-        <p class="toc__title">On this page</p>
-        <ol>
-${doc.toc.map((t) => `          <li><a href="#${t.id}" title="${escape(plain(t.text.replace(/<[^>]+>/g, "")))}">${t.text}</a></li>`).join("\n")}
-        </ol>
-      </nav>` : ""}
     </div>
   </main>`;
   fs.writeFileSync(path.join(out, `${doc.slug}.html`), page({ title: `${doc.title} · rspack_rails docs`, description: doc.description, body }));
@@ -201,22 +238,28 @@ const index = `
       <div class="container docs-index__head">
         <h1 id="docs-title">Documentation</h1>
         <p class="lead">Everything after <code>rails new</code>: the helpers, the config, production and upgrades.</p>
+        <button class="search-big" type="button" data-search hidden>Search the docs<kbd>/</kbd></button>
       </div>
     </header>
     <section class="docs-index" aria-labelledby="docs-title">
-      <div class="container">
-        <ol class="index">
-${docs.map((d) => `          <li>
-            <a class="index__row" href="${d.slug}.html">
-              <span class="index__title">${escape(d.title)}</span>
-              <span class="index__desc">${escape(d.description.replace(/:$/, ".") || d.toc.map((t) => plain(t.text.replace(/<[^>]+>/g, ""))).join(", "))}</span>
-              <span class="index__count">${d.toc.length} sections</span>
-            </a>
-          </li>`).join("\n")}
-        </ol>
+      <div class="container docs-index__groups">
+${groups.map(([name, pages]) => `        <div class="index__group">
+          <h2>${escape(name)}</h2>
+          <ol class="index">
+${pages.map((slug) => docs.find((d) => d.slug === slug)).map((d) => `            <li class="index__item">
+              <a class="index__title" href="${d.slug}.html">${escape(d.title)}</a>
+              <p class="index__desc">${escape(d.description.replace(/:$/, ".") || "")}</p>
+              <ul class="index__sections">
+${d.toc.map((t) => `                <li><a href="${d.slug}.html#${t.id}">${t.text}</a></li>`).join("\n")}
+              </ul>
+            </li>`).join("\n")}
+          </ol>
+        </div>`).join("\n")}
       </div>
     </section>
   </main>`;
 fs.writeFileSync(path.join(out, "index.html"), page({ title: "Documentation · rspack_rails", description: "The rspack_rails documentation: view helpers, entry points, configuration, production, migrating and upgrading.", body: index }));
+
+fs.writeFileSync(path.join(out, "search.json"), JSON.stringify(docs.flatMap((d) => d.sections)));
 
 console.log(`built ${docs.length + 1} pages into ${path.relative(root, out)}/: index, ${docs.map((d) => d.slug).join(", ")}`);

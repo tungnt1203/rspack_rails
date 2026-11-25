@@ -56,5 +56,6 @@ p code, li code, td code, dd code { padding: 0.1em 0.4em; border-radius: 6px; ba
   .footer ul { justify-content: flex-start; }
 }
 @media (max-width: 26rem) {
-  .bar__links li:nth-child(2) { display: none; }
+  .bar__links li:nth-last-child(2) { display: none; }
+  .bar__links:has(.search-btn) li:last-child { display: none; }
 }
