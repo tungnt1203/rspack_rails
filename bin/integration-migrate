@@ -82,10 +82,9 @@ fi
 grep -q 'rspack_javascript_tag "application"' app/views/layouts/application.html.erb || fail "layout tag missing"
 if [ "$MODE" = importmap ] || [ "$MODE" = tailwind ]; then
   grep -q 'rspack_javascript_tag "application"' app/views/layouts/admin.html.erb || fail "admin layout lost its script"
-  ! grep -q 'stylesheet_link_tag :app' app/views/layouts/admin.html.erb || fail "stylesheet_link_tag :app left"
+  # `stylesheet_link_tag :app` links app/assets only now (rspack's CSS is in public/rspack): left as it is.
   if [ -n "$app_stylesheets" ]; then
-    grep -q 'stylesheet_link_tag "application", "driver"' app/views/layouts/admin.html.erb ||
-      fail "the app's own stylesheets are not linked by name"
+    grep -q 'stylesheet_link_tag :app' app/views/layouts/admin.html.erb || fail "stylesheet_link_tag :app was rewritten"
   fi
 fi
 grep -q 'controllers/autoload' app/javascript/application.js || fail "autoload import missing"
@@ -110,6 +109,7 @@ if [ "$MODE" = tailwind ]; then
   bin/rails rspack:install:tailwind
   assert_no_file app/assets/tailwind/application.css
   assert_no_file app/assets/builds/tailwind.css
+  [ ! -e app/assets/builds/application.js ] || fail "rspack built into app/assets/builds"
   ! grep -q tailwindcss-rails Gemfile || fail "tailwindcss-rails still in Gemfile"
   ! grep -q '^css:' Procfile.dev || fail "Procfile.dev still runs tailwindcss:watch"
   grep -q '@import "tailwindcss"' app/javascript/application.css || fail "tailwind import not moved"
@@ -133,7 +133,7 @@ curl -s -o tmp/serve-application.js http://localhost:3036/application.js
 kill $serve_pid; wait $serve_pid 2>/dev/null || true
 grep -q 'module.hot.accept(context.id' tmp/serve-application.js ||
   fail "Stimulus autoload has no hot accept under rspack serve after a build"
-bin/rails rspack:build # replace the dev server's output
+bin/rails rspack:build
 
 step "rspack:doctor"
 bin/rails rspack:doctor
@@ -141,23 +141,23 @@ bin/rails rspack:doctor
 step "assets:precompile (production)"
 export RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1
 bin/rails assets:precompile
-assert_match "$(ls public/assets)" '^application-[0-9a-f]+\.js$'
-grep -q 'Hello World' public/assets/application-*.js || fail "hello controller missing from bundle"
-grep -q 'turbo' public/assets/application-*.js || fail "turbo missing from bundle"
+assert_match "$(ls public/rspack)" '^application-[0-9a-f]+\.js$'
+grep -q 'Hello World' public/rspack/application-*.js || fail "hello controller missing from bundle"
+grep -q 'turbo' public/rspack/application-*.js || fail "turbo missing from bundle"
 
 if [ "$MODE" = sass ]; then
-  grep -q '.card .title{color:#c0ffee}' public/assets/application.bundle-*.css || fail "Sass partials not compiled"
+  grep -q '.card .title{color:#c0ffee}' public/rspack/application-*.css || fail "Sass partials not compiled"
 fi
 
 if [ "$MODE" = tailwind ]; then
   # The generated layout uses `container mx-auto mt-28 px-5 flex`.
-  grep -q 'mx-auto' public/assets/application.bundle-*.css || fail "tailwind utilities missing"
-  grep -q 'letter-spacing:.123em' public/assets/application.bundle-*.css || fail "fonts.css not in the bundle"
+  grep -q 'mx-auto' public/rspack/application-*.css || fail "tailwind utilities missing"
+  grep -q 'letter-spacing:.123em' public/rspack/application-*.css || fail "fonts.css not in the bundle"
   ls public/assets | grep -q '^tailwind' && fail "tailwindcss-rails output still in public/assets"
 fi
 
 step "The app boots in production"
 html=$(bin/rails runner 'puts ApplicationController.render(inline: %(<%= rspack_javascript_tag "application" %>))')
-assert_match "$html" 'src="/assets/application-[0-9a-f]+\.js"'
+assert_match "$html" 'src="/rspack/application-[0-9a-f]+\.js"'
 
 step "OK"

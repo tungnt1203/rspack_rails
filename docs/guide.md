@@ -21,19 +21,19 @@
 <%= rspack_stylesheet_tag "application" %>
 ```
 
-`rspack_javascript_tag` adds `defer` by default. Both helpers take several entries (`rspack_javascript_tag "application", "admin"`) and any option that `javascript_include_tag` or `stylesheet_link_tag` accepts. Keep `rspack_stylesheet_tag` in `<head>`.
+`rspack_javascript_tag` adds `defer` by default. Both helpers take several entries (`rspack_javascript_tag "application", "admin"`) and the options of the tag: `defer` (on by default for scripts), `nonce: true` for the Content Security Policy nonce, `integrity: true`, `media`, `data`, and so on. Keep `rspack_stylesheet_tag` in `<head>`.
 
-Each build writes `app/assets/builds/.rspack-manifest.json`, listing the scripts and stylesheets of each entry. The helpers link exactly those files, so an entry without CSS gets no stylesheet link. Because the manifest is a dotfile, it never reaches `public/assets`. `rspack serve` writes its own `.rspack-dev-manifest.json`, which the helpers read while it runs, so a build alongside it (`bin/rails test` runs one) does not change what dev pages link.
+Each build writes `public/rspack/.rspack-manifest.json`, listing the fingerprinted scripts and stylesheets of each entry. The helpers link exactly those files, so an entry without CSS gets no stylesheet link, and one that is not built yet raises an error that says what to run. Rails serves the files under `/rspack/`, with `config.asset_host` in front when you set one. `rspack serve` writes its own `.rspack-dev-manifest.json`, which the helpers read while it runs, so a build alongside it (`bin/rails test` runs one) does not change what dev pages link.
 
 ## Entry points
 
 Besides `app/javascript/application.js` (or `.ts`, `.jsx`, `.tsx`), every file in `app/javascript/entrypoints/` becomes its own bundle, named after the file. Stylesheets work too, with no JavaScript needed:
 
 ```
-app/javascript/application.js           -> application.js
-app/javascript/entrypoints/admin.ts     -> admin.js
-app/javascript/entrypoints/checkout.js  -> checkout.js (+ checkout.bundle.css if it imports CSS)
-app/javascript/entrypoints/print.scss   -> print.bundle.css (no print.js)
+app/javascript/application.js           -> application-<hash>.js
+app/javascript/entrypoints/admin.ts     -> admin-<hash>.js
+app/javascript/entrypoints/checkout.js  -> checkout-<hash>.js (+ checkout-<hash>.css if it imports CSS)
+app/javascript/entrypoints/print.scss   -> print-<hash>.css (no script)
 ```
 
 ```erb
@@ -83,7 +83,7 @@ If your entry imported `./controllers` (the stimulus-rails index), the installer
 
 ## CSS
 
-Import CSS from JavaScript, and Rspack extracts it to `app/assets/builds/<entry>.bundle.css`:
+Import CSS from JavaScript, and Rspack extracts it to `public/rspack/<entry>-<hash>.css`:
 
 ```js
 // app/javascript/application.js
@@ -104,7 +104,6 @@ import "./styles/application.css"
   ```
 
 - Under `rspack serve`, CSS changes apply without a page reload.
-- The `.bundle` suffix keeps the output from clashing with `app/assets/stylesheets/application.css`.
 
 ## Tailwind CSS
 
@@ -114,7 +113,7 @@ bin/rails rspack:install:tailwind
 
 This installs `tailwindcss` and `@tailwindcss/webpack`, creates `app/javascript/application.css` with `@import "tailwindcss";`, imports it from your entry and adds `rspack_stylesheet_tag "application"` to the layout.
 
-Classes in your views, helpers and JavaScript are picked up automatically. Tailwind skips what `.gitignore` lists, but a Docker build has no `.gitignore`, so `application.css` also leaves out `tmp`, `log`, `storage` and `app/assets/builds` with `@source not` lines. Without them, the image's production CSS picks up unused classes from bootsnap's cache in `tmp/`. Under `rspack serve`, editing a view reloads the page with the new classes already built, and CSS edits apply without a reload.
+Classes in your views, helpers and JavaScript are picked up automatically. Tailwind skips what `.gitignore` lists, but a Docker build has no `.gitignore`, so `application.css` also leaves out `tmp`, `log`, `storage` and `public/rspack` with `@source not` lines. Without them, the image's production CSS picks up unused classes from bootsnap's cache in `tmp/`. Under `rspack serve`, editing a view reloads the page with the new classes already built, and CSS edits apply without a reload.
 
 Coming from `tailwindcss-rails`? See [Migrating](migrating.md#from-tailwindcss-rails).
 
@@ -177,8 +176,8 @@ body { background: url("./images/hero.png"); }
 ```
 
 - Files under 8 KB are inlined as data URIs.
-- Larger ones are written to `app/assets/builds` as `<name>-<hash>.digested.<ext>`, and Propshaft serves them without fingerprinting them a second time.
-- A root-relative `url()` is left for Rails: Rspack neither bundles nor fingerprints it. Propshaft looks it up in `app/assets`, so `url("/logo.svg")` becomes the fingerprinted `app/assets/images/logo.svg`. A file that only exists in `public/`, such as `url("/icon.png")`, stays as written. Propshaft logs "Unable to resolve" for it, which is harmless.
+- Larger ones are written to `public/rspack` as `<name>-<hash>.<ext>`.
+- A root-relative `url()` is left for Rails: Rspack neither bundles nor fingerprints it. `url("/icon.png")` is served from `public/icon.png` as written. Without Propshaft or Sprockets, `image_tag "logo.png"` does not look in `app/assets/images` either: import the image from JavaScript or CSS, or put it in `public/`.
 
 ## Web Workers
 
@@ -190,7 +189,7 @@ const worker = new Worker(new URL("../workers/report.worker.ts", import.meta.url
 worker.postMessage({ rows })
 ```
 
-- The chunk is written as `<name>-<hash>.digested.js` (`report-…` here, from the `name` option) and loaded from the same origin as the page: `/rspack/` under `rspack serve`, the assets path after a build.
+- The chunk is written as `<name>-<hash>.js` (`report-…` here, from the `name` option) and loaded from the same origin as the page: `/rspack/` under `rspack serve` and after a build.
 - A worker can import app code and packages like any other module, so code shared with the page lives in one file.
 - TypeScript checks a worker against the `DOM` library from `tsconfig.json`, where `postMessage` takes a target origin. Call it as `(self as unknown as Worker).postMessage(result)` inside the worker.
 

@@ -9,7 +9,7 @@ module RspackRails
     # that would load them twice.
     class LayoutChecks < Checks
       def checks
-        [layout_check, stylesheet_check, app_stylesheets_check]
+        [layout_check, stylesheet_check]
       end
 
       private
@@ -35,28 +35,15 @@ module RspackRails
       end
 
       def stylesheet_check
-        return unless exist?("app/assets/builds/application.bundle.css")
+        return if built_entries.dig("application", "css").to_a.empty?
 
         linked = layouts_including("rspack_stylesheet_tag")
         if linked.any?
           return Check.new(:ok, "Stylesheet", "#{names(linked)} #{verb(linked, "uses")} rspack_stylesheet_tag")
         end
 
-        Check.new(:warn, "Stylesheet", "application.bundle.css is built but not linked",
+        Check.new(:warn, "Stylesheet", "the application entry builds CSS that no layout links",
                   %(Add <%= rspack_stylesheet_tag "application" %> to your layout))
-      end
-
-      # `stylesheet_link_tag :app` links rspack's bundles too, without their options.
-      def app_stylesheets_check
-        return if Dir.glob("app/assets/builds/*.bundle.css", base: root).empty?
-
-        linking = layouts.select { |path| read(path).match?(Layouts::APP_STYLESHEETS) }
-        return if linking.empty?
-
-        Check.new(:warn, "Stylesheet", "#{names(linking)} #{verb(linking, "links")} rspack's bundles again through " \
-                                       "stylesheet_link_tag :app",
-                  %(Use stylesheet_link_tag "application" (or list your own stylesheets); ) +
-                  "a print or admin bundle otherwise applies on every page")
       end
     end
   end

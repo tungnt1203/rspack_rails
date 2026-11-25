@@ -14,7 +14,7 @@
     → Run `bin/rails rspack:build` (only needed without the dev server)
 ! Layout: no layout uses rspack_javascript_tag
     → Add <%= rspack_javascript_tag "application" %> to app/views/layouts/application.html.erb to get the dev server and HMR
-! Stylesheet: application.bundle.css is built but not linked
+! Stylesheet: the application entry builds CSS that no layout links
     → Add <%= rspack_stylesheet_tag "application" %> to your layout
 ! Procfile.dev: no js process
     → Run `bin/rails rspack:install`

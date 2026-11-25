@@ -30,9 +30,9 @@ RSpec.describe RspackRails::Helper do
   # What `rspack serve` writes: every entry starts with the shared runtime.
   def write_dev_server_manifest
     write_manifest(
-      application: { js: %w[runtime.js application.js], css: %w[application.bundle.css], stylesheetOnly: false },
+      application: { js: %w[runtime.js application.js], css: %w[application.css], stylesheetOnly: false },
       admin: { js: %w[runtime.js admin.js], css: [], stylesheetOnly: false },
-      print: { js: %w[runtime.js print.js], css: %w[print.bundle.css], stylesheetOnly: true }
+      print: { js: %w[runtime.js print.js], css: %w[print.css], stylesheetOnly: true }
     )
   end
 
@@ -57,13 +57,13 @@ RSpec.describe RspackRails::Helper do
 
     it "gives a stylesheet-only entry's hot update script the stylesheet's nonce" do
       html = view.rspack_stylesheet_tag("print", nonce: "r4nd0m")
-      expect(html).to include('href="/rspack/print.bundle.css" nonce="r4nd0m"')
+      expect(html).to include('href="/rspack/print.css" nonce="r4nd0m"')
       expect(html).to match(%r{<script src="/rspack/print\.js"[^>]* nonce="r4nd0m"})
     end
 
     it "links stylesheets from the dev server" do
       expect(view.rspack_stylesheet_tag("application")).to eq(
-        '<link rel="stylesheet" href="/rspack/application.bundle.css" />'
+        '<link rel="stylesheet" href="/rspack/application.css">'
       )
     end
 
@@ -74,7 +74,7 @@ RSpec.describe RspackRails::Helper do
 
     it "adds the script of a stylesheet-only entry for hot updates" do
       html = view.rspack_stylesheet_tag("application", "print", "admin")
-      expect(html).to include('href="/rspack/print.bundle.css"')
+      expect(html).to include('href="/rspack/print.css"')
       expect(html).to include('src="/rspack/print.js"')
       expect(html).to include('src="/rspack/runtime.js"')
       expect(html).not_to include('src="/rspack/admin.js"')
@@ -85,36 +85,59 @@ RSpec.describe RspackRails::Helper do
   context "when the dev server is not running" do
     before { allow(dev_server).to receive(:running?).and_return(false) }
 
-    it "links the files the manifest lists from the asset pipeline" do
-      write_manifest(application: { js: %w[application.js], css: %w[application.bundle.css] },
-                     print: { js: [], css: %w[print.bundle.css], stylesheetOnly: true })
+    let(:entries) do
+      { application: { js: %w[application-1a2b3c4d.js], css: %w[application-5e6f7a8b.css] },
+        print: { js: [], css: %w[print-9c0d1e2f.css], stylesheetOnly: true } }
+    end
+
+    it "links the fingerprinted files the manifest lists under /rspack/" do
+      write_manifest(entries)
       html = view.rspack_javascript_tag("application", "data-turbo-track": "reload")
-      expect(html).not_to include("/rspack/")
-      expect(html).to include("application.js")
-      expect(html).to include('data-turbo-track="reload"')
+      expect(html).to eq(
+        '<script src="/rspack/application-1a2b3c4d.js" defer="defer" data-turbo-track="reload"></script>'
+      )
+      expect(view.rspack_stylesheet_tag("application"))
+        .to eq('<link rel="stylesheet" href="/rspack/application-5e6f7a8b.css">')
       expect(view.rspack_stylesheet_tag("print")).not_to include("<script")
     end
 
-    it "passes integrity on to the asset pipeline" do
-      write_manifest(application: { js: %w[application.js], css: %w[application.bundle.css] })
-      allow(view).to receive(:javascript_include_tag).and_call_original
-      allow(view).to receive(:stylesheet_link_tag).and_call_original
-      view.rspack_javascript_tag("application", integrity: true)
-      view.rspack_stylesheet_tag("application", integrity: true)
-      expect(view).to have_received(:javascript_include_tag).with("application.js", defer: true, integrity: true)
-      expect(view).to have_received(:stylesheet_link_tag).with("application.bundle.css", integrity: true)
+    it "puts the asset host in front, as for any asset" do
+      write_manifest(entries)
+      view.config.asset_host = "https://cdn.example.com"
+      expect(view.rspack_javascript_tag("application")).to include('src="https://cdn.example.com/rspack/application-1a2b3c4d.js"')
+    end
+
+    it "adds the Subresource Integrity hash of each file, and crossorigin with it" do
+      write_manifest(entries)
+      @root.join("public/rspack").mkpath
+      @root.join("public/rspack/application-1a2b3c4d.js").write("console.log(1)")
+      @root.join("public/rspack/application-5e6f7a8b.css").write("body{}")
+      allow(RspackRails).to receive(:app_root).and_return(@root)
+      script = %(sha384-#{Digest::SHA384.base64digest("console.log(1)")})
+      style = %(sha384-#{Digest::SHA384.base64digest("body{}")})
+
+      expect(view.rspack_javascript_tag("application", integrity: true))
+        .to include(%(integrity="#{script}"), 'crossorigin="anonymous"')
+      expect(view.rspack_stylesheet_tag("application", integrity: true))
+        .to include(%(integrity="#{style}"), 'crossorigin="anonymous"')
+    end
+
+    it "fills in the Content Security Policy nonce for `nonce: true`" do
+      write_manifest(entries)
+      allow(view).to receive(:content_security_policy_nonce).and_return("n0nce")
+      expect(view.rspack_javascript_tag("application", nonce: true)).to include('nonce="n0nce"')
+      expect(view.rspack_stylesheet_tag("application", nonce: true)).to include('nonce="n0nce"')
     end
 
     it "links nothing for an entry without CSS" do
-      write_manifest(admin: { js: %w[admin.js], css: [] })
+      write_manifest(admin: { js: %w[admin-1a2b3c4d.js], css: [] })
       expect(view.rspack_stylesheet_tag("admin")).to eq("")
     end
 
-    it "falls back to the conventional names before the first build" do
-      expect(view.rspack_javascript_tag("application")).to include("application.js")
-      html = view.rspack_stylesheet_tag("application", "admin")
-      expect(html).to include("application.bundle.css")
-      expect(html).to include("admin.bundle.css")
+    it "raises before the first build, saying what to run" do
+      expect { view.rspack_javascript_tag("application") }
+        .to raise_error(RspackRails::Manifest::MissingEntry, %r{bin/dev, or run bin/rails rspack:build})
+      expect { view.rspack_stylesheet_tag("application") }.to raise_error(RspackRails::Manifest::MissingEntry)
     end
   end
 

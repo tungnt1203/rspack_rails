@@ -16,7 +16,7 @@ module RspackRails
       @source not "../../tmp";
       @source not "../../log";
       @source not "../../storage";
-      @source not "../assets/builds";
+      @source not "../../public/rspack";
     CSS
 
     module_function

@@ -84,16 +84,20 @@ namespace :rspack do
     puts "Rsdoctor report: #{Rails.root.join("tmp/rsdoctor/rsdoctor-report.html")}"
   end
 
-  desc "Remove rspack build output from app/assets/builds"
+  desc "Remove the build output in public/rspack (and the output of rspack_rails 1.x in app/assets/builds)"
   task :clobber do
-    RspackRails::Entrypoints.outputs(Rails.root).each { |file| FileUtils.rm_f(file) }
+    FileUtils.rm_rf(Rails.root.join(RspackRails::Manifest::OUTPUT_DIR))
+    RspackRails::Entrypoints.legacy_outputs(Rails.root).each { |file| FileUtils.rm_f(file) }
   end
 end
 
+# `assets:precompile` and `assets:clobber` exist without Propshaft or Sprockets
+# too (a Dockerfile and Kamal run them); they do what rspack needs. With a
+# pipeline, Rake adds these to the pipeline's own tasks, which run as before.
 unless ENV.key?("RSPACK_SKIP_BUILD")
   %w[assets:precompile test:prepare spec:prepare db:test:prepare].each do |name|
-    Rake::Task[name].enhance(["rspack:build"]) if Rake::Task.task_defined?(name)
+    task name => "rspack:build"
   end
 end
 
-Rake::Task["assets:clobber"].enhance(["rspack:clobber"]) if Rake::Task.task_defined?("assets:clobber")
+task "assets:clobber" => "rspack:clobber"

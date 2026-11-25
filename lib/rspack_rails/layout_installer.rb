@@ -42,28 +42,6 @@ module RspackRails
       end
     end
 
-    # `stylesheet_link_tag :app` also links rspack's bundles, each a second
-    # time and without the options rspack_stylesheet_tag gives them (a print
-    # entry would apply on screen). It becomes the app's own stylesheets by
-    # name, in the order :app linked them.
-    def replace_app_stylesheets_tag
-      layouts = layouts_matching(Layouts::APP_STYLESHEETS)
-      return if layouts.empty?
-
-      names = Layouts.own_stylesheet_names(Dir.glob("app/assets/stylesheets/**/*.css", base: rspack_app.root))
-      layouts.each { |path| link_own_stylesheets(path, names) }
-    end
-
-    def link_own_stylesheets(path, names)
-      say "Replacing `stylesheet_link_tag :app` in #{path}: it would also link rspack's bundles"
-      gsub_file path, %r{^[ \t]*<%# Includes all stylesheet files in app/assets/stylesheets %>\n}, ""
-      if names.any?
-        gsub_file path, Layouts::APP_STYLESHEETS, "\\1#{names.map { |name| %("#{name}") }.join(", ")}"
-      else
-        gsub_file path, /#{Layouts::APP_STYLESHEETS.source}.*\n/, ""
-      end
-    end
-
     # Puts `code` where each layout (or layout partial) calls `helper` with no
     # arguments, keeping its place and indentation. A call with arguments may
     # load something else: it is removed, with a note.

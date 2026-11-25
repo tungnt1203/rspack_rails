@@ -32,6 +32,14 @@ RSpec.describe RspackRails::Doctor, "report" do
     write("node_modules/#{name}/package.json", JSON.generate(data))
   end
 
+  # public/rspack/.rspack-manifest.json, as a build writes it.
+  def write_build(**entries)
+    listed = entries.transform_values do |files|
+      { js: files[:js] || [], css: files[:css] || [], stylesheetOnly: false }
+    end
+    write(RspackRails::Manifest::PATH, JSON.generate(entries: listed))
+  end
+
   def rspack_packages(version: "2.3.2")
     install_package("@rspack/core", version: version, engines: { node: "^20.19.0 || >=22.12.0" })
     install_package("@rspack/cli", version: version)
@@ -70,9 +78,9 @@ RSpec.describe RspackRails::Doctor, "report" do
     write("app/javascript/application.js")
     write("app/javascript/entrypoints/print.css")
     write(RspackRails::Tailwind::STYLESHEET, RspackRails::Tailwind.add_excludes(%(@import "tailwindcss";\n)))
-    write("app/assets/builds/application.js")
-    write("app/assets/builds/application.bundle.css")
-    write("app/assets/builds/print.bundle.css")
+    write_build(application: { js: %w[application-1a2b3c4d.js], css: %w[application-5e6f7a8b.css] },
+                print: { css: %w[print-9c0d1e2f.css] })
+    write(".gitignore", "/public/rspack\n")
     tags = %(<%= rspack_javascript_tag "application" %>\n<%= rspack_stylesheet_tag "application" %>\n)
     write("app/views/layouts/application.html.erb", tags)
     write("app/views/layouts/admin.html.erb", tags)
@@ -94,7 +102,8 @@ RSpec.describe RspackRails::Doctor, "report" do
     write("package.json", JSON.generate(scripts: { start: "rspack serve" }))
     write("app/javascript/application.js")
     write(RspackRails::Tailwind::STYLESHEET, %(@import "tailwindcss";\n))
-    write("app/assets/builds/print.bundle.css")
+    write("app/assets/builds/application.bundle.css")
+    write(".gitignore", "/log\n")
     write("app/views/layouts/application.html.erb",
           "<%= javascript_importmap_tags %>\n<%= stylesheet_link_tag :app %>\n")
     write("Procfile.dev", "web: bin/rails server\njs: npm run watch\n")
@@ -108,7 +117,7 @@ RSpec.describe RspackRails::Doctor, "report" do
     write("rspack.config.mjs", "export default {};\n")
     write("package.json", JSON.generate(scripts: { build: "rspack build" }))
     write("app/javascript/entrypoints/admin.js")
-    write("app/assets/builds/application.bundle.css")
+    write_build(application: { js: %w[application-1a2b3c4d.js], css: %w[application-5e6f7a8b.css] })
     write("app/views/layouts/application.html.erb", "<%= yield %>\n")
     write("Procfile.dev", "web: bin/rails server\n")
     expect_golden("other", report(enabled: false))
@@ -119,7 +128,7 @@ RSpec.describe RspackRails::Doctor, "report" do
     write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
     write("app/javascript/application.js")
     write("app/views/layouts/application.html.erb", %(<%= rspack_javascript_tag "application" %>\n))
-    write("app/assets/builds/application.bundle.css")
+    write_build(application: { js: %w[application-1a2b3c4d.js], css: %w[application-5e6f7a8b.css] })
     expect_golden("partial", report(node_version: "v22.12.0"))
     write("config/rspack/rails.mjs", older_managed)
     write("app/javascript/controllers/autoload.js", RspackRails::ManagedFile::STIMULUS.content)

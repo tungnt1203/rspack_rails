@@ -5,12 +5,12 @@
 ✓ rspack.config.mjs: uses config/rspack/rails.mjs from rspack_rails <VERSION>
 ✓ package.json scripts: build, dev
 ✓ Entry points: application, print
-✓ Build output: app/assets/builds has application, print
+✓ Build output: public/rspack has application, print
 ✓ Layout: application.html.erb, admin.html.erb use rspack_javascript_tag
 ✓ Stylesheet: application.html.erb, admin.html.erb use rspack_stylesheet_tag
 ✓ Procfile.dev: runs the dev server
 ✓ Dockerfile: installs Node.js and node modules
-✓ Tailwind CSS: leaves tmp, log, storage and app/assets/builds out of its scan
+✓ Tailwind CSS: leaves tmp, log, storage and public/rspack out of its scan
 ✓ Dev container: has Node.js and forwards 3036
 ✓ Stimulus: autoload enabled
 ✓ Stimulus loader: app/javascript/controllers/autoload.js from rspack_rails <VERSION>

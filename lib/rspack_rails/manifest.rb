@@ -4,20 +4,23 @@ require "json"
 require "pathname"
 
 module RspackRails
-  # app/assets/builds/.rspack-manifest.json, which config/rspack/rails.mjs
-  # writes on every build and while `rspack serve` runs: for each entry, the
-  # scripts and stylesheets to link, in order. The view helpers link what it
-  # lists instead of guessing file names. A dotfile, so Propshaft and Sprockets
-  # leave it out of public/assets.
+  # public/rspack/.rspack-manifest.json, which config/rspack/rails.mjs writes
+  # on every build and while `rspack serve` runs: for each entry, the scripts
+  # and stylesheets to link, in order. The files carry a fingerprint in their
+  # names, so the view helpers link what the manifest lists.
   #
   # `rspack serve` writes DEV_PATH instead, so a build that runs alongside it
   # (`bin/rails test` runs one) cannot replace the manifest the dev server's
   # pages need. RspackRails.manifest picks the file.
   class Manifest
-    PATH = "app/assets/builds/.rspack-manifest.json"
-    DEV_PATH = "app/assets/builds/.rspack-dev-manifest.json"
+    OUTPUT_DIR = "public/rspack"
+    PATH = "#{OUTPUT_DIR}/.rspack-manifest.json".freeze
+    DEV_PATH = "#{OUTPUT_DIR}/.rspack-dev-manifest.json".freeze
 
-    # scripts: ["runtime.js", "application.js"]; stylesheets: ["application.bundle.css"].
+    # An entry the manifest does not list: not built yet, or not an entry.
+    class MissingEntry < RspackRails::Error; end
+
+    # scripts: ["runtime.js", "application-3f2a9c1d.js"]; stylesheets: ["application-8b1e07aa.css"].
     # stylesheet_only: built from CSS alone (app/javascript/entrypoints/print.css);
     # it has a script only under `rspack serve`, for hot updates.
     Entry = Data.define(:scripts, :stylesheets, :stylesheet_only)
@@ -32,17 +35,22 @@ module RspackRails
       @cache = [nil, {}].freeze
     end
 
-    # The entry's files, or the conventional names when rspack has not built
-    # it yet (no manifest, or a new entry), so the asset pipeline can still
-    # report a missing file by name.
+    # The entry's files. Raises MissingEntry when rspack has not built it yet
+    # (no manifest, or a new entry), and says what to run.
     def [](name)
       name = name.to_s
-      entries.fetch(name) do
-        Entry.new(scripts: ["#{name}.js"], stylesheets: ["#{name}.bundle.css"], stylesheet_only: false)
-      end
+      entries.fetch(name) { raise MissingEntry, missing_message(name) }
     end
 
     private
+
+    def missing_message(name)
+      built = entries.keys
+      "rspack has no entry named #{name.inspect} in #{@path.relative_path_from(@root)}" \
+        "#{" (it has #{built.join(", ")})" if built.any?}. " \
+        "Start the dev server with bin/dev, or run bin/rails rspack:build" \
+        "#{", and restart it if #{name.inspect} is a new entry in app/javascript/entrypoints" if built.any?}."
+    end
 
     # Re-read whenever rspack rewrites the file (each rebuild under `rspack serve`).
     # rspack does not write it atomically: a read in the middle of a write keeps

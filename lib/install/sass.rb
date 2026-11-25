@@ -56,4 +56,4 @@ end
 say "Installing sass-loader and sass-embedded"
 run pm.add_dev_command("sass-loader", "sass-embedded"), abort_on_failure: true
 
-say "Sass ready. Import .scss files from JavaScript; they are bundled into application.bundle.css.", :green
+say "Sass ready. Import .scss files from JavaScript; they are bundled into the application stylesheet.", :green

@@ -11,7 +11,7 @@ module RspackRails
 
       def_delegators :@context, :app, :root, :config, :dev_server, :node_version, :installed_package,
                      :node_modules_package, :package_json, :layouts, :layouts_including, :entrypoints,
-                     :package_manager, :exist?, :read
+                     :package_manager, :built_entries, :exist?, :read
 
       def initialize(context)
         @context = context

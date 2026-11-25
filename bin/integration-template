@@ -3,12 +3,13 @@
 # doctor and production precompile.
 #
 #   bin/integration-template skip-js          # --skip-javascript, RSPACK_FEATURES=stimulus,typescript,react
+#   bin/integration-template no-pipeline      # --skip-javascript --skip-asset-pipeline: no Propshaft or Sprockets
 #   bin/integration-template importmap        # default rails new (importmap) + --css tailwind, migrated
 #   bin/integration-template importmap "~> 8.1.0"
 set -euo pipefail
 
 GEM_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MODE="${1:?usage: bin/integration-template skip-js|importmap [rails requirement]}"
+MODE="${1:?usage: bin/integration-template skip-js|no-pipeline|importmap [rails requirement]}"
 REQUIREMENT="${2:-}"
 WORK_DIR="${WORK_DIR:-$(mktemp -d)}"
 
@@ -28,6 +29,10 @@ case "$MODE" in
     flags=(--skip-javascript)
     export RSPACK_FEATURES=stimulus,typescript,react
     ;;
+  no-pipeline)
+    flags=(--skip-javascript --skip-asset-pipeline)
+    export RSPACK_FEATURES=stimulus,typescript,react
+    ;;
   importmap)
     flags=(--css tailwind)
     export RSPACK_FEATURES=typescript # tailwind and stimulus come from rails new
@@ -44,13 +49,16 @@ step "Checking the app"
 grep -q 'gem "rspack_rails"' Gemfile || fail "rspack_rails not in Gemfile"
 [ -f rspack.config.mjs ] || fail "rspack.config.mjs missing"
 [ -f config/rspack/rails.mjs ] || fail "config/rspack/rails.mjs missing"
-[ -f app/assets/builds/application.js ] || fail "template did not build"
+[ -f public/rspack/.rspack-manifest.json ] || fail "template did not build"
 grep -q 'rspack_javascript_tag "application"' app/views/layouts/application.html.erb || fail "layout tag missing"
-grep -q 'stylesheet_link_tag :app' app/views/layouts/application.html.erb && fail "stylesheet_link_tag :app left in the layout"
 grep -q '"typescript"' package.json || fail "typescript not installed"
 [ -f app/javascript/controllers/autoload.js ] || fail "Stimulus autoload missing"
 
-if [ "$MODE" = skip-js ]; then
+if [ "$MODE" = no-pipeline ]; then
+  ! grep -Eq '^    (propshaft|sprockets-rails) ' Gemfile.lock || fail "the app has an asset pipeline"
+fi
+
+if [ "$MODE" = skip-js ] || [ "$MODE" = no-pipeline ]; then
   [ -f app/javascript/components/Hello.tsx ] || fail "React sample is not .tsx (TypeScript must be set up first)"
   grep -q '"@types/react"' package.json || fail "@types/react missing"
 else
@@ -68,6 +76,17 @@ bin/rails rspack:doctor
 
 step "assets:precompile (production)"
 RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
-ls public/assets | grep -Eq '^application-[0-9a-f]+\.js$' || fail "application.js not precompiled"
+ls public/rspack | grep -Eq '^application-[0-9a-f]+\.js$' || fail "application.js not precompiled"
+[ "$MODE" != no-pipeline ] || [ ! -e public/assets ] || fail "an asset pipeline wrote public/assets"
+
+step "A page links the build, and Rails serves it"
+cat > tmp/page_check.rb <<'RUBY'
+html = ApplicationController.render(inline: %(<%= rspack_javascript_tag "application", integrity: true %>), assigns: {})
+abort "no script tag: #{html}" unless html.match?(%r{src="/rspack/application-[0-9a-f]+\.js"})
+src = html[%r{src="([^"]+)"}, 1]
+response = Rack::MockRequest.new(Rails.application).get(src, "HTTP_HOST" => "localhost", "HTTPS" => "on")
+abort "#{src}: #{response.status}" unless response.status == 200 && response.headers["cache-control"].include?("immutable")
+RUBY
+RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails runner tmp/page_check.rb
 
 step "OK"

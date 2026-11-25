@@ -7,13 +7,12 @@
 ✗ package.json scripts: missing build, dev
     → Run `bin/rails rspack:install`
 ✓ Entry points: application
-! Build output: not built yet: application
-    → Run `bin/rails rspack:build` (only needed without the dev server)
+✓ Build output: public/rspack has application
 ✓ Layout: application.html.erb uses rspack_javascript_tag
-! Stylesheet: application.bundle.css is built but not linked
+! Stylesheet: the application entry builds CSS that no layout links
     → Add <%= rspack_stylesheet_tag "application" %> to your layout
 ! Procfile.dev: no js process
     → Run `bin/rails rspack:install`
 ✓ Dev server: running at http://localhost:3036
 
-2 error(s), 3 warning(s).
+2 error(s), 2 warning(s).

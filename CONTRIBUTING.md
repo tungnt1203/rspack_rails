@@ -10,7 +10,7 @@ Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 - the output of `bin/rails rspack:doctor`
 - your Ruby, Rails and Node.js versions, and your package manager
-- whether the app uses Propshaft or Sprockets
+- whether the app uses Propshaft, Sprockets or neither
 - the steps that reproduce the problem, and what you expected instead
 
 A small app that shows the problem helps most. You can start one from the [demo app](https://github.com/tungnt1203/rspack_rails-demo) or from `rails new myapp -m template.rb`.
@@ -44,7 +44,8 @@ lib/
   rspack_rails/
     railtie.rb               Hooks into Rails: helpers, the dev server proxy, rake tasks
     helper.rb                rspack_javascript_tag, rspack_stylesheet_tag, react_component
-    manifest.rb              Reads app/assets/builds/.rspack-manifest.json (.rspack-dev-manifest.json under rspack serve)
+    manifest.rb              Reads public/rspack/.rspack-manifest.json (.rspack-dev-manifest.json under rspack serve)
+    static_files.rb          Serves public/rspack under /rspack/ with a far-future cache header
     dev_server.rb            Is `rspack serve` reachable?
     dev_server_proxy.rb      Proxies /rspack/* from Rails to the dev server
     configuration.rb         RspackRails.configure

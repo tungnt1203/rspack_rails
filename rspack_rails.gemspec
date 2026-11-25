@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.summary = "Rspack integration for Ruby on Rails"
   spec.description = "Bundle Rails JavaScript with Rspack: one-command installer, dev server with " \
                      "hot module replacement, Stimulus controller autoloading and a setup doctor. " \
-                     "Works with Propshaft and Sprockets."
+                     "Needs no asset pipeline, and works alongside Propshaft or Sprockets."
   spec.license = "MIT"
   spec.homepage = "https://github.com/tungnt1203/rspack_rails"
   spec.required_ruby_version = ">= 3.2.0"

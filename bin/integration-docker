@@ -42,12 +42,15 @@ doctor=$(bin/rails rspack:doctor || true)
 grep -q '✓ Dockerfile' <<<"$doctor" || fail "doctor: $doctor"
 grep -q '✓ Dev container' <<<"$doctor" || fail "doctor: $doctor"
 
-step "Using the released gem inside the image (a local path is outside the build context)"
-# The Dockerfile edits under test were made by the local checkout above; the
-# image only runs rspack:build, which every release has.
-sed -i.bak 's|^gem "rspack_rails", path: .*|gem "rspack_rails", ">= 0.11"|' Gemfile && rm Gemfile.bak
-# --update: the lockfile has this checkout's version, which may not be released yet.
-bundle lock --update rspack_rails --add-platform x86_64-linux aarch64-linux >/dev/null
+step "Putting this checkout's gem in the build context (a path outside it is not copied into the image)"
+# vendor/rspack_rails, listed as the gemspec lists its files. The Dockerfile copies
+# `vendor/*`, which would flatten a directory, so it copies vendor as it is.
+mkdir -p vendor/rspack_rails
+(cd "$GEM_ROOT" && cp -R lib sig README.md CHANGELOG.md LICENSE.txt rspack_rails.gemspec "$WORK_DIR/app/vendor/rspack_rails/")
+sed -i.bak 's|^gem "rspack_rails", path: .*|gem "rspack_rails", path: "vendor/rspack_rails"|' Gemfile && rm Gemfile.bak
+sed -i.bak 's|^COPY vendor/\* ./vendor/$|COPY vendor ./vendor|' Dockerfile && rm Dockerfile.bak
+grep -q '^COPY vendor ./vendor$' Dockerfile || fail "could not change the Dockerfile to copy vendor/"
+bundle lock --add-platform x86_64-linux aarch64-linux >/dev/null
 bundle install --quiet
 
 step "docker build"
@@ -59,8 +62,8 @@ docker run -d --name "$IMAGE" -p "$PORT:80" -e RAILS_MASTER_KEY="$(cat config/ma
 trap 'docker rm -f "$IMAGE" >/dev/null 2>&1 || true' EXIT
 for _ in $(seq 1 60); do curl -sf -o /dev/null "http://localhost:$PORT/up" && break; sleep 1; done
 curl -sf -o /dev/null "http://localhost:$PORT/up" || { docker logs "$IMAGE" | tail -20; fail "/up did not respond"; }
-asset=$(docker exec "$IMAGE" ls public/assets | grep -E '^application-[0-9a-f]+\.js$') || fail "application.js not precompiled"
-curl -sf "http://localhost:$PORT/assets/$asset" | grep -q 'controllers' || fail "/assets/$asset is not the rspack bundle"
+asset=$(docker exec "$IMAGE" ls public/rspack | grep -E '^application-[0-9a-f]+\.js$') || fail "application.js not precompiled"
+curl -sf "http://localhost:$PORT/rspack/$asset" | grep -q 'controllers' || fail "/rspack/$asset is not the rspack bundle"
 docker exec "$IMAGE" sh -c 'test ! -d node_modules' || fail "node_modules shipped in the image"
 
 step "OK"

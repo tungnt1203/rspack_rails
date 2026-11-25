@@ -6,7 +6,7 @@ RSpec.describe RspackRails::Tailwind do
   it "adds the excludes right after @import \"tailwindcss\"" do
     css = described_class.add_excludes(%(@import "tailwindcss";\n\n.btn { color: red; }\n))
     expect(css).to start_with(%(@import "tailwindcss";\n\n/* Not scanned))
-    expect(css).to include(%(@source not "../../tmp";\n), %(@source not "../assets/builds";\n))
+    expect(css).to include(%(@source not "../../tmp";\n), %(@source not "../../public/rspack";\n))
     expect(css).to end_with(%(\n.btn { color: red; }\n))
   end
 

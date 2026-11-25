@@ -5,8 +5,8 @@ RSpec.describe RspackRails do
     expect(RspackRails::VERSION).not_to be_nil
   end
 
-  it "deprecates toward 2.0" do
-    expect(described_class.deprecator.deprecation_horizon).to eq("2.0")
+  it "deprecates toward 3.0" do
+    expect(described_class.deprecator.deprecation_horizon).to eq("3.0")
   end
 
   describe ".manifest" do
@@ -32,7 +32,7 @@ RSpec.describe RspackRails do
       around do |example|
         Dir.mktmpdir do |dir|
           root = Pathname(dir).realpath
-          root.join("app/assets/builds").mkpath
+          root.join("public/rspack").mkpath
           root.join(RspackRails::Manifest::PATH).write('{"entries":{"application":{"js":["application.js"]}}}')
           root.join(RspackRails::Manifest::DEV_PATH)
               .write('{"entries":{"application":{"js":["runtime.js","application.js"]}}}')

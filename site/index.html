@@ -76,7 +76,7 @@
               <li class="edge"><span>page and assets</span></li>
               <li class="node"><span class="node__name">Rails</span><span class="node__meta">localhost:3000</span></li>
               <li class="edge"><span>last build</span></li>
-              <li class="node node--live"><span class="node__name">app/assets/builds</span><span class="node__meta">written by rspack build</span></li>
+              <li class="node node--live"><span class="node__name">public/rspack</span><span class="node__meta">last rspack build</span></li>
             </ol>
             <p class="diagram__note">Stop <code>bin/dev</code> and the helpers fall back to the last build. Nothing to configure.</p>
           </div>
@@ -85,9 +85,9 @@
             <ol class="flow" aria-label="The production build" id="ship">
               <li class="node"><span class="node__name">rspack:build</span><span class="node__meta">runs before assets:precompile</span></li>
               <li class="edge"><span>bundles</span></li>
-              <li class="node"><span class="node__name">app/assets/builds</span><span class="node__meta">chunks already hashed</span></li>
-              <li class="edge"><span>fingerprinted</span></li>
-              <li class="node node--live"><span class="node__name">Propshaft or Sprockets</span><span class="node__meta">serves public/assets</span></li>
+              <li class="node"><span class="node__name">public/rspack</span><span class="node__meta">every file fingerprinted</span></li>
+              <li class="edge"><span>served</span></li>
+              <li class="node node--live"><span class="node__name">Rails</span><span class="node__meta">/rspack/, cached for a year</span></li>
             </ol>
             <div class="ship">
               <p class="diagram__note">Ship with Kamal: Node.js joins the build stage, and the final image ships without it. Dev containers get Node.js and port 3036 too.</p>
@@ -253,7 +253,7 @@ Run bin/dev to start.</code></pre>
           <div><dt>Ruby</dt><dd>3.2 or newer</dd></div>
           <div><dt>Node.js</dt><dd>20.19 or 22.12 and newer</dd></div>
           <div><dt>Package manager</dt><dd>bun, yarn, pnpm or npm, read from the lockfile</dd></div>
-          <div><dt>Asset pipeline</dt><dd>Propshaft or Sprockets</dd></div>
+          <div><dt>Asset pipeline</dt><dd>None needed; Propshaft or Sprockets still work</dd></div>
         </dl>
       </div>
     </section>

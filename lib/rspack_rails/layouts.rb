@@ -8,10 +8,6 @@ module RspackRails
   module Layouts
     DIR = "app/views/layouts"
     EXTENSIONS = %w[erb slim haml].freeze
-    # Rails 8's default `stylesheet_link_tag :app` links every CSS file under
-    # app/assets, rspack's app/assets/builds/*.bundle.css included. Only
-    # output tags (`<%=` in ERB, `=` in Slim/Haml) count, not comments.
-    APP_STYLESHEETS = /^([ \t]*(?:<%=|=)[ \t]*stylesheet_link_tag[ (]):app\b/
 
     module_function
 
@@ -53,13 +49,6 @@ module RspackRails
       dir, base = File.split(name)
       prefix = dir == "." ? DIR : "#{DIR}/#{dir}"
       EXTENSIONS.map { |ext| "#{prefix}/_#{base}.html.#{ext}" }.find { |path| Pathname(root).join(path).file? }
-    end
-
-    # The names `stylesheet_link_tag` takes for the app's own stylesheets
-    # (app/assets/stylesheets/admin/print.css -> "admin/print"), in the order
-    # `stylesheet_link_tag :app` links them.
-    def own_stylesheet_names(paths)
-      paths.sort.map { |path| path.delete_prefix("app/assets/stylesheets/").delete_suffix(".css") }
     end
 
     # `rspack_javascript_tag "application"` as an output line in the layout's syntax.

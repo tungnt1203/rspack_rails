@@ -17,7 +17,7 @@ module RspackRails
         return Check.new(:ok, "Dev server", "running at #{config.dev_server_url}") if dev_server.running?
 
         Check.new(:warn, "Dev server", "not running at #{config.dev_server_url}",
-                  "Start it with bin/dev; until then pages use app/assets/builds")
+                  "Start it with bin/dev; until then pages use the last bin/rails rspack:build in public/rspack")
       end
     end
   end

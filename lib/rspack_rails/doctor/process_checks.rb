@@ -44,7 +44,7 @@ module RspackRails
       def tailwind_check
         css = read(Tailwind::STYLESHEET)
         return unless css && exist?("Dockerfile") && Tailwind.imports_tailwind?(css)
-        return Check.new(:ok, "Tailwind CSS", "leaves tmp, log, storage and app/assets/builds out of its scan") if
+        return Check.new(:ok, "Tailwind CSS", "leaves tmp, log, storage and public/rspack out of its scan") if
           Tailwind.excludes?(css)
 
         Check.new(:warn, "Tailwind CSS", "scans tmp/ in a Docker build, which has no .gitignore: " \
