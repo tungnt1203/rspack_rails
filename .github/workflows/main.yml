@@ -7,6 +7,14 @@ on:
 
   pull_request:
 
+permissions:
+  contents: read
+
+# A new push to a pull request replaces the run in progress; main keeps every run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -53,7 +61,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: Generate a Rails app and run every installer, build and precompile
+      - name: Generate a Rails app, rspack:install, build, serve, precompile for production and check the helpers
         run: bin/integration "${{ matrix.rails }}"
         env:
           RSPACK_VERSION: ${{ matrix.rspack }}
@@ -80,7 +88,7 @@ jobs:
       - name: Set up bun
         if: matrix.manager == 'bun'
         uses: oven-sh/setup-bun@v2
-      - name: Generate a Rails app and run every installer, build and precompile
+      - name: Generate a Rails app, rspack:install, build, serve and precompile with this package manager
         run: bin/integration "~> 8.1.0"
         env:
           PACKAGE_MANAGER: ${{ matrix.manager }}
@@ -125,8 +133,27 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: Generate an app from template.rb, typecheck, doctor and precompile
+      - name: Generate an app from template.rb, then doctor, precompile and request a built file
         run: bin/integration-template ${{ matrix.mode }} "${{ matrix.rails }}"
+
+  # The pages of the project website are built from docs/*.md: a broken page fails here, not after the merge.
+  docs:
+    runs-on: ubuntu-latest
+    name: Docs site builds
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Build the docs pages
+        working-directory: site
+        run: |
+          npm ci
+          node build-docs.mjs
 
   docker:
     runs-on: ubuntu-latest
