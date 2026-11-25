@@ -113,7 +113,7 @@ Every file in `app/javascript/images/` is fingerprinted into `public/rspack` on 
 - `rspack_image_tag` takes the options of `tag.img`. `rspack_asset_path` returns the URL (`/rspack/logo-<hash>.svg`, with `config.asset_host` in front), for anything that is not an `<img>`.
 - An image that is not there raises `RspackRails::Manifest::MissingAsset`, naming the images that are.
 - Under `rspack serve` the images come from the dev server, so adding or editing one needs no build.
-- It is separate from importing an image in JavaScript or CSS, which emits its own copy next to the same file name. Use the directory for what views reference, and imports for what CSS and JavaScript reference.
+- An image that CSS or JavaScript also imports is emitted once, by Rspack, and listed under its file name; a small one that Rspack inlines as a data URI still gets its own file for views. So the directory can hold every image, whoever uses it.
 
 ## Web Workers
 
@@ -248,7 +248,19 @@ react: { runtime: "automatic", development: !isProduction, refresh: isDevServer 
 isDevServer && new ReactRefreshRspackPlugin(),
 ```
 
-Mount components from your entry however suits the app; a `data-` attribute on an element and `createRoot` is enough. Set `"jsx": "react-jsx"` in `tsconfig.json` if you use TypeScript.
+Mount components from your entry however suits the app; a `data-` attribute on an element and `createRoot` is enough. A view helper for the element is a few lines in `app/helpers/application_helper.rb`:
+
+```ruby
+# <%= react_component "Hello", name: "World" %>, mounted by your own script from data-react-component
+def react_component(name, props = {}, html: {}, **more_props)
+  html = html.dup
+  tag = html.delete(:tag) || :div
+  data = (html.delete(:data) || {}).merge(react_component: name, react_props: props.merge(more_props).to_json)
+  content_tag(tag, "", **html, data: data)
+end
+```
+
+Set `"jsx": "react-jsx"` in `tsconfig.json` if you use TypeScript.
 
 ## What `rspack:install` changes
 

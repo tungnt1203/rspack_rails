@@ -58,11 +58,6 @@ module RspackRails
       end
     end
 
-    # Removes lines that call `helper` (ERB, Slim or Haml) from every layout.
-    def remove_from_layouts(helper)
-      layouts_matching(helper_call(helper)).each { |path| gsub_file path, /#{helper_call(helper).source}.*\n/, "" }
-    end
-
     private
 
     def layouts_matching(pattern)

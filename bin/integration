@@ -168,6 +168,10 @@ assert_file "$(built admin js)"
 assert_file "$(built application js).map"
 [ -e app/assets/builds/application.js ] && { echo "built into app/assets/builds"; exit 1; }
 ls public/rspack | grep -Eq '^hero-[0-9a-f]+\.png$' || { echo "hero image not emitted"; exit 1; }
+# hero.png is in app/javascript/images (for views) and imported by CSS and JS: one file, not two.
+[ "$(ls public/rspack | grep -cE '^hero-[0-9a-f]+\.png$')" = 1 ] || { echo "hero.png emitted twice"; exit 1; }
+ruby -rjson -e 'a = JSON.parse(File.read("public/rspack/.rspack-manifest.json"))["assets"]
+  abort "manifest assets: #{a}" unless a["hero.png"]&.match?(/\Ahero-[0-9a-f]+\.png\z/) && File.exist?("public/rspack/#{a["hero.png"]}")'
 grep -q 'data:image/svg' "$(built application css)" || { echo "small image not inlined"; exit 1; }
 grep -Eq 'url\("?/icon\.png"?\)' "$(built application css)" || { echo "url(\"/icon.png\") not kept as written"; exit 1; }
 grep -Eq 'url\("?/logo\.svg#mark"?\)' "$(built application css)" || { echo "url(\"/logo.svg\") not kept"; exit 1; }
