@@ -8,7 +8,7 @@
 - [CSS](#css)
 - [Images and fonts](#images-and-fonts)
 - [Web Workers](#web-workers)
-- [Adding tools](#adding-tools): [TypeScript](#typescript), [Stimulus](#stimulus), [Sass](#sass), [Tailwind CSS](#tailwind-css), [React](#react)
+- [Adding tools](#adding-tools)
 - [What `rspack:install` changes](#what-rspackinstall-changes)
 
 ## View helpers
