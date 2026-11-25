@@ -2,9 +2,9 @@
 # End-to-end check of template.rb: `rails new -m template.rb`, then build,
 # doctor and production precompile.
 #
-#   bin/integration-template skip-js          # --skip-javascript, RSPACK_FEATURES=stimulus,typescript,react
+#   bin/integration-template skip-js          # --skip-javascript
 #   bin/integration-template no-pipeline      # --skip-javascript --skip-asset-pipeline: no Propshaft or Sprockets
-#   bin/integration-template importmap        # default rails new (importmap) + --css tailwind, migrated
+#   bin/integration-template importmap        # default rails new (importmap), migrated
 #   bin/integration-template importmap "~> 8.1.0"
 set -euo pipefail
 
@@ -25,51 +25,34 @@ fi
 
 skip=(--skip-test --skip-system-test --skip-active-record --skip-docker --skip-ci --skip-rubocop --skip-brakeman)
 case "$MODE" in
-  skip-js)
-    flags=(--skip-javascript)
-    export RSPACK_FEATURES=stimulus,typescript,react
-    ;;
-  no-pipeline)
-    flags=(--skip-javascript --skip-asset-pipeline)
-    export RSPACK_FEATURES=stimulus,typescript,react
-    ;;
-  importmap)
-    flags=(--css tailwind)
-    export RSPACK_FEATURES=typescript # tailwind and stimulus come from rails new
-    ;;
+  skip-js) flags=(--skip-javascript) ;;
+  no-pipeline) flags=(--skip-javascript --skip-asset-pipeline) ;;
+  importmap) flags=() ;; # the default: importmap-rails, migrated
   *) fail "unknown mode $MODE" ;;
 esac
 
 step "rails new -m template.rb ($MODE) with $("${rails_cmd[@]}" --version) in $WORK_DIR"
 cd "$WORK_DIR"
-RSPACK_RAILS_PATH="$GEM_ROOT" "${rails_cmd[@]}" new app --quiet "${flags[@]}" "${skip[@]}" -m "$GEM_ROOT/template.rb"
+RSPACK_RAILS_PATH="$GEM_ROOT" "${rails_cmd[@]}" new app --quiet ${flags[@]+"${flags[@]}"} "${skip[@]}" -m "$GEM_ROOT/template.rb"
 cd app
 
 step "Checking the app"
 grep -q 'gem "rspack_rails"' Gemfile || fail "rspack_rails not in Gemfile"
 [ -f rspack.config.mjs ] || fail "rspack.config.mjs missing"
-[ -f config/rspack/rails.mjs ] || fail "config/rspack/rails.mjs missing"
+[ ! -e config/rspack ] || fail "config/rspack exists: the config is one file now"
 [ -f public/rspack/.rspack-manifest.json ] || fail "template did not build"
 grep -q 'rspack_javascript_tag "application"' app/views/layouts/application.html.erb || fail "layout tag missing"
-grep -q '"typescript"' package.json || fail "typescript not installed"
-[ -f app/javascript/controllers/autoload.js ] || fail "Stimulus autoload missing"
 
 if [ "$MODE" = no-pipeline ]; then
   ! grep -Eq '^    (propshaft|sprockets-rails) ' Gemfile.lock || fail "the app has an asset pipeline"
 fi
 
-if [ "$MODE" = skip-js ] || [ "$MODE" = no-pipeline ]; then
-  [ -f app/javascript/components/Hello.tsx ] || fail "React sample is not .tsx (TypeScript must be set up first)"
-  grep -q '"@types/react"' package.json || fail "@types/react missing"
-else
+if [ "$MODE" = importmap ]; then
   [ ! -f config/importmap.rb ] || fail "config/importmap.rb not removed"
   ! grep -q importmap-rails Gemfile || fail "importmap-rails still in Gemfile"
-  ! grep -q tailwindcss-rails Gemfile || fail "tailwindcss-rails still in Gemfile"
-  grep -q '@import "tailwindcss"' app/javascript/application.css || fail "Tailwind not moved to rspack"
+  grep -q 'webpackContext' app/javascript/controllers/index.js || fail "Stimulus controllers not registered through Rspack"
+  ! grep -q 'stimulus-loading' app/javascript/controllers/index.js || fail "controllers/index.js still uses stimulus-loading"
 fi
-
-step "typecheck"
-npm run typecheck
 
 step "rspack:doctor"
 bin/rails rspack:doctor

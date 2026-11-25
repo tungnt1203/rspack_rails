@@ -2,7 +2,6 @@
 
 require_relative "checks"
 require_relative "../containers"
-require_relative "../tailwind"
 
 module RspackRails
   class Doctor
@@ -10,7 +9,7 @@ module RspackRails
     # dev containers.
     class ProcessChecks < Checks
       def checks
-        [procfile_check, dockerfile_check, tailwind_check, devcontainer_check]
+        [procfile_check, dockerfile_check, devcontainer_check]
       end
 
       private
@@ -37,20 +36,6 @@ module RspackRails
         Check.new(:error, "Dockerfile", "does not install Node.js and node modules; assets:precompile will fail",
                   "Re-run `bin/rails rspack:install`, or install Node.js and run " \
                   "`#{package_manager.frozen_install_command}` in the build stage")
-      end
-
-      # A Docker build has no .gitignore, so Tailwind scans tmp/ (bootsnap's
-      # cache) unless the stylesheet leaves it out.
-      def tailwind_check
-        css = read(Tailwind::STYLESHEET)
-        return unless css && exist?("Dockerfile") && Tailwind.imports_tailwind?(css)
-        return Check.new(:ok, "Tailwind CSS", "leaves tmp, log, storage and public/rspack out of its scan") if
-          Tailwind.excludes?(css)
-
-        Check.new(:warn, "Tailwind CSS", "scans tmp/ in a Docker build, which has no .gitignore: " \
-                                         "unused classes end up in the production CSS",
-                  "Re-run `bin/rails rspack:install:tailwind`, which adds `@source not` lines " \
-                  "to #{Tailwind::STYLESHEET}")
       end
 
       def devcontainer_check

@@ -15,11 +15,11 @@
 
 - **Production mode.** When `RAILS_ENV` or `NODE_ENV` is `production`, the generated config minifies.
 - **Output.** Builds write to `public/rspack`, every file named with a fingerprint (`application-1a2b3c4d.js`, chunks, images and fonts too), and Rails serves them under `/rspack/` with `Cache-Control: public, max-age=31536000, immutable`. No asset pipeline is involved, so `app/assets` keeps whatever Propshaft or Sprockets does with it. With a web server in front that serves `public/` itself, give `/rspack/` the same header there.
+- **Clean output.** Each build starts from an empty `public/rspack` (only rspack_rails writes there), so precompiling on a machine that ran development builds ships none of their source maps or old chunks.
 - **Browser targets.** JavaScript and CSS are compiled for the browsers in your [browserslist](https://github.com/browserslist/browserslist) config (`.browserslistrc`, or `"browserslist"` in `package.json`). Without one, the target is Baseline "widely available", which matches Rails 8's `allow_browser versions: :modern`.
-- **Source maps.** On in development (`cheap-module-source-map`), off in production, so your source never ships in `public/rspack`. `RSPACK_DEVTOOL` picks another [devtool](https://rspack.rs/config/devtool), for example `hidden-source-map` to upload maps to an error tracker.
-- **Old builds.** A build keeps the files of the last 3 builds (`RSPACK_KEEP_BUILDS=5` keeps more) and deletes everything else in `public/rspack`, so a page loaded before a deploy still finds its chunks while servers roll over, and precompiling on a machine that ran development builds ships none of its leftovers. Only `rspack_rails` writes to that directory. Only builds of the same mode count, so a production build never ships a development build's source maps. A build identical to the last one counts once.
+- **Source maps.** On in development (`cheap-module-source-map`), off in production, so your source never ships in `public/rspack`. Change `devtool` in `rspack.config.mjs` for another [devtool](https://rspack.rs/config/devtool), for example `hidden-source-map` to upload maps to an error tracker.
 - **Lazy compilation.** Under `rspack serve`, dynamic `import()`s are compiled the first time the page asks for them, which keeps startup fast in large apps. The request goes to `/rspack/_rspack/lazy/trigger` on the page's own origin, which Rails proxies to the dev server.
-- **Persistent cache.** Kept in `node_modules/.cache/rspack`. Editing `rspack.config.mjs`, `config/rspack/rails.mjs`, `package.json`, the lockfile, `tsconfig.json` or `.browserslistrc` starts a fresh cache. Delete the directory to clear it by hand.
+- **Persistent cache.** Kept in `node_modules/.cache/rspack`. Editing `rspack.config.mjs`, `package.json`, the lockfile, `tsconfig.json` or `.browserslistrc` starts a fresh cache. Delete the directory to clear it by hand.
 
 ## Subresource Integrity
 
@@ -45,7 +45,7 @@ The helpers hash each file with SHA-384 (and add `crossorigin="anonymous"`, whic
 
 `rspack:doctor` reports a `Dockerfile` that cannot run Rspack. CI builds and runs the image of a new app.
 
-**Rolling deploys.** A page loaded before a deploy asks for the old build's chunks, which a new container does not have: its image holds only its own build. Kamal's asset bridging fixes that. Set `asset_path: /rails/public/rspack` in `config/deploy.yml`, and Kamal gives the new container a volume with the new files plus the old ones, and the old container the new ones, never overwriting a file (the manifest of each version stays its own). CI simulates that copy against a real image. [Keeping the last builds](#builds) does not help here, because each image is built from scratch; it is for deploys that build in place on the server.
+**Rolling deploys.** A page loaded before a deploy asks for the old build's chunks, which a new container does not have: its image holds only its own build. Kamal's asset bridging fixes that. Set `asset_path: /rails/public/rspack` in `config/deploy.yml`, and Kamal gives the new container a volume with the new files plus the old ones, and the old container the new ones, never overwriting a file (the manifest of each version stays its own). CI simulates that copy against a real image.
 
 ## Dev containers
 
@@ -64,18 +64,26 @@ The same goes for a dev server behind a TLS proxy. Only the websocket uses this 
 
 ## Bundle analysis
 
+Add [Rsdoctor](https://rsdoctor.rs) to see bundle and module sizes, duplicate packages and build timings:
+
 ```bash
-bin/rails rspack:analyze
+npm install --save-dev @rsdoctor/rspack-plugin
 ```
 
-This runs a production build into `tmp/rsdoctor/build` (leaving `public/rspack` alone) and writes a single-file [Rsdoctor](https://rsdoctor.rs) report to `tmp/rsdoctor/rsdoctor-report.html`, with bundle and module sizes, duplicate packages and build timings. It installs `@rsdoctor/rspack-plugin` the first time.
+```js
+// rspack.config.mjs
+import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 
-Builds do not print Rspack's size hints, which flag every entry over 244 KiB (an app with React and Turbo starts above it). To have a build warn or fail over a budget of your own, set `performance` in `rspack.config.mjs`:
+// in plugins
+process.env.RSDOCTOR === "true" && new RsdoctorRspackPlugin(),
+```
+
+Then run `RSDOCTOR=true bin/rails rspack:build`.
+
+Builds do not print Rspack's size hints, which flag every entry over 244 KiB (an app with React and Turbo starts above it). To have a build warn or fail over a budget of your own, change `performance` in `rspack.config.mjs`:
 
 ```js
-export default railsConfig((config) => {
-  config.performance = { hints: "error", maxEntrypointSize: 400_000, maxAssetSize: 400_000 };
-});
+performance: { hints: "error", maxEntrypointSize: 400_000, maxAssetSize: 400_000 },
 ```
 
 ## Doctor

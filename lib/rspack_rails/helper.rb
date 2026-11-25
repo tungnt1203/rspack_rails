@@ -47,17 +47,6 @@ module RspackRails
       tag.img(**{ "src" => rspack_asset_path(name) }, **options.stringify_keys)
     end
 
-    # A mount point for app/javascript/components/<name>.{jsx,tsx}, rendered
-    # on the client by components/mount.js (bin/rails rspack:install:react).
-    #   <%= react_component "Hello", name: "World" %>
-    #   <%= react_component "Hello", { name: "World" }, html: { class: "greeting", tag: :span } %>
-    def react_component(name, props = {}, html: {}, **more_props)
-      html = html.dup
-      tag = html.delete(:tag) || :div
-      data = (html.delete(:data) || {}).merge(react_component: name, react_props: props.merge(more_props).to_json)
-      content_tag(tag, "", **html, data: data)
-    end
-
     private
 
     # Under `rspack serve`, the scripts of stylesheet-only entries; empty otherwise.

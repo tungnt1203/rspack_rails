@@ -163,30 +163,18 @@ RUN rm -rf node_modules</code></pre>
       <div class="container">
         <div class="head-split">
           <h2 id="create-title">Create the app</h2>
-          <p class="lead">The template adds the gem, asks five questions and builds once.</p>
+          <p class="lead">One command writes <code>rspack.config.mjs</code>, a plain Rspack config that is yours, and builds once.</p>
         </div>
-        <div class="mapping" data-mapping>
+        <div class="mapping">
           <figure class="code">
             <figcaption><span>A new app</span><span>terminal</span></figcaption>
 <pre tabindex="0" aria-label="Terminal output"><code><span class="t">$</span> rails new myapp -m …/rspack_rails/main/template.rb
-  <span data-pair="stimulus">Add Stimulus with controller autoloading? (y/N) <b>y</b></span>
-  <span data-pair="typescript">Add TypeScript type checking? (y/N) <b>y</b></span>
-  <span data-pair="react">Add React with Fast Refresh? (y/N) <b>n</b></span>
-  <span data-pair="tailwind">Add Tailwind CSS v4? (y/N) <b>y</b></span>
-  <span data-pair="sass">Add Sass? (y/N) <b>n</b></span>
-rspack_rails is set up with stimulus, typescript, tailwind.
-Run bin/dev to start.</code></pre>
+rspack_rails is set up. Run bin/dev to start.</code></pre>
           </figure>
-          <svg class="mapping__wires" data-wires aria-hidden="true"></svg>
           <figure class="code">
-            <figcaption><span>An existing app</span><span>the same steps, one by one</span></figcaption>
+            <figcaption><span>An existing app</span><span>the same steps</span></figcaption>
 <pre tabindex="0" aria-label="Commands for an existing app"><code><span class="t">$</span> bundle add rspack_rails
-<span class="t">$</span> bin/rails rspack:install
-<span class="t">$</span> <span data-pair-to="stimulus">bin/rails rspack:install:stimulus</span>
-<span class="t">$</span> <span data-pair-to="typescript">bin/rails rspack:install:typescript</span>
-<span class="t">$</span> <span data-pair-to="react">bin/rails rspack:install:react</span>
-<span class="t">$</span> <span data-pair-to="tailwind">bin/rails rspack:install:tailwind</span>
-<span class="t">$</span> <span data-pair-to="sass">bin/rails rspack:install:sass</span></code></pre>
+<span class="t">$</span> bin/rails rspack:install</code></pre>
           </figure>
         </div>
       </div>

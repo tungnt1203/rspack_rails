@@ -21,7 +21,7 @@ cd myapp
 bin/dev
 ```
 
-The template asks which extras you want (Stimulus, TypeScript, React, Tailwind CSS, Sass). To skip the questions: `RSPACK_FEATURES=stimulus,typescript,tailwind rails new myapp -m …`
+That writes one `rspack.config.mjs`, which is yours. Add Sass, Tailwind CSS, React, TypeScript or Stimulus the way you would in any Rspack project: a package and a few lines of config ([Adding tools](docs/guide.md#adding-tools)).
 
 **An existing app**
 
@@ -29,16 +29,6 @@ The template asks which extras you want (Stimulus, TypeScript, React, Tailwind C
 bundle add rspack_rails
 bin/rails rspack:install
 bin/dev
-```
-
-Then add only what you need:
-
-```bash
-bin/rails rspack:install:stimulus     # Stimulus, with controller autoloading
-bin/rails rspack:install:typescript   # type checking (TypeScript already compiles)
-bin/rails rspack:install:react        # React, with Fast Refresh
-bin/rails rspack:install:tailwind     # Tailwind CSS v4
-bin/rails rspack:install:sass         # Sass
 ```
 
 **An app on importmap-rails or jsbundling-rails**
@@ -54,10 +44,11 @@ See [Migrating](docs/migrating.md) for what changes.
 
 ## What you get
 
-- **Hot updates in development.** JavaScript, CSS, Stimulus controllers and React components are swapped in place. Editing a view reloads the page.
+- **Hot updates in development.** JavaScript and CSS are swapped in place, through Rails, with no second origin to configure. Editing a view reloads the page.
 - **No asset pipeline to configure.** Rspack fingerprints its files into `public/rspack`, and Rails serves them with a far-future cache header. Propshaft and Sprockets are not needed (and still work for the rest of your assets).
-- **No manifests to maintain.** Stimulus controllers and React components are found by file name.
-- **TypeScript, CSS modules, Tailwind CSS v4, Sass**, plus images and fonts imported from JavaScript or CSS.
+- **One config file, yours.** `rspack.config.mjs` is a plain Rspack config with the Rails parts commented. Nothing is generated behind it and nothing is rewritten on upgrade.
+- **Images for views.** `rspack_image_tag "logo.svg"` for files in `app/javascript/images`, fingerprinted, without Propshaft.
+- **TypeScript, CSS modules, images and fonts** work out of the box; Sass, Tailwind CSS, React and Stimulus are a package and a few lines of config ([Adding tools](docs/guide.md#adding-tools)).
 - **A doctor.** `bin/rails rspack:doctor` checks Node.js, packages, config and layouts, and says what to fix.
 - **Deploys that work.** The installer sets up the `Dockerfile` for Kamal, `bin/setup` and dev containers.
 
@@ -85,10 +76,10 @@ Put two helpers in your layout:
 
 | Guide | What's in it |
 |---|---|
-| [Usage](docs/guide.md) | Entry points, `#/` imports, Stimulus, CSS, Tailwind, Sass, React, TypeScript, images and fonts |
+| [Usage](docs/guide.md) | Entry points, `#/` imports, CSS, images and fonts, and how to add TypeScript, Stimulus, Sass, Tailwind CSS or React |
 | [Production](docs/production.md) | Builds, source maps, Subresource Integrity, Docker and Kamal, dev containers, bundle analysis |
 | [Configuration](docs/configuration.md) | Customizing `rspack.config.mjs`, environment variables, every rake task |
-| [Migrating](docs/migrating.md) | Moving from importmap-rails, jsbundling-rails, tailwindcss-rails or dartsass-rails |
+| [Migrating](docs/migrating.md) | Moving from importmap-rails or jsbundling-rails |
 | [Upgrading](docs/upgrading.md) | Updating the gem, and what stays stable from 1.0 |
 | [Troubleshooting](docs/troubleshooting.md) | Common errors and what to do about them |
 

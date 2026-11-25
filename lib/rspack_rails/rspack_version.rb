@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module RspackRails
-  # The Rspack major version config/rspack/rails.mjs is written and tested
+  # The Rspack major version the generated rspack.config.mjs is written and tested
   # for. Installers pin it, so a new app never picks up the next major on its
   # own, and rspack:doctor checks the installed packages against it.
   module RspackVersion

@@ -57,7 +57,7 @@ RSpec.describe RspackRails::Manifest do
         .to raise_error(described_class::MissingAsset, %r{"nope.png".*app/javascript/images/.*rspack:build.*logo.svg}m)
     end
 
-    it "raises without a manifest, and for a manifest from rspack_rails 1.x" do
+    it "raises without a manifest, and for one without images" do
       expect { manifest.asset("logo.svg") }.to raise_error(described_class::MissingAsset)
       write(application: { js: ["application.js"] })
       expect { manifest.asset("logo.svg") }.to raise_error(described_class::MissingAsset)

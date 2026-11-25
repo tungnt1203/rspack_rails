@@ -1,33 +1,28 @@
 ## [Unreleased]
 
-- Docs: Kamal's asset bridging (`asset_path: /rails/public/rspack`), not the last-3-builds retention, keeps old chunks available during a rolling deploy, because each image holds only its own build. The retention is for deploys that build in place. `bin/integration-docker` now simulates the bridging against a real image
-- `rspack_image_tag "logo.svg"` and `rspack_asset_path "icons/menu.svg"` for images that views show. Every file in `app/javascript/images/` is fingerprinted into `public/rspack` on each build and listed under `assets` in the manifest, so an app without Propshaft or Sprockets still has a fingerprinted `<img>`. Under `rspack serve` the images come from the dev server. An image that is not there raises `RspackRails::Manifest::MissingAsset`
-
 ## [2.0.0] - 2026-11-25
 
-Rspack now builds into `public/rspack` and Rails serves it itself: no Propshaft or Sprockets in the way, and none required. The view helpers are unchanged, so layouts need no edit. Read [From 1.x to 2.0](docs/upgrading.md#from-1x-to-20) when you upgrade: `bundle update rspack_rails`, `bin/rails rspack:clobber`, `bin/rails rspack:build`.
+Rspack now builds into `public/rspack` and Rails serves it itself: no Propshaft or Sprockets in the way, and none required (both still work for the rest of `app/assets`). The config is one file, `rspack.config.mjs`, that `rspack:install` writes once and rspack_rails never rewrites. The view helpers are unchanged, so layouts need no edit.
 
 ### Breaking
 
-- Builds go to `public/rspack`, not `app/assets/builds`, and every file Rspack writes there carries a fingerprint: `application-1a2b3c4d.js`, `application-5e6f7a8b.css`, chunks, images and fonts. The `.digested` and `.bundle` name parts are gone. Rails serves the directory under `/rspack/` (the path the dev server already used) with `Cache-Control: public, max-age=31536000, immutable`, through a middleware that is only added where `config.public_file_server.enabled` is on. With a web server in front that serves `public/`, give `/rspack/` the same header there
+- **One config file, yours.** `rspack:install` writes a complete `rspack.config.mjs` (about 250 lines: an ordinary Rspack config with the Rails parts commented, and the manifest and image plugins at the bottom). `config/rspack/rails.mjs`, `railsConfig`, `rspack:sync`, checksums and `tmp/rspack_rails/` are gone: nothing is generated behind the config or rewritten on upgrade
+- **No feature installers.** `rspack:install:stimulus`, `typescript`, `react`, `tailwind` and `sass`, the `react_component` helper, `rspack:analyze`, the Stimulus and React loaders and the `RSPACK_FEATURES`, `RSPACK_DEVTOOL`, `RSPACK_LAZY_COMPILATION`, `RSPACK_VIEW_RELOAD` and `RSPACK_REACT_COMPILER` variables are removed. Each tool is a package and a few lines in `rspack.config.mjs`; [Adding tools](docs/guide.md#adding-tools) has them. `template.rb` no longer asks questions. `rspack:migrate` still moves importmap and jsbundling apps, and writes a `controllers/index.js` that registers Stimulus controllers through Rspack when the app had importmap's `stimulus-loading`
+- Builds go to `public/rspack`, not `app/assets/builds`, and every file Rspack writes there carries a fingerprint: `application-1a2b3c4d.js`, `application-5e6f7a8b.css`, chunks, images and fonts. Each build starts from an empty directory. Rails serves it under `/rspack/` (the path the dev server already used) with `Cache-Control: public, max-age=31536000, immutable`, through a middleware that is only added where `config.public_file_server.enabled` is on. With a web server in front that serves `public/`, give `/rspack/` the same header there
 - `rspack_javascript_tag` and `rspack_stylesheet_tag` write their own `<script>` and `<link>` tags instead of calling `javascript_include_tag` and `stylesheet_link_tag`, so an app without Propshaft or Sprockets works. They take the options of the tag (`defer`, `nonce: true`, `integrity: true`, `media`, `data`) and still honor `config.asset_host` and the relative URL root
 - `integrity: true` computes SHA-384 hashes itself (and adds `crossorigin="anonymous"`). `config.assets.integrity_hash_algorithm` is no longer needed and has no effect on these tags
-- An entry that no build lists raises `RspackRails::Manifest::MissingEntry`, with the entries the manifest has and what to run (`bin/dev` or `bin/rails rspack:build`). 1.x linked the conventional file name, which became a 404
+- An entry that no build lists raises `RspackRails::Manifest::MissingEntry`, with the entries the manifest has and what to run (`bin/dev` or `bin/rails rspack:build`), instead of linking a file that does not exist
 - `assets:precompile` and `assets:clobber` run `rspack:build` and `rspack:clobber` also when the app has no pipeline, so a Dockerfile or Kamal deploy that calls them keeps working
-- The dev server keeps everything in memory except `.rspack-dev-manifest.json`. With it stopped, pages link the last `rspack:build` (1.x linked the dev server's last files)
-- `RspackRails::Entrypoints.outputs` is `legacy_outputs`: what 1.x wrote to `app/assets/builds`. `rspack:clobber` still removes it, next to `public/rspack`
+- The dev server keeps everything in memory except `.rspack-dev-manifest.json`, and its own static directory is off so that file does not reload the page. With it stopped, pages link the last `rspack:build`
+- The installer no longer rewrites `stylesheet_link_tag :app`: rspack's CSS is not in `app/assets` anymore
 - The deprecation horizon is 3.0
 
 ### Added
 
-- A build keeps the files of its last 3 builds (`RSPACK_KEEP_BUILDS`) and deletes everything else in `public/rspack`, so pages loaded before a deploy still find their chunks while servers roll over (with Kamal, set `asset_path: /rails/public/rspack`). Replaces `output.clean`, which deleted the previous build at once. A build identical to the last counts once, so `test:prepare` on every run does not push real builds out
-- `rspack:doctor` warns about output left in `app/assets/builds` and a `.gitignore` without `/public/rspack`
-- `rspack:install` adds `/public/rspack` to `.gitignore` and `.dockerignore`, removes `//= link_tree ../builds` from `app/assets/config/manifest.js` and deletes the 1.x output. Tailwind's class scan leaves out `public/rspack`
-
-### Removed
-
-- The installer's rewrite of `stylesheet_link_tag :app` and the doctor's warning about it. `:app` links `app/assets` only, and rspack's CSS is not there anymore
-- `output.clean`, the `.digested` suffix, the dev server's runtime plugin and the Propshaft notes in the generated config
+- `rspack_image_tag "logo.svg"` and `rspack_asset_path "icons/menu.svg"` for images that views show. Every file in `app/javascript/images/` is fingerprinted into `public/rspack` on each build and listed under `assets` in the manifest, so an app without Propshaft or Sprockets still has a fingerprinted `<img>`. Under `rspack serve` the images come from the dev server. An image that is not there raises `RspackRails::Manifest::MissingAsset`
+- `rspack:doctor` checks that `rspack.config.mjs` writes the manifest, and warns about a `.gitignore` without `/public/rspack`
+- `rspack:install` adds `/public/rspack` to `.gitignore` and `.dockerignore`, and `rspack_stylesheet_tag "application"` next to the script tag
+- Docs: during a rolling deploy with Kamal, `asset_path: /rails/public/rspack` keeps old chunks available to pages loaded before it (each image holds only its own build). `bin/integration-docker` simulates that bridging against a real image, and `bin/integration-template no-pipeline` builds an app with `--skip-asset-pipeline`
 
 ## [1.0.3] - 2026-11-20
 

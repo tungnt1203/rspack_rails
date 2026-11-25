@@ -37,50 +37,8 @@ RSpec.describe RspackRails::Installer do
     file.write(content)
   end
 
-  describe "#main_entry!" do
-    it "finds a TypeScript entry" do
-      write("app/javascript/application.ts")
-      expect(host.main_entry!).to eq("app/javascript/application.ts")
-    end
-
-    it "exits when there is no entry" do
-      expect { host.main_entry! }.to raise_error(SystemExit)
-    end
-  end
-
-  describe "#require_config!" do
-    it "passes and updates config/rspack/rails.mjs when rspack.config.mjs builds on it" do
-      write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
-      write("config/rspack/rails.mjs", "// old")
-      expect { host.require_config!("Sass") }.not_to raise_error
-      expect(@root.join("config/rspack/rails.mjs").read).to eq(RspackRails::ManagedFile::BASE.content)
-    end
-
-    it "exits when rspack.config.mjs does not build on config/rspack/rails.mjs, even if it has the feature" do
-      write("rspack.config.mjs", "sass-loader")
-      expect { host.require_config!("Sass") }.to raise_error(SystemExit)
-    end
-  end
-
-  describe "#install_rspack_config" do
-    it "writes both config files in a new app" do
-      host.install_rspack_config
-      expect(RspackRails::RspackConfig.managed?(@root)).to be(true)
-      expect(RspackRails::ManagedFile::BASE.current?(@root)).to be(true)
-    end
-
-    it "keeps an app's own rspack.config.mjs that builds on the base" do
-      custom = %(import { railsConfig } from "./config/rspack/rails.mjs";\nexport default railsConfig(); // mine\n)
-      write("rspack.config.mjs", custom)
-      host.install_rspack_config
-      expect(@root.join("rspack.config.mjs").read).to eq(custom)
-      expect(RspackRails::ManagedFile::BASE.current?(@root)).to be(true)
-    end
-  end
-
   it "removes a gem and the comment above it" do
     write("Gemfile", %(gem "rails"\n# Use Tailwind CSS\ngem "tailwindcss-rails"\ngem "puma"\n))
-    expect(host.gem_in_gemfile?("tailwindcss-rails")).to be(true)
     host.remove_gem("tailwindcss-rails")
     expect(@root.join("Gemfile").read).to eq(%(gem "rails"\ngem "puma"\n))
   end
@@ -90,42 +48,6 @@ RSpec.describe RspackRails::Installer do
     host.update_package_json { |package| package["scripts"] = { "build" => "rspack build" } }
     expect(JSON.parse(@root.join("package.json").read)).to eq("name" => "app",
                                                               "scripts" => { "build" => "rspack build" })
-  end
-
-  describe "#import_from_entry" do
-    it "puts a stylesheet first and other modules last, once" do
-      write("app/javascript/application.js", %(import "@hotwired/turbo-rails"\n))
-      host.import_from_entry("app/javascript/application.js", "./application.css", first: true)
-      host.import_from_entry("app/javascript/application.js", "./components/mount")
-      host.import_from_entry("app/javascript/application.js", "./application.css", first: true)
-      expect(@root.join("app/javascript/application.js").read)
-        .to eq(%(import "./application.css"\nimport "@hotwired/turbo-rails"\nimport "./components/mount"\n))
-    end
-
-    it "counts an import written with single quotes and a semicolon" do
-      write("app/javascript/application.js", %(import './application.css';\n))
-      host.import_from_entry("app/javascript/application.js", "./application.css", first: true)
-      expect(@root.join("app/javascript/application.js").read).to eq(%(import './application.css';\n))
-    end
-  end
-
-  describe "#remove_css_gem" do
-    it "drops the watcher, the old output and the gem" do
-      write("Gemfile", %(source "https://rubygems.org"\n# Use Tailwind CSS\ngem "tailwindcss-rails"\n))
-      write("Procfile.dev", "web: bin/rails server\ncss: bin/rails tailwindcss:watch\n")
-      write("app/assets/builds/tailwind.css", "")
-      write("app/assets/builds/tailwind/extra.css", "")
-      allow(host).to receive(:run)
-
-      host.remove_css_gem("tailwindcss-rails", watcher: "tailwindcss:watch",
-                                               outputs: %w[app/assets/builds/tailwind.css app/assets/builds/tailwind])
-
-      expect(@root.join("Procfile.dev").read).to eq("web: bin/rails server\n")
-      expect(@root.join("app/assets/builds/tailwind.css")).not_to exist
-      expect(@root.join("app/assets/builds/tailwind")).not_to exist
-      expect(@root.join("Gemfile").read).to eq(%(source "https://rubygems.org"\n))
-      expect(host).to have_received(:run).with("bundle install --quiet", abort_on_failure: true)
-    end
   end
 
   describe "#add_stylesheet_tag" do
@@ -208,7 +130,7 @@ RSpec.describe RspackRails::Installer do
   describe ".run" do
     it "raises with the task name when the template fails" do
       allow(described_class).to receive(:system).and_return(false)
-      expect { described_class.run("sass") }.to raise_error(RspackRails::Error, "rspack:install:sass failed")
+      expect { described_class.run("migrate") }.to raise_error(RspackRails::Error, "rspack:install:migrate failed")
     end
   end
 end

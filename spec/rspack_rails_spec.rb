@@ -49,7 +49,7 @@ RSpec.describe RspackRails do
         expect(described_class.manifest["application"].scripts).to eq(["application.js"])
       end
 
-      it "reads the build's manifest under a dev server whose rails.mjs predates the dev manifest" do
+      it "reads the build's manifest while the dev server has not written its own yet" do
         allow(dev_server).to receive(:running?).and_return(true)
         File.delete(RspackRails::Manifest::DEV_PATH)
         expect(described_class.manifest["application"].scripts).to eq(["application.js"])

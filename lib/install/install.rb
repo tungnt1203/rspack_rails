@@ -15,18 +15,12 @@ pm = RspackRails::PackageManager.detect(Rails.root)
   append_to_file ignore, lines
 end
 
-# Left by rspack_rails 1.x, which built into the asset pipeline.
-if File.exist?("app/assets/config/manifest.js")
-  gsub_file "app/assets/config/manifest.js", %r{^//= link_tree \.\./builds\n}, ""
-end
-RspackRails::Entrypoints.legacy_outputs(Rails.root).each { |file| remove_file file.relative_path_from(Rails.root).to_s }
-
 say "Creating rspack entry point"
 # An existing application.ts (or .jsx, .tsx) is the entry; a new .js would shadow it.
 unless RspackRails::Entrypoints.main_entry(Rails.root)
   copy_file "#{__dir__}/application.js", "app/javascript/application.js"
 end
-install_rspack_config
+copy_file "#{__dir__}/rspack.config.mjs", "rspack.config.mjs"
 
 say "Configuring package.json"
 copy_file "#{__dir__}/package.json", "package.json" unless File.exist?("package.json")
@@ -61,6 +55,7 @@ if (layout = self.layout)
 else
   say "Add this to your layout: <%= #{js_tag} %>", :yellow
 end
+add_stylesheet_tag # empty until a stylesheet is imported from JavaScript
 
 say "Configuring bin/dev"
 js_process = "js: #{pm.run_command("dev")}"

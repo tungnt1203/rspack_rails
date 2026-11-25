@@ -39,7 +39,7 @@ module RspackRails
         Check.new(name == :"dev-server" ? :warn : :error, label, "not installed", "Run `#{add_command(label)}`")
       end
 
-      # config/rspack/rails.mjs is written for one Rspack major version.
+      # The generated rspack.config.mjs is written for one Rspack major version.
       def package_version_check(label, version)
         major = RspackVersion::MAJOR
         case RspackVersion.compare(version)

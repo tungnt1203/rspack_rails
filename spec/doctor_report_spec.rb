@@ -12,6 +12,8 @@ require "rspack_rails/doctor"
 # UPDATE_GOLDEN=1 rewrites the files after an intended change to the output.
 RSpec.describe RspackRails::Doctor, "report" do
   let(:golden_dir) { File.expand_path("fixtures/doctor", __dir__) }
+  # What `bin/rails rspack:install` writes.
+  let(:config_file) { File.read(File.expand_path("../lib/install/rspack.config.mjs", __dir__)) }
   let(:rails_fixtures) { File.expand_path("fixtures/rails", __dir__) }
 
   around do |example|
@@ -69,15 +71,10 @@ RSpec.describe RspackRails::Doctor, "report" do
 
   it "reports a fully set up app" do
     rspack_packages
-    install_package("@hotwired/stimulus")
-    write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
-    RspackRails::ManagedFile.sync_all(@root)
-    RspackRails::ManagedFile::STIMULUS.sync(@root, create: true)
-    RspackRails::ManagedFile::REACT.sync(@root, create: true)
+    write("rspack.config.mjs", config_file)
     write("package.json", JSON.generate(scripts: { build: "rspack build", dev: "rspack serve" }))
     write("app/javascript/application.js")
     write("app/javascript/entrypoints/print.css")
-    write(RspackRails::Tailwind::STYLESHEET, RspackRails::Tailwind.add_excludes(%(@import "tailwindcss";\n)))
     write_build(application: { js: %w[application-1a2b3c4d.js], css: %w[application-5e6f7a8b.css] },
                 print: { css: %w[print-9c0d1e2f.css] })
     write(".gitignore", "/public/rspack\n")
@@ -95,14 +92,9 @@ RSpec.describe RspackRails::Doctor, "report" do
   it "reports an app with something wrong in every check" do
     rspack_packages(version: "1.7.0")
     install_package("@rspack/core", version: "1.7.0", engines: { node: ">=22.12.0" })
-    write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
-    write("config/rspack/rails.mjs", "#{RspackRails::ManagedFile::BASE.content}// edited\n")
-    write(RspackRails::ManagedFile::STIMULUS.path, older_managed(RspackRails::ManagedFile::STIMULUS))
-    write(RspackRails::ManagedFile::REACT.path, "// mine\n")
+    write("rspack.config.mjs", "export default {};\n")
     write("package.json", JSON.generate(scripts: { start: "rspack serve" }))
     write("app/javascript/application.js")
-    write(RspackRails::Tailwind::STYLESHEET, %(@import "tailwindcss";\n))
-    write("app/assets/builds/application.bundle.css")
     write(".gitignore", "/log\n")
     write("app/views/layouts/application.html.erb",
           "<%= javascript_importmap_tags %>\n<%= stylesheet_link_tag :app %>\n")
@@ -123,15 +115,12 @@ RSpec.describe RspackRails::Doctor, "report" do
     expect_golden("other", report(enabled: false))
   end
 
-  it "reports a stale config and a missing rspack:install" do
+  it "reports a missing rspack:install" do
     rspack_packages
-    write("rspack.config.mjs", %(import { railsConfig } from "./config/rspack/rails.mjs";))
+    write("rspack.config.mjs", config_file)
     write("app/javascript/application.js")
     write("app/views/layouts/application.html.erb", %(<%= rspack_javascript_tag "application" %>\n))
     write_build(application: { js: %w[application-1a2b3c4d.js], css: %w[application-5e6f7a8b.css] })
     expect_golden("partial", report(node_version: "v22.12.0"))
-    write("config/rspack/rails.mjs", older_managed)
-    write("app/javascript/controllers/autoload.js", RspackRails::ManagedFile::STIMULUS.content)
-    expect_golden("outdated", report)
   end
 end

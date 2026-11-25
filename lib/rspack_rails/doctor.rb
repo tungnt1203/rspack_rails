@@ -5,7 +5,6 @@ require_relative "doctor/package_checks"
 require_relative "doctor/build_checks"
 require_relative "doctor/layout_checks"
 require_relative "doctor/process_checks"
-require_relative "doctor/loader_checks"
 require_relative "doctor/dev_server_checks"
 
 module RspackRails
@@ -15,7 +14,7 @@ module RspackRails
     Check = Struct.new(:status, :name, :detail, :hint)
     SYMBOLS = { ok: "✓", warn: "!", error: "✗" }.freeze
     # In report order.
-    GROUPS = [PackageChecks, BuildChecks, LayoutChecks, ProcessChecks, LoaderChecks, DevServerChecks].freeze
+    GROUPS = [PackageChecks, BuildChecks, LayoutChecks, ProcessChecks, DevServerChecks].freeze
 
     def initialize(root, config: RspackRails.config, dev_server: RspackRails.dev_server, node_version: nil)
       @context = Context.new(root, config: config, dev_server: dev_server, node_version: node_version)

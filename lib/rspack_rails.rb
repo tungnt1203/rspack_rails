@@ -32,9 +32,8 @@ module RspackRails
       @dev_server ||= DevServer.new(config)
     end
 
-    # Internal. The dev server's manifest while it runs, the build's otherwise
-    # (also under a config/rspack/rails.mjs from before 1.0.3, which writes
-    # only that one). One of each per app root: new ones when Rails.root
+    # Internal. The dev server's manifest while it runs, the build's otherwise.
+    # One of each per app root: new ones when Rails.root
     # changes (another app in the same process, as in tests or an engine's
     # dummy app).
     def manifest
