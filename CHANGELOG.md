@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- Docs: recipes for code splitting (dynamic `import()`, prefetch, a shared chunk between entries), Lightning CSS instead of PostCSS, and the size under which images and fonts are inlined
+
 - `rspack:doctor` checks `bin/dev` (present, starts `Procfile.dev`, executable) and, when the app has a Dockerfile, that the JavaScript lockfile exists, which the Docker build's frozen install needs
 
 ## [2.0.0] - 2026-11-25
