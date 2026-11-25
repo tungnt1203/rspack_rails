@@ -7,7 +7,8 @@
   <meta name="description" content="A Ruby gem that bundles a Rails app's JavaScript and CSS with Rspack. Saving a file updates the open page, and the config is one plain Rspack file that no upgrade rewrites.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,400..700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Martian+Mono:wdth,wght@75..112.5,400..600&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="media/rspack-mascot.svg">
   <link rel="stylesheet" href="styles.css">
   <script>document.documentElement.classList.add("js");</script>
 </head>
@@ -15,7 +16,7 @@
   <a class="skip" href="#main">Skip to the page</a>
   <header class="bar">
     <div class="container bar__inner">
-      <a class="wordmark" href="./" aria-label="rspack_rails, home">rspack_rails</a>
+      <a class="wordmark" href="./" aria-label="rspack_rails, home"><img src="media/rspack-mascot.svg" alt="" width="40" height="31">rspack_rails</a>
       <nav aria-label="Site">
         <ul class="bar__links">
           <li><a href="docs/">Docs</a></li>
@@ -30,10 +31,10 @@
     <section class="hero" aria-labelledby="hero-title">
       <div class="container hero__grid">
         <div class="hero__copy">
-          <h1 id="hero-title">Rspack for Rails, in one file you own</h1>
-          <p class="hero__lead">Save a file and the open page updates. The only config rspack_rails adds is <code>rspack.config.mjs</code>, a plain Rspack config that no upgrade rewrites.</p>
+          <h1 id="hero-title">Rspack for Rails, one file you own</h1>
+          <p class="lead">Save a file and the open page updates.</p>
           <div class="command">
-            <p class="command__line"><span class="prompt">$</span> <span id="command-text">rails new myapp -m https://raw.githubusercontent.com/<wbr>tungnt1203/<wbr>rspack_rails/<wbr>main/<wbr>template.rb</span></p>
+            <p class="command__line"><span class="prompt" aria-hidden="true">$</span> <span id="command-text">rails new myapp -m https://raw.githubusercontent.com/<wbr>tungnt1203/<wbr>rspack_rails/<wbr>main/<wbr>template.rb</span></p>
             <div class="command__actions">
               <button class="btn btn--solid" type="button" data-copy="#command-text" hidden>Copy the command</button>
               <a class="link" href="#start">Add it to an app you have</a>
@@ -41,88 +42,15 @@
             <p class="command__status" role="status" aria-live="polite"></p>
           </div>
         </div>
-
-        <figure class="diff" aria-labelledby="diff-title">
-          <figcaption class="diff__head">
-            <b id="diff-title">bin/rails rspack:install</b>
-            <span class="diff__sum">11 files changed, <span class="a">345 insertions(+)</span>, <span class="d">3 deletions(-)</span></span>
-          </figcaption>
-          <ul class="diff__list">
-          <li class="file file--new" style="--row:0">
-            <span class="file__sign" aria-hidden="true">+</span>
-            <span class="file__path">rspack.config.mjs</span>
-            <span class="file__count"><span class="n">+289</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="a" style="--i:3"></i><i class="a" style="--i:4"></i></span></span>
-            <span class="file__note">Yours. No upgrade rewrites it.</span>
-          </li>
-          <li class="file" style="--row:1">
-            <span class="file__sign" aria-hidden="true">~</span>
-            <span class="file__path">package.json</span>
-            <span class="file__count"><span class="n">+17</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="a" style="--i:3"></i><i style="--i:4"></i></span></span>
-            <span class="file__note">build and dev scripts, and the Rspack packages</span>
-          </li>
-          <li class="file" style="--row:2">
-            <span class="file__sign" aria-hidden="true">~</span>
-            <span class="file__path">Dockerfile</span>
-            <span class="file__count"><span class="n">+13</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="a" style="--i:3"></i><i style="--i:4"></i></span></span>
-            <span class="file__note">Node.js, so assets:precompile can build</span>
-          </li>
-          <li class="file" style="--row:3">
-            <span class="file__sign" aria-hidden="true">~</span>
-            <span class="file__path">bin/dev</span>
-            <span class="file__count"><span class="n">+10 −2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="d" style="--i:3"></i><i style="--i:4"></i></span></span>
-            <span class="file__note">starts Rails and the dev server together</span>
-          </li>
-          <li class="file file--new" style="--row:4">
-            <span class="file__sign" aria-hidden="true">+</span>
-            <span class="file__path">app/javascript/application.js</span>
-            <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
-            <span class="file__note">the entry point</span>
-          </li>
-          <li class="file" style="--row:5">
-            <span class="file__sign" aria-hidden="true">~</span>
-            <span class="file__path">app/views/layouts/application.html.erb</span>
-            <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
-            <span class="file__note">the script tag and the stylesheet tag</span>
-          </li>
-          <li class="file file--new" style="--row:6">
-            <span class="file__sign" aria-hidden="true">+</span>
-            <span class="file__path">Procfile.dev</span>
-            <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
-            <span class="file__note">the dev server process</span>
-          </li>
-          <li class="file" style="--row:7">
-            <span class="file__sign" aria-hidden="true">~</span>
-            <span class="file__path">.gitignore</span>
-            <span class="file__count"><span class="n">+3</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
-            <span class="file__note">public/rspack and node_modules stay out</span>
-          </li>
-          <li class="file" style="--row:8">
-            <span class="file__sign" aria-hidden="true">~</span>
-            <span class="file__path">.dockerignore</span>
-            <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
-            <span class="file__note">public/rspack stays out of the image</span>
-          </li>
-          <li class="file" style="--row:9">
-            <span class="file__sign" aria-hidden="true">~</span>
-            <span class="file__path">bin/setup</span>
-            <span class="file__count"><span class="n">+3</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
-            <span class="file__note">installs node modules</span>
-          </li>
-          <li class="file" style="--row:10">
-            <span class="file__sign" aria-hidden="true">~</span>
-            <span class="file__path">.devcontainer/devcontainer.json</span>
-            <span class="file__count"><span class="n">+2 −1</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="d" style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
-            <span class="file__note">Node.js, and port 3036 for the dev server</span>
-          </li>
-          </ul>
-          <p class="diff__foot">Counted on a new Rails 8.1 app with the Dockerfile and dev container Rails generates. Apart from <code>rspack.config.mjs</code>, it is a few lines in each file.</p>
+        <figure class="mascot">
+          <img src="media/rspack-mascot.svg" alt="Rspack's crab mascot, one claw raised, a lightning bolt on its head" width="578" height="449" fetchpriority="high">
         </figure>
       </div>
     </section>
 
     <section id="how" aria-labelledby="follows-title">
       <div class="container follows">
-        <div>
+        <div class="follows__copy">
           <div class="section__head">
             <h2 id="follows-title">Save a file, and the page follows</h2>
             <p>Run <code>bin/dev</code>, edit something, and the open page changes. Rails proxies the dev server, so there is no second origin to allow.</p>
@@ -144,6 +72,90 @@
       </div>
     </section>
 
+    <section class="changes" aria-labelledby="changes-title">
+      <div class="container changes__grid">
+        <div class="section__head section__head--flush">
+          <h2 id="changes-title">What rspack:install changes</h2>
+          <p>The only config rspack_rails adds is <code>rspack.config.mjs</code>, a plain Rspack config that no upgrade rewrites.</p>
+        </div>
+    <figure class="diff" aria-labelledby="diff-title">
+      <figcaption class="diff__head">
+        <b id="diff-title">bin/rails rspack:install</b>
+        <span class="diff__sum">11 files changed, <span class="a">345 insertions(+)</span>, <span class="d">3 deletions(-)</span></span>
+      </figcaption>
+      <ul class="diff__list">
+      <li class="file file--new" style="--row:0">
+        <span class="file__sign" aria-hidden="true">+</span>
+        <span class="file__path">rspack.config.mjs</span>
+        <span class="file__count"><span class="n">+289</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="a" style="--i:3"></i><i class="a" style="--i:4"></i></span></span>
+        <span class="file__note">Yours. No upgrade rewrites it.</span>
+      </li>
+      <li class="file" style="--row:1">
+        <span class="file__sign" aria-hidden="true">~</span>
+        <span class="file__path">package.json</span>
+        <span class="file__count"><span class="n">+17</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="a" style="--i:3"></i><i style="--i:4"></i></span></span>
+        <span class="file__note">build and dev scripts, and the Rspack packages</span>
+      </li>
+      <li class="file" style="--row:2">
+        <span class="file__sign" aria-hidden="true">~</span>
+        <span class="file__path">Dockerfile</span>
+        <span class="file__count"><span class="n">+13</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="a" style="--i:3"></i><i style="--i:4"></i></span></span>
+        <span class="file__note">Node.js, so assets:precompile can build</span>
+      </li>
+      <li class="file" style="--row:3">
+        <span class="file__sign" aria-hidden="true">~</span>
+        <span class="file__path">bin/dev</span>
+        <span class="file__count"><span class="n">+10 −2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i class="d" style="--i:3"></i><i style="--i:4"></i></span></span>
+        <span class="file__note">starts Rails and the dev server together</span>
+      </li>
+      <li class="file file--new" style="--row:4">
+        <span class="file__sign" aria-hidden="true">+</span>
+        <span class="file__path">app/javascript/application.js</span>
+        <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+        <span class="file__note">the entry point</span>
+      </li>
+      <li class="file" style="--row:5">
+        <span class="file__sign" aria-hidden="true">~</span>
+        <span class="file__path">app/views/layouts/application.html.erb</span>
+        <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+        <span class="file__note">the script tag and the stylesheet tag</span>
+      </li>
+      <li class="file file--new" style="--row:6">
+        <span class="file__sign" aria-hidden="true">+</span>
+        <span class="file__path">Procfile.dev</span>
+        <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+        <span class="file__note">the dev server process</span>
+      </li>
+      <li class="file" style="--row:7">
+        <span class="file__sign" aria-hidden="true">~</span>
+        <span class="file__path">.gitignore</span>
+        <span class="file__count"><span class="n">+3</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+        <span class="file__note">public/rspack and node_modules stay out</span>
+      </li>
+      <li class="file" style="--row:8">
+        <span class="file__sign" aria-hidden="true">~</span>
+        <span class="file__path">.dockerignore</span>
+        <span class="file__count"><span class="n">+2</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+        <span class="file__note">public/rspack stays out of the image</span>
+      </li>
+      <li class="file" style="--row:9">
+        <span class="file__sign" aria-hidden="true">~</span>
+        <span class="file__path">bin/setup</span>
+        <span class="file__count"><span class="n">+3</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="a" style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+        <span class="file__note">installs node modules</span>
+      </li>
+      <li class="file" style="--row:10">
+        <span class="file__sign" aria-hidden="true">~</span>
+        <span class="file__path">.devcontainer/devcontainer.json</span>
+        <span class="file__count"><span class="n">+2 −1</span><span class="cells" aria-hidden="true"><i class="a" style="--i:0"></i><i class="a" style="--i:1"></i><i class="d" style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span></span>
+        <span class="file__note">Node.js, and port 3036 for the dev server</span>
+      </li>
+      </ul>
+      <p class="diff__foot">Counted on a new Rails 8.1 app with the Dockerfile and dev container Rails generates. Apart from <code>rspack.config.mjs</code>, it is a few lines in each file.</p>
+    </figure>
+      </div>
+    </section>
+
     <section aria-labelledby="serving-title">
       <div class="container">
         <div class="section__head">
@@ -157,7 +169,7 @@
               <figcaption><span>what happens when you open a page</span></figcaption>
               <pre tabindex="0"><code><span class="l">GET /rspack/application.js    proxied to rspack serve</span><span class="l">GET /rspack/application.css   proxied to rspack serve</span><span class="l c"># only hot updates skip Rails</span><span class="l">ws://localhost:3036/ws        browser to dev server</span></code></pre>
             </figure>
-            <p>Bundles, chunks, Web Workers and lazy-compiled imports come from the page's own origin.</p>
+            <p>Bundles, chunks, Web Workers and lazy-compiled imports come from the page’s own origin.</p>
           </div>
           <div>
             <h3>In production</h3>
@@ -255,16 +267,20 @@
 
     <section class="closing-section" aria-labelledby="closing-title">
       <div class="container closing">
-        <h2 id="closing-title">Try it on a new app</h2>
-        <p>The demo app uses React, CSS modules, a Web Worker, Turbo Streams and a second entry point, and is deployed with Kamal. <a class="link" href="https://52-65-113-251.sslip.io">Open it</a> or <a class="link" href="https://github.com/tungnt1203/rspack_rails-demo">read its source</a>.</p>
-        <a class="btn btn--solid" href="docs/">Read the docs</a>
+        <img class="closing__mascot" src="media/rspack-mascot.svg" alt="" width="578" height="449" loading="lazy">
+        <div class="closing__copy">
+          <h2 id="closing-title">Try it on a new app</h2>
+          <p>The demo app uses React, CSS modules, a Web Worker, Turbo Streams and a second entry point, and is deployed with Kamal. <a class="link" href="https://52-65-113-251.sslip.io">Open it</a> or <a class="link" href="https://github.com/tungnt1203/rspack_rails-demo">read its source</a>.</p>
+          <a class="btn" href="docs/">Read the docs</a>
+        </div>
       </div>
     </section>
   </main>
 
   <footer class="footer">
     <div class="container footer__inner">
-      <p>rspack_rails is a Ruby gem under the MIT licence. Rspack builds the bundles and Rails serves them.</p>
+      <img src="media/rspack-mascot.svg" alt="" width="72" height="56" loading="lazy">
+      <p>rspack_rails is a Ruby gem under the MIT licence. Rspack builds the bundles and Rails serves them. The crab is Rspack’s mascot.</p>
       <ul>
         <li><a href="docs/">Docs</a></li>
         <li><a href="https://github.com/tungnt1203/rspack_rails">GitHub</a></li>
