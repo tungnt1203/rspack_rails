@@ -45,7 +45,7 @@ The helpers hash each file with SHA-384 (and add `crossorigin="anonymous"`, whic
 
 `rspack:doctor` reports a `Dockerfile` that cannot run Rspack. CI builds and runs the image of a new app.
 
-**Rolling deploys.** A page loaded before a deploy asks for the old build's chunks, which a new container does not have. Kamal's asset bridging copies them over: set `asset_path: /rails/public/rspack` in `config/deploy.yml`. The old files stay there while `RSPACK_KEEP_BUILDS` builds of them exist.
+**Rolling deploys.** A page loaded before a deploy asks for the old build's chunks, which a new container does not have: its image holds only its own build. Kamal's asset bridging fixes that. Set `asset_path: /rails/public/rspack` in `config/deploy.yml`, and Kamal gives the new container a volume with the new files plus the old ones, and the old container the new ones, never overwriting a file (the manifest of each version stays its own). CI simulates that copy against a real image. [Keeping the last builds](#builds) does not help here, because each image is built from scratch; it is for deploys that build in place on the server.
 
 ## Dev containers
 
