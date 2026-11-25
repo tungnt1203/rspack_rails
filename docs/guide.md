@@ -162,18 +162,41 @@ export const application = Application.start()
 ```
 
 ```js
-// app/javascript/controllers/index.js: registers every *_controller.js (or .ts) under this directory
+// app/javascript/controllers/index.js
+// Registers every Stimulus controller under app/javascript/controllers:
+// hello_controller.js -> "hello", admin/user_controller.js -> "admin--user".
+// New controllers need no manual import, and under `rspack serve` an edited or
+// added controller is swapped in the open page without a reload.
 import { application } from "./application"
 
-const controllers = import.meta.webpackContext(".", { recursive: true, regExp: /_controller\.[jt]s$/ })
+const controllers = () => import.meta.webpackContext(".", { recursive: true, regExp: /_controller\.[jt]s$/ })
 
-for (const key of controllers.keys()) {
-  const name = key.replace(/^\.\//, "").replace(/_controller\.[jt]s$/, "").replaceAll("/", "--").replaceAll("_", "-")
-  application.register(name, controllers(key).default)
+// "./admin/user_controller.js" -> "admin--user"
+const identifierFor = (key) =>
+  key
+    .replace(/^\.\//, "")
+    .replace(/_controller\.[jt]s$/, "")
+    .replaceAll("/", "--")
+    .replaceAll("_", "-")
+
+const registerAll = (context) => {
+  for (const key of context.keys()) {
+    const controller = context(key).default
+    if (controller) application.register(identifierFor(key), controller)
+  }
+}
+
+const context = controllers()
+registerAll(context)
+
+// Stimulus unloads an identifier before registering it again, so registering
+// again swaps connected controllers in place.
+if (import.meta.webpackHot) {
+  import.meta.webpackHot.accept(context.id, () => registerAll(controllers()))
 }
 ```
 
-Import `./controllers` from your entry. `admin/user_card_controller.js` becomes `admin--user-card`. [`rspack:migrate`](migrating.md) writes this `index.js` for an importmap app that had stimulus-rails.
+Import `./controllers` from your entry. `admin/user_card_controller.js` becomes `admin--user-card`. Under `rspack serve`, editing or adding a controller swaps it in the open page, so form input and other page state survive. [`rspack:migrate`](migrating.md) writes this `index.js` for an importmap app that had stimulus-rails.
 
 ### Sass
 
