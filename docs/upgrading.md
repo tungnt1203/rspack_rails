@@ -34,7 +34,7 @@ bin/rails rspack:doctor
 What changes:
 
 - **Output.** Rspack writes `public/rspack/<entry>-<hash>.js` and `.css`, and Rails serves it under `/rspack/` with a far-future cache header. Add `/public/rspack` to `.gitignore` and `.dockerignore` (`bin/rails rspack:install` does it; `rspack:doctor` checks `.gitignore`). `app/assets/config/manifest.js` no longer needs `//= link_tree ../builds`.
-- **Propshaft and Sprockets are optional.** Keep them for the rest of `app/assets`. Without them, `assets:precompile` still runs `rspack:build`. `image_tag "logo.png"` needs one of them (or `public/`, or an import from JavaScript or CSS).
+- **Propshaft and Sprockets are optional.** Keep them for the rest of `app/assets`. Without them, `assets:precompile` still runs `rspack:build`. `image_tag "logo.png"` needs one of them. Without, move the image to `app/javascript/images/` and use `rspack_image_tag "logo.png"`, or put it in `public/`.
 - **`stylesheet_link_tag :app`** no longer links rspack's CSS, so a layout that has it is fine as it is. The 1.x installers replaced it with your stylesheets by name; that is no longer needed.
 - **Integrity.** `integrity: true` works with no setting (`config.assets.integrity_hash_algorithm` has no effect on rspack's files).
 - **Old builds.** A build keeps the files of the last 3 builds of its mode and deletes the rest of `public/rspack`. Deploying with Kamal: set `asset_path: /rails/public/rspack`.

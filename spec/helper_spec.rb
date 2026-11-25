@@ -141,6 +141,48 @@ RSpec.describe RspackRails::Helper do
     end
   end
 
+  describe "#rspack_asset_path and #rspack_image_tag" do
+    before do
+      write_manifest_with_assets("logo.svg" => "logo-3f2a9c1d5e6f7a8b.svg",
+                                 "icons/menu.svg" => "menu-1a2b3c4d5e6f7a8b.svg")
+    end
+
+    def write_manifest_with_assets(assets)
+      path = @root.join(RspackRails::Manifest::PATH)
+      path.dirname.mkpath
+      path.write(JSON.generate(entries: {}, assets: assets))
+    end
+
+    context "when the dev server is not running" do
+      before { allow(dev_server).to receive(:running?).and_return(false) }
+
+      it "gives the fingerprinted URL under /rspack/" do
+        expect(view.rspack_asset_path("logo.svg")).to eq("/rspack/logo-3f2a9c1d5e6f7a8b.svg")
+        expect(view.rspack_asset_path("icons/menu.svg")).to eq("/rspack/menu-1a2b3c4d5e6f7a8b.svg")
+      end
+
+      it "puts the asset host in front" do
+        view.config.asset_host = "https://cdn.example.com"
+        expect(view.rspack_asset_path("logo.svg")).to eq("https://cdn.example.com/rspack/logo-3f2a9c1d5e6f7a8b.svg")
+      end
+
+      it "writes an <img> with the options" do
+        expect(view.rspack_image_tag("logo.svg", alt: "Acme", class: "h-8", "data-x": "1")).to eq(
+          '<img src="/rspack/logo-3f2a9c1d5e6f7a8b.svg" alt="Acme" class="h-8" data-x="1">'
+        )
+      end
+
+      it "raises for an image that is not in app/javascript/images" do
+        expect { view.rspack_image_tag("nope.png") }.to raise_error(RspackRails::Manifest::MissingAsset)
+      end
+    end
+
+    it "serves the image from the dev server while it runs" do
+      allow(dev_server).to receive(:running?).and_return(true)
+      expect(view.rspack_asset_path("logo.svg")).to eq("/rspack/logo-3f2a9c1d5e6f7a8b.svg")
+    end
+  end
+
   describe "#react_component" do
     it "takes props as keywords" do
       html = view.react_component("Hello", name: "World", count: 2)

@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- `rspack_image_tag "logo.svg"` and `rspack_asset_path "icons/menu.svg"` for images that views show. Every file in `app/javascript/images/` is fingerprinted into `public/rspack` on each build and listed under `assets` in the manifest, so an app without Propshaft or Sprockets still has a fingerprinted `<img>`. Under `rspack serve` the images come from the dev server. An image that is not there raises `RspackRails::Manifest::MissingAsset`
+
 ## [2.0.0] - 2026-11-25
 
 Rspack now builds into `public/rspack` and Rails serves it itself: no Propshaft or Sprockets in the way, and none required. The view helpers are unchanged, so layouts need no edit. Read [From 1.x to 2.0](docs/upgrading.md#from-1x-to-20) when you upgrade: `bundle update rspack_rails`, `bin/rails rspack:clobber`, `bin/rails rspack:build`.

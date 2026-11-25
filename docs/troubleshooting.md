@@ -28,7 +28,7 @@ rspack_rails 1.x built into `app/assets/builds`, where Rails 8's `stylesheet_lin
 
 ## `image_tag` cannot find an image
 
-Without Propshaft or Sprockets, `image_tag "logo.png"` has nothing to look it up in. Import the image from JavaScript or CSS (Rspack fingerprints it), or put it in `public/` and use `image_tag "/logo.png"`.
+Without Propshaft or Sprockets, `image_tag "logo.png"` has nothing to look it up in. Put the image in `app/javascript/images/` and use `rspack_image_tag "logo.png"` (or `rspack_asset_path "logo.png"` for the URL). Rspack fingerprints it. Or put it in `public/` and use `image_tag "/logo.png"`.
 
 ## Sass files on Sprockets fail with a missing `sassc` gem
 
