@@ -45,12 +45,6 @@ module RspackRails
       json("package.json") || {}
     end
 
-    # Whether package.json lists `name` in dependencies or devDependencies.
-    def dependency?(name)
-      package = package_json
-      package.fetch("dependencies", {}).key?(name) || package.fetch("devDependencies", {}).key?(name)
-    end
-
     # The package.json of an installed node module ("@rspack/core"), or nil.
     def node_package(name)
       json("node_modules/#{name}/package.json")
@@ -63,11 +57,6 @@ module RspackRails
     # Page layouts, relative to root, application.* first.
     def layouts
       Layouts.all(root)
-    end
-
-    # app/javascript/application.{js,ts,jsx,tsx}, or nil.
-    def main_entry
-      Entrypoints.main_entry(root)
     end
 
     # { "application" => ["app/javascript/application.js"], ... }

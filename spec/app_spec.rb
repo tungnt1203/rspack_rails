@@ -38,10 +38,9 @@ RSpec.describe RspackRails::App do
   it "reads package.json fresh each time, {} without one" do
     expect(app.package_json).to eq({})
     write("package.json", '{"devDependencies": {"@rspack/core": "^2"}}')
-    expect(app.dependency?("@rspack/core")).to be(true)
+    expect(app.package_json.dig("devDependencies", "@rspack/core")).to eq("^2")
     write("package.json", '{"dependencies": {"react": "^19"}}')
-    expect(app.dependency?("@rspack/core")).to be(false)
-    expect(app.dependency?("react")).to be(true)
+    expect(app.package_json).to eq("dependencies" => { "react" => "^19" })
   end
 
   it "reads an installed node module's package.json" do
@@ -56,7 +55,6 @@ RSpec.describe RspackRails::App do
     write("app/javascript/entrypoints/admin.js")
     write("yarn.lock")
     expect(app.layouts).to eq(["app/views/layouts/application.html.erb"])
-    expect(app.main_entry).to eq("app/javascript/application.ts")
     expect(app.entrypoints.keys).to eq(%w[application admin])
     expect(app.package_manager.name).to eq(:yarn)
   end

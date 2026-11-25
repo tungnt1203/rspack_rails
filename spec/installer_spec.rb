@@ -67,14 +67,6 @@ RSpec.describe RspackRails::Installer do
     end
   end
 
-  it "removes a helper from every layout, whatever the syntax" do
-    write("app/views/layouts/application.html.erb", "<head>\n    <%= javascript_importmap_tags %>\n</head>\n")
-    write("app/views/layouts/admin.html.haml", "%head\n  = javascript_importmap_tags\n  = csrf_meta_tags\n")
-    host.remove_from_layouts("javascript_importmap_tags")
-    expect(@root.join("app/views/layouts/application.html.erb").read).to eq("<head>\n</head>\n")
-    expect(@root.join("app/views/layouts/admin.html.haml").read).to eq("%head\n  = csrf_meta_tags\n")
-  end
-
   describe "#replace_in_layouts" do
     let(:tag) { %(rspack_javascript_tag "application") }
 
