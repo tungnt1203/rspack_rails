@@ -16,11 +16,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # Two jobs, as GitHub's own Pages workflow has it: a deploy that starts in the same job as the
+  # upload can ask for the artifact before GitHub lists it ("Found 0 artifact(s)", a flaky failure).
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/configure-pages@v5
@@ -34,10 +33,18 @@ jobs:
         run: |
           npm ci
           node build-docs.mjs
-      - name: Upload site/ (without Hallmark's working files or node_modules)
+      - name: Leave out working files and node_modules
         run: rm -rf site/.hallmark site/docs/.hallmark site/node_modules
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
