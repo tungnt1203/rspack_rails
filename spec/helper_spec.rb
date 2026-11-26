@@ -182,4 +182,62 @@ RSpec.describe RspackRails::Helper do
       expect(view.rspack_asset_path("logo.svg")).to eq("/rspack/logo-3f2a9c1d5e6f7a8b.svg")
     end
   end
+
+  describe "#rspack_preload_tag" do
+    before do
+      allow(dev_server).to receive(:running?).and_return(false)
+      write_manifest(
+        application: { js: %w[runtime-1.js application-2.js], css: %w[application-3.css], stylesheetOnly: false },
+        admin: { js: %w[runtime-1.js admin-4.js], css: [], stylesheetOnly: false },
+        print: { js: [], css: %w[print-5.css], stylesheetOnly: true }
+      )
+    end
+
+    it "preloads scripts as script and stylesheets as style" do
+      html = view.rspack_preload_tag("application")
+      expect(html).to include('<link rel="preload" as="script" href="/rspack/application-2.js">')
+      expect(html).to include('<link rel="preload" as="style" href="/rspack/application-3.css">')
+    end
+
+    it "preloads a file shared by several entries once" do
+      expect(view.rspack_preload_tag("application", "admin").scan("runtime-1.js").size).to eq(1)
+    end
+
+    it "takes nonce and integrity like the tags it precedes" do
+      view.config.asset_host = nil
+      allow(RspackRails).to receive(:integrity).and_return("sha384-abc")
+      html = view.rspack_preload_tag("print", integrity: true, nonce: "n0nce")
+      expect(html).to include('href="/rspack/print-5.css"', 'integrity="sha384-abc"', 'crossorigin="anonymous"',
+                              'nonce="n0nce"')
+    end
+
+    it "raises for an entry no build lists" do
+      expect { view.rspack_preload_tag("nope") }.to raise_error(RspackRails::Manifest::MissingEntry)
+    end
+  end
+
+  describe "#rspack_favicon_tag and #rspack_font_preload_tag" do
+    before do
+      allow(dev_server).to receive(:running?).and_return(false)
+      path = @root.join(RspackRails::Manifest::PATH)
+      path.dirname.mkpath
+      assets = { "favicon.svg" => "favicon-1.svg", "fonts/inter.woff2" => "inter-2.woff2", "x.bin" => "x-3.bin" }
+      path.write(JSON.generate(entries: {}, assets: assets))
+    end
+
+    it "writes an icon link with the type of the extension" do
+      expect(view.rspack_favicon_tag("favicon.svg"))
+        .to eq('<link rel="icon" type="image/svg+xml" href="/rspack/favicon-1.svg">')
+    end
+
+    it "writes a font preload with crossorigin" do
+      html = view.rspack_font_preload_tag("fonts/inter.woff2")
+      expect(html).to include('as="font"', 'type="font/woff2"', 'crossorigin="anonymous"',
+                              'href="/rspack/inter-2.woff2"')
+    end
+
+    it "leaves out the type of an extension it does not know" do
+      expect(view.rspack_favicon_tag("x.bin")).not_to include("type=")
+    end
+  end
 end

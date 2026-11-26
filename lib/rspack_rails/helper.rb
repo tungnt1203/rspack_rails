@@ -7,6 +7,14 @@ module RspackRails
   # themselves: rspack fingerprints its files, so no asset pipeline is
   # involved, and an app does not need Propshaft or Sprockets.
   module Helper
+    ICON_TYPES = {
+      "png" => "image/png", "svg" => "image/svg+xml", "ico" => "image/x-icon", "gif" => "image/gif",
+      "jpg" => "image/jpeg", "jpeg" => "image/jpeg", "webp" => "image/webp", "avif" => "image/avif"
+    }.freeze
+    FONT_TYPES = {
+      "woff2" => "font/woff2", "woff" => "font/woff", "ttf" => "font/ttf", "otf" => "font/otf"
+    }.freeze
+
     # The entry's scripts as listed in .rspack-manifest.json (under `rspack
     # serve`, runtime.js first). A script already on the page, such as the
     # runtime shared by several entries, is linked once.
@@ -47,7 +55,48 @@ module RspackRails
       tag.img(**{ "src" => rspack_asset_path(name) }, **options.stringify_keys)
     end
 
+    # `<link rel="preload">` for an entry's scripts and stylesheets, for the
+    # <head>, so the browser fetches them while it parses the page. Takes the
+    # options of the tag, `nonce` and `integrity` included (the hash must match
+    # the one on the script and link tags, so give both the same options).
+    #   <%= rspack_preload_tag "application", integrity: true %>
+    def rspack_preload_tag(*entries, **options)
+      entries = entries.map { |entry| RspackRails.manifest[entry] }
+      options = rspack_tag_options(**options)
+      tags = rspack_preload_files(entries).map do |file, as|
+        tag.link(**{ "rel" => "preload", "as" => as }, **rspack_attributes(file, "href", options))
+      end
+      safe_join(tags, "\n")
+    end
+
+    # `<link rel="icon">` for a file in app/javascript/images, with its `type`
+    # from the extension (png, svg, ico, gif, jpg, webp, avif).
+    #   <%= rspack_favicon_tag "favicon.svg" %>
+    def rspack_favicon_tag(name, **options)
+      type = RspackRails::Helper::ICON_TYPES[File.extname(name.to_s).delete_prefix(".").downcase]
+      attributes = { "rel" => "icon", "type" => type, "href" => rspack_asset_path(name) }.compact
+      tag.link(**attributes, **options.stringify_keys)
+    end
+
+    # `<link rel="preload" as="font">` for a font in app/javascript/images, so
+    # the text does not flash before it loads. Fonts are fetched in anonymous
+    # CORS mode, so `crossorigin` is always set.
+    #   <%= rspack_font_preload_tag "fonts/inter.woff2" %>
+    def rspack_font_preload_tag(name, **options)
+      type = RspackRails::Helper::FONT_TYPES[File.extname(name.to_s).delete_prefix(".").downcase]
+      tag.link(**{ "rel" => "preload", "as" => "font", "type" => type, "crossorigin" => "anonymous",
+                   "href" => rspack_asset_path(name) }.compact, **options.stringify_keys)
+    end
+
     private
+
+    # [file, "script" | "style"] for each file of the entries, once. A
+    # stylesheet-only entry's script (the hot update client) is not preloaded.
+    def rspack_preload_files(entries)
+      scripts = entries.reject(&:stylesheet_only).flat_map(&:scripts).map { |file| [file, "script"] }
+      styles = entries.flat_map(&:stylesheets).map { |file| [file, "style"] }
+      (scripts + styles).uniq
+    end
 
     # Under `rspack serve`, the scripts of stylesheet-only entries; empty otherwise.
     def rspack_hot_css_scripts(entries, options)
