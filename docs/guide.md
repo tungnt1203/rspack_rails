@@ -100,6 +100,12 @@ body { background: url("./images/hero.png"); }
 - Images that a view shows (`<img>`, an icon, an Open Graph image) go in `app/javascript/images/`; see below.
 - A root-relative `url()` is left for Rails: Rspack neither bundles nor fingerprints it. `url("/icon.png")` is served from `public/icon.png` as written. Without Propshaft or Sprockets, `image_tag "logo.png"` does not look in `app/assets/images` either: import the image from JavaScript or CSS, or put it in `public/`.
 
+### Preloading
+
+In the `<head>`, `rspack_preload_tag "application"` writes `<link rel="preload">` for the entry's scripts and stylesheets, so the browser starts fetching them while it parses the page. It takes the same options as the script and link tags: give both the same `integrity: true` and `nonce: true`, or the hash does not match and the preload is wasted.
+
+For a web font, put the file in `app/javascript/images/fonts/` and add `<%= rspack_font_preload_tag "fonts/inter.woff2" %>` (always `crossorigin="anonymous"`, as the browser requires for fonts).
+
 ### Images in views
 
 Every file in `app/javascript/images/` is fingerprinted into `public/rspack` on each build and listed in the manifest, whether or not JavaScript imports it. Name it by its path in that directory:
@@ -107,10 +113,11 @@ Every file in `app/javascript/images/` is fingerprinted into `public/rspack` on 
 ```erb
 <%= rspack_image_tag "logo.svg", alt: "Acme", class: "h-8" %>
 <%= rspack_image_tag "icons/menu.svg", alt: "" %>
-<link rel="icon" href="<%= rspack_asset_path "favicon.png" %>">
+<%= rspack_favicon_tag "favicon.svg" %>
 ```
 
 - `rspack_image_tag` takes the options of `tag.img`. `rspack_asset_path` returns the URL (`/rspack/logo-<hash>.svg`, with `config.asset_host` in front), for anything that is not an `<img>`.
+- `rspack_favicon_tag "favicon.svg"` writes `<link rel="icon">` with the `type` for the extension.
 - An image that is not there raises `RspackRails::Manifest::MissingAsset`, naming the images that are.
 - Under `rspack serve` the images come from the dev server, so adding or editing one needs no build.
 - An image that CSS or JavaScript also imports is emitted once, by Rspack, and listed under its file name; a small one that Rspack inlines as a data URI still gets its own file for views. So the directory can hold every image, whoever uses it.

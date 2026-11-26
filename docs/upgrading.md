@@ -17,7 +17,7 @@ Some releases also change other files (`Dockerfile`, `bin/setup`). The CHANGELOG
 
 From 1.0, rspack_rails follows [semantic versioning](https://semver.org) for the parts below. They change only in a major release, after at least one minor release that deprecates the old way with a warning.
 
-- **Ruby API:** what [`sig/rspack_rails.rbs`](../sig/rspack_rails.rbs) lists: `RspackRails.config` and `configure`, `RspackRails.dev_server`, `DevServerProxy`, `RspackRails::Error`, and the view helpers `rspack_javascript_tag`, `rspack_stylesheet_tag`, `rspack_image_tag` and `rspack_asset_path`.
+- **Ruby API:** what [`sig/rspack_rails.rbs`](../sig/rspack_rails.rbs) lists: `RspackRails.config` and `configure`, `RspackRails.dev_server`, `DevServerProxy`, `RspackRails::Error`, and the view helpers `rspack_javascript_tag`, `rspack_stylesheet_tag`, `rspack_image_tag`, `rspack_asset_path`, `rspack_preload_tag`, `rspack_favicon_tag` and `rspack_font_preload_tag`.
 - **The manifest** the config writes to `public/rspack/.rspack-manifest.json` (`entries` and `assets`), which the view helpers read.
 - **Rake tasks and environment variables:** the ones in the [Rake tasks](configuration.md#rake-tasks) and [Environment variables](configuration.md#environment-variables) tables, with what they do.
 - **Build output** in `public/rspack`: fingerprinted files (`<name>-<hash>.js`, `.css` and assets), served under `/rspack/`, and that a build starts from an empty directory.
