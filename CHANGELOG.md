@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-26
+
 - `rspack_preload_tag "application"` writes `<link rel="preload">` for an entry's scripts and stylesheets (with `nonce` and `integrity`), `rspack_favicon_tag "favicon.svg"` a `<link rel="icon">` with the right `type`, and `rspack_font_preload_tag "fonts/inter.woff2"` a font preload with `crossorigin`. The last two take files from `app/javascript/images`
 
 - Docs: the full list of what `rspack:doctor` checks, and troubleshooting for missing styles, JavaScript loading twice, `bin/dev`, and Docker builds (lockfile, Node.js)
